@@ -22,7 +22,7 @@ runtests : tests/runtests.sh
 	cd tests; ./runtests.sh
 
 
-$(BIN) : $(LINKOBJ)
+$(BIN) : $(LINKOBJ) ../obj/$(MAIN)
 	@mkdir -p $(dir $@)
 	$(CXX) -o $(BIN) $(LINKOBJ) ../obj/$(MAIN) $(LIB)
 
@@ -36,7 +36,7 @@ clean_bin :
 	$(RM) $(BIN)
 
 clean :
-	$(RM) $(BIN) $(DEPS) $(LINKOBJ)
+	$(RM) $(BIN) $(DEPS) $(LINKOBJ) ../obj/$(MAIN)
 	$(RM) tests/*~
 	$(RM) tests/*.test
 	$(RM) tests/*.out

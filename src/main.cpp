@@ -3,6 +3,7 @@
 int main(int argc, char ** argv)
 {	
 	Document doc;
+	srand(time(NULL));
 	if (argc > 1)
 	{
 		for (int i = 2; i < argc; ++i)
@@ -10,6 +11,11 @@ int main(int argc, char ** argv)
 			if (fork() == 0) doc.Load(argv[i]);
 		}
 		doc.Load(argv[1]);
+	}
+	else
+	{
+		Debug("Add random object");
+		doc.Add(RECT_FILLED, Rect(Random()*0.5, Random()*0.5, Random()*0.5, Random()*0.5));
 	}
 	MainLoop(doc);
 	return 0;

@@ -16,6 +16,12 @@ namespace IPDF
 	typedef unsigned ObjectID;
 	typedef enum {RECT_FILLED, RECT_OUTLINE} ObjectType;
 
+	enum DocChunkTypes
+	{
+		CT_OBJTYPES,
+		CT_OBJBOUNDS
+	};
+
 	struct Rect
 	{
 		Real x; Real y; Real w; Real h;
