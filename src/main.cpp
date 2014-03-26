@@ -1,26 +1,16 @@
-#include "common.h"
-
-#include "document.h"
-#include "view.h"
-#include "screen.h"
-
-using namespace std;
-using namespace IPDF;
-
+#include "main.h"
+#include <unistd.h> // Because we can.
 int main(int argc, char ** argv)
-{
+{	
 	Document doc;
-	doc.Add(0.5, 0.5, 0.5, 0.5);
-
-	View view(doc);
-
-	Screen scr;
-
-	while (scr.PumpEvents())
+	if (argc > 1)
 	{
-		view.Render();
-		scr.Present();
+		for (int i = 2; i < argc; ++i)
+		{
+			if (fork() == 0) doc.Load(argv[i]);
+		}
+		doc.Load(argv[1]);
 	}
-
+	MainLoop(doc);
 	return 0;
 }

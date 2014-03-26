@@ -1,10 +1,11 @@
 #Makefile
 CXX = g++ -std=gnu++0x -Wall -Werror -Wshadow -pedantic -g
-OBJ = log.o tests/saveload.o document.o view.o screen.o
+MAIN = main.o
+OBJ = log.o document.o view.o screen.o
 LIB = `sdl2-config --libs` -lGL
 OBJPATHS = $(OBJ:%=../obj/%)
 DEPS := $(OBJPATHS:%.o=%.d)
-CFLAGS += `sdl2-config --cflags`
+CFLAGS += `sdl2-config --cflags` -I`pwd`
 
 LINKOBJ = $(OBJPATHS)
 
@@ -14,9 +15,16 @@ BIN = ../bin/ipdf
 
 all : $(BIN)
 
+tests/% : tests/%.cpp ../obj/tests/%.o $(LINKOBJ)
+	$(CXX) -o $@.test $(LINKOBJ) ../obj/$@.o $(LIB)
+
+runtests : tests/runtests.sh
+	cd tests; ./runtests.sh
+
+
 $(BIN) : $(LINKOBJ)
 	@mkdir -p $(dir $@)
-	$(CXX) -o $(BIN) $(LINKOBJ) $(LIB)
+	$(CXX) -o $(BIN) $(LINKOBJ) ../obj/$(MAIN) $(LIB)
 
 ../obj/%.o : %.cpp
 	@mkdir -p $(dir $@)
@@ -24,14 +32,21 @@ $(BIN) : $(LINKOBJ)
 
 -include $(DEPS)
 
+clean_bin :
+	$(RM) $(BIN)
+
 clean :
 	$(RM) $(BIN) $(DEPS) $(LINKOBJ)
+	$(RM) tests/*~
+	$(RM) tests/*.test
+	$(RM) tests/*.out
+	$(RM) tests/*.err
+	
 
-clean_full: #cleans up all backup files
-	$(RM) $(BIN) $(DEPS) $(LINKOBJ)
+clean_full: clean
 	$(RM) *.*~
 	$(RM) *~
-	$(RM) *.o
+
 
 
 	

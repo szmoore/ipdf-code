@@ -1,42 +1,46 @@
-#include "../common.h"
-
-#include "../document.h"
-#include "../view.h"
-#include "../screen.h"
-
-using namespace std;
-using namespace IPDF;
-
+#include "main.h"
+#include <unistd.h>
 unsigned test_objects = 4;
+
+void Cleanup()
+{
+	unlink("saveload.ipdf");
+}
 
 int main(int argc, char ** argv)
 {
+	Debug("TEST STARTING %s", argv[0]);
+	atexit(Cleanup);
 	srand(time(NULL));
 	Document doc;
 	for (unsigned id = 0; id < test_objects; ++id)
 	{
 		doc.Add((ObjectType)(rand() % 2), Rect(Random(), Random(), Random(), Random()));
 	}
-	doc.Save("test.ipdf");
+	doc.Save("saveload.ipdf");
 
-	Document equ("test.ipdf");
+	Document equ("saveload.ipdf");
 	//doc.Add(Random(), Random(), Random(), Random());
 	if (doc != equ || equ != doc)
 	{
 		Error("Loaded document is not equivelant to saved document!");
 		doc.DebugDumpObjects();
 		equ.DebugDumpObjects();
+		Fatal("TEST FAILED");
 	}
 	
-
-	View view(doc);
-	Screen scr;
-
-	while (scr.PumpEvents())
+	doc.Add((ObjectType)(0), Rect());
+	if (doc == equ)
 	{
-		view.Render();
-		scr.Present();
+		Error("Modified document is still equilant to saved document!?");
+		doc.DebugDumpObjects();
+		equ.DebugDumpObjects();
+		Fatal("TEST FAILED");
 	}
+	Debug("TEST SUCCESSFUL");
+	// Cleanup
 
 	return 0;
 }
+
+

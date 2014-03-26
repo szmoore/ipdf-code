@@ -2,3 +2,6 @@
 *.d
 *~
 *.ipdf
+*.test
+*.out
+*.err

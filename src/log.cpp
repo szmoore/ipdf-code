@@ -75,13 +75,13 @@ void LogEx(int level, const char * funct, const char * file, int line, ...)
 			severity = "WARNING";
 			break;
 		case LOG_NOTICE:
-			severity = "NOTICE";
+			severity = "notice";
 			break;
 		case LOG_INFO:
-			severity = "INFO";
+			severity = "info";
 			break;
 		default:
-			severity = "DEBUG";
+			severity = "debug";
 			break;
 	}
 
