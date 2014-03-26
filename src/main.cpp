@@ -10,7 +10,8 @@ using namespace IPDF;
 int main(int argc, char ** argv)
 {
 	Document doc;
-	doc.Add(0.5, 0.5, 0.5, 0.5);
+	srand(time(NULL));
+	doc.Add(Random(), Random(), Random(), Random());
 
 	View view(doc);
 
