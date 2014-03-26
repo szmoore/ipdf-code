@@ -1,32 +1,32 @@
 #Makefile
 CXX = g++ -std=gnu++0x -Wall -Werror -Wshadow -pedantic -g
-OBJ = log.o
+OBJ = log.o main.o
 LIB = #-lSDL2
-DEPS := $(OBJ:%.o=%.d)
+OBJPATHS = $(OBJ:%=../obj/%)
+DEPS := $(OBJPATHS:%.o=%.d)
 
-LINKOBJ = $(OBJ)
+LINKOBJ = $(OBJPATHS)
 
 RM = rm -f
-BIN = ipdf
+BIN = ../bin/ipdf
+
+-include $(DEPS)
 
 all : $(BIN)
 
-$(BIN) : $(LINKOBJ) main.o
-	$(CXX) -o $(BIN) main.o $(LINKOBJ) $(LIB)
+$(BIN) : $(LINKOBJ)
+	@mkdir -p $(dir $@)
+	$(CXX) -o $(BIN) $(LINKOBJ) $(LIB)
 
-%.o : %.cpp
+../obj/%.o : %.cpp
+	@mkdir -p $(dir $@)
 	$(CXX) -c -MMD -o $@ $<
 
-no_main : $(OBJ)
-
-main.o : main.cpp
-	$(CXX) -c main.cpp
-
 clean :
-	$(RM) $(BIN) $(OBJ) $(LINKOBJ) main.o
+	$(RM) $(BIN) $(DEPS) $(LINKOBJ)
 
 clean_full: #cleans up all backup files
-	$(RM) $(BIN) $(OBJ) $(LINKOBJ)
+	$(RM) $(BIN) $(DEPS) $(LINKOBJ)
 	$(RM) *.*~
 	$(RM) *~
 	$(RM) *.o
