@@ -1,6 +1,6 @@
 #Makefile
 CXX = g++ -std=gnu++0x -Wall -Werror -Wshadow -pedantic -g
-OBJ = log.o main.o
+OBJ = log.o main.o document.o view.o
 LIB = #-lSDL2
 OBJPATHS = $(OBJ:%=../obj/%)
 DEPS := $(OBJPATHS:%.o=%.d)
