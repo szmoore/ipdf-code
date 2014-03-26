@@ -11,7 +11,7 @@ int main(int argc, char ** argv)
 {
 	Document doc;
 	srand(time(NULL));
-	doc.Add(Random(), Random(), Random(), Random());
+	doc.Add(RECT_FILLED, Rect(Random(), Random(), Random(), Random()));
 
 	View view(doc);
 
