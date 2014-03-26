@@ -8,13 +8,18 @@ namespace IPDF
 	class Document
 	{
 		public:
-			Document() : m_objects(), m_count(0) {Load();}
+			Document(const std::string & filename = "") : m_objects(), m_count(0) {Load(filename);}
 			virtual ~Document() {}
 
 			void Load(const std::string & filename = "");
+			void Save(const std::string & filename);
 			void Add(Real x, Real y, Real w, Real h);
+			void DebugDumpObjects();
 
-			unsigned ObjectCount() {return m_count;}
+			unsigned ObjectCount() const {return m_count;}
+
+			bool operator==(const Document & equ) const;
+			bool operator!=(const Document & equ) const {return !(this->operator==(equ));}
 
 		private:
 			friend class View;

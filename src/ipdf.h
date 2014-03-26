@@ -8,12 +8,17 @@ namespace IPDF
 	typedef float Real;
 	
 	inline float RealToFloat(Real r) {return r;}
+	inline Real Random(Real max=1, Real min=0)
+	{
+		return min + (max-min) * ((Real)(rand() % (int)1e6) / 1e6);
+	}
 
 	typedef unsigned ObjectID;
 
 	struct Rect
 	{
 		Real x; Real y; Real w; Real h;
+		Rect() = default; // Needed so we can fread/fwrite this struct
 		Rect(Real _x, Real _y, Real _w, Real _h) : x(_x), y(_y), w(_w), h(_h) {}
 		std::string Str() 
 		{
