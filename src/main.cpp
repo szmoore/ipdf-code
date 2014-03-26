@@ -15,7 +15,8 @@ int main(int argc, char ** argv)
 	else
 	{
 		Debug("Add random object");
-		doc.Add(RECT_FILLED, Rect(Random()*0.5, Random()*0.5, Random()*0.5, Random()*0.5));
+		//doc.Add(RECT_FILLED, Rect(Random()*0.5, Random()*0.5, Random()*0.5, Random()*0.5));
+		doc.Add(RECT_FILLED, Rect(0.25,0.25, 0.5, 0.5));
 	}
 	MainLoop(doc);
 	return 0;

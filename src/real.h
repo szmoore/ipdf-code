@@ -7,8 +7,8 @@ namespace IPDF
 {
 
 //#define REAL_FLOAT
-#define REAL_DOUBLE
-//#define REAL_HALF
+//#define REAL_DOUBLE
+#define REAL_HALF
 
 #ifdef REAL_SINGLE
 	typedef float Real;
@@ -26,7 +26,7 @@ namespace IPDF
 			// mask out extra bits in exponent
 			 //1000 1111 1000 0000 0000 0011 1111 1111
 			// Endianness matters
-			a &= 0xFF3008F8;//0x8F8003FF;
+			a &= 0xFFC001F1; //0x8F8003FF;
 
 		}	
 	
