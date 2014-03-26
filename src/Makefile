@@ -10,7 +10,6 @@ LINKOBJ = $(OBJPATHS)
 RM = rm -f
 BIN = ../bin/ipdf
 
--include $(DEPS)
 
 all : $(BIN)
 
@@ -21,6 +20,8 @@ $(BIN) : $(LINKOBJ)
 ../obj/%.o : %.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) -c -MMD -o $@ $<
+
+-include $(DEPS)
 
 clean :
 	$(RM) $(BIN) $(DEPS) $(LINKOBJ)
