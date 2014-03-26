@@ -1,9 +1,10 @@
 #Makefile
 CXX = g++ -std=gnu++0x -Wall -Werror -Wshadow -pedantic -g
-OBJ = log.o main.o document.o view.o
-LIB = #-lSDL2
+OBJ = log.o main.o document.o view.o screen.o
+LIB = `sdl2-config --libs` -lGL
 OBJPATHS = $(OBJ:%=../obj/%)
 DEPS := $(OBJPATHS:%.o=%.d)
+CFLAGS += `sdl2-config --cflags`
 
 LINKOBJ = $(OBJPATHS)
 
@@ -19,7 +20,7 @@ $(BIN) : $(LINKOBJ)
 
 ../obj/%.o : %.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) -c -MMD -o $@ $<
+	$(CXX) $(CFLAGS) -c -MMD -o $@ $<
 
 -include $(DEPS)
 
