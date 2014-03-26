@@ -10,12 +10,7 @@ void View::Render()
 	static bool debug_output_done = false;
 	if (!debug_output_done)
 	{
-		Debug("Bounds are %s", m_bounds.Str().c_str());
-		Debug("Objects are:");
-		for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
-		{
-			Debug("%u\t%s", id, m_document.m_objects.bounds[id].Str().c_str());
-		}
+		m_document.DebugDumpObjects();
 		debug_output_done = true;
 	}
 

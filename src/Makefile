@@ -1,6 +1,6 @@
 #Makefile
 CXX = g++ -std=gnu++0x -Wall -Werror -Wshadow -pedantic -g
-OBJ = log.o main.o document.o view.o screen.o
+OBJ = log.o tests/saveload.o document.o view.o screen.o
 LIB = `sdl2-config --libs` -lGL
 OBJPATHS = $(OBJ:%=../obj/%)
 DEPS := $(OBJPATHS:%.o=%.d)

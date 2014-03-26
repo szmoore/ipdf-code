@@ -13,7 +13,7 @@ namespace IPDF
 
 			void Load(const std::string & filename = "");
 			void Save(const std::string & filename);
-			void Add(Real x, Real y, Real w, Real h);
+			void Add(ObjectType type, const Rect & bounds);
 			void DebugDumpObjects();
 
 			unsigned ObjectCount() const {return m_count;}
