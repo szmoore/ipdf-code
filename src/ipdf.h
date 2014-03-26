@@ -14,6 +14,7 @@ namespace IPDF
 	}
 
 	typedef unsigned ObjectID;
+	typedef enum {RECT_FILLED, RECT_OUTLINE} ObjectType;
 
 	struct Rect
 	{
@@ -30,6 +31,7 @@ namespace IPDF
 
 	struct Objects
 	{
+		std::vector<ObjectType> types;		
 		std::vector<Rect> bounds;
 	};
 

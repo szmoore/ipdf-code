@@ -18,10 +18,17 @@ void Document::Save(const string & filename)
 	if (written != 1)
 		Fatal("Failed to write number of objects!");
 
+	Debug("Object types...");
+	written = fwrite(m_objects.types.data(), sizeof(ObjectType), m_objects.types.size(), file);
+	if (written != ObjectCount())
+		Fatal("Only wrote %u objects!", written);
+
 	Debug("Object bounds...");
 	written = fwrite(m_objects.bounds.data(), sizeof(Rect), m_objects.bounds.size(), file);
 	if (written != ObjectCount())
 		Fatal("Only wrote %u objects!", written);
+
+
 
 	int err = fclose(file);
 	if (err != 0)
@@ -50,7 +57,13 @@ void Document::Load(const string & filename)
 		Fatal("Failed to read number of objects!");
 	Debug("Number of objects: %u", ObjectCount());
 
+	m_objects.types.resize(ObjectCount());
 	m_objects.bounds.resize(ObjectCount());
+
+	Debug("Object types...");
+	read = fread(m_objects.types.data(), sizeof(ObjectType), m_objects.types.size(), file);
+	if (read != ObjectCount())
+		Fatal("Only read %u objects!", read);
 	
 	Debug("Object bounds...");
 	read = fread(m_objects.bounds.data(), sizeof(Rect), m_objects.bounds.size(), file);
@@ -60,9 +73,10 @@ void Document::Load(const string & filename)
 	Debug("Successfully loaded %u objects from \"%s\"", ObjectCount(), filename.c_str());
 }
 
-void Document::Add(Real x, Real y, Real w, Real h)
+void Document::Add(ObjectType type, const Rect & bounds)
 {
-	m_objects.bounds.push_back(Rect(x, y, w, h));
+	m_objects.types.push_back(type);
+	m_objects.bounds.push_back(bounds);
 	m_count++;
 }
 
@@ -71,7 +85,7 @@ void Document::DebugDumpObjects()
 	Debug("Objects for Document %p are:", this);
 	for (unsigned id = 0; id < ObjectCount(); ++id)
 	{
-		Debug("%u.\t%s", id, m_objects.bounds[id].Str().c_str());
+		Debug("%u. \tType: %u\tBounds: %s", id, m_objects.types[id], m_objects.bounds[id].Str().c_str());
 	}
 }
 
