@@ -5,6 +5,27 @@
 using namespace IPDF;
 using namespace std;
 
+// Loads an std::vector<T> of size num_elements from a file.
+template<typename T>
+static void LoadStructVector(FILE *src_file, size_t num_elems, std::vector<T>& dest)
+{
+	size_t structsread = 0;
+	dest.resize(num_elems);
+	structsread = fread(dest.data(), sizeof(T), num_elems, src_file);
+	if (structsread != num_elems)
+		Fatal("Only read %u structs (expected %u)!", structsread, num_elems);
+}
+
+// Saves an std::vector<T> to a file. Size must be saves separately.
+template<typename T>
+static void SaveStructVector(FILE *dst_file, std::vector<T>& src)
+{
+	size_t written = 0;
+	written = fwrite(src.data(), sizeof(T), src.size(), dst_file);
+	if (written != src.size())
+		Fatal("Only wrote %u structs (expected %u)!", written, src.size());
+}
+
 void Document::Save(const string & filename)
 {
 	Debug("Saving document to file \"%s\"...", filename.c_str());
@@ -19,16 +40,10 @@ void Document::Save(const string & filename)
 		Fatal("Failed to write number of objects!");
 
 	Debug("Object types...");
-	written = fwrite(m_objects.types.data(), sizeof(ObjectType), m_objects.types.size(), file);
-	if (written != ObjectCount())
-		Fatal("Only wrote %u objects!", written);
+	SaveStructVector<ObjectType>(file, m_objects.types);
 
 	Debug("Object bounds...");
-	written = fwrite(m_objects.bounds.data(), sizeof(Rect), m_objects.bounds.size(), file);
-	if (written != ObjectCount())
-		Fatal("Only wrote %u objects!", written);
-
-
+	SaveStructVector<Rect>(file, m_objects.bounds);
 
 	int err = fclose(file);
 	if (err != 0)
@@ -57,18 +72,11 @@ void Document::Load(const string & filename)
 		Fatal("Failed to read number of objects!");
 	Debug("Number of objects: %u", ObjectCount());
 
-	m_objects.types.resize(ObjectCount());
-	m_objects.bounds.resize(ObjectCount());
-
 	Debug("Object types...");
-	read = fread(m_objects.types.data(), sizeof(ObjectType), m_objects.types.size(), file);
-	if (read != ObjectCount())
-		Fatal("Only read %u objects!", read);
+	LoadStructVector<ObjectType>(file, ObjectCount(), m_objects.types);
 	
 	Debug("Object bounds...");
-	read = fread(m_objects.bounds.data(), sizeof(Rect), m_objects.bounds.size(), file);
-	if (read != ObjectCount())
-		Fatal("Only read %u objects!", read);
+	LoadStructVector<Rect>(file, ObjectCount(), m_objects.bounds);
 	
 	Debug("Successfully loaded %u objects from \"%s\"", ObjectCount(), filename.c_str());
 }
