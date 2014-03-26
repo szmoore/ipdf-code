@@ -19,7 +19,7 @@ void View::Render()
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(m_bounds.x, m_bounds.x+m_bounds.w, m_bounds.y + m_bounds.h, m_bounds.y, -1.f, 1.f);
+	glOrtho(Float(m_bounds.x), Float(m_bounds.x)+Float(m_bounds.w), Float(m_bounds.y) + Float(m_bounds.h), Float(m_bounds.y), -1.f, 1.f);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
@@ -30,10 +30,10 @@ void View::Render()
 		if (m_document.m_objects.types[id] == RECT_FILLED)
 			continue;
 		Rect obj_bounds = m_document.m_objects.bounds[id];
-		glVertex2f(obj_bounds.x, obj_bounds.y);
-		glVertex2f(obj_bounds.x + obj_bounds.w, obj_bounds.y);
-		glVertex2f(obj_bounds.x + obj_bounds.w, obj_bounds.y + obj_bounds.h);
-		glVertex2f(obj_bounds.x, obj_bounds.y + obj_bounds.h);
+		glVertex2f(Float(obj_bounds.x), Float(obj_bounds.y));
+		glVertex2f(Float(obj_bounds.x) + Float(obj_bounds.w), Float(obj_bounds.y));
+		glVertex2f(Float(obj_bounds.x) + Float(obj_bounds.w), Float(obj_bounds.y) + Float(obj_bounds.h));
+		glVertex2f(Float(obj_bounds.x), Float(obj_bounds.y) + Float(obj_bounds.h));
 	}
 	glEnd();
 
@@ -43,10 +43,10 @@ void View::Render()
 			continue;
 		Rect obj_bounds = m_document.m_objects.bounds[id];
 		glBegin(GL_LINE_LOOP);
-		glVertex2f(obj_bounds.x, obj_bounds.y);
-		glVertex2f(obj_bounds.x + obj_bounds.w, obj_bounds.y);
-		glVertex2f(obj_bounds.x + obj_bounds.w, obj_bounds.y + obj_bounds.h);
-		glVertex2f(obj_bounds.x, obj_bounds.y + obj_bounds.h);
+		glVertex2f(Float(obj_bounds.x), Float(obj_bounds.y));
+		glVertex2f(Float(obj_bounds.x) + Float(obj_bounds.w), Float(obj_bounds.y));
+		glVertex2f(Float(obj_bounds.x) + Float(obj_bounds.w), Float(obj_bounds.y) + Float(obj_bounds.h));
+		glVertex2f(Float(obj_bounds.x), Float(obj_bounds.y) + Float(obj_bounds.h));
 		glEnd();
 	}
 

@@ -2,12 +2,11 @@
 #define _IPDF_H
 
 #include "common.h"
+#include "real.h"
 
 namespace IPDF
 {
-	typedef float Real;
-	
-	inline float RealToFloat(Real r) {return r;}
+
 	inline Real Random(Real max=1, Real min=0)
 	{
 		return min + (max-min) * ((Real)(rand() % (int)1e6) / 1e6);
