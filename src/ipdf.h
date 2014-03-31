@@ -17,6 +17,7 @@ namespace IPDF
 
 	enum DocChunkTypes
 	{
+		CT_NUMOBJS,
 		CT_OBJTYPES,
 		CT_OBJBOUNDS
 	};

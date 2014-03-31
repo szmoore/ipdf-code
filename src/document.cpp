@@ -26,6 +26,26 @@ static void SaveStructVector(FILE *dst_file, std::vector<T>& src)
 		Fatal("Only wrote %u structs (expected %u)!", written, src.size());
 }
 
+static void WriteChunkHeader(FILE *dst_file, DocChunkTypes type, uint32_t size)
+{
+	size_t written = 0;
+	written = fwrite(&type, sizeof(type), 1, dst_file);
+	if (written != 1)
+		Fatal("Could not write Chunk header! (ID)");
+	written = fwrite(&size, sizeof(size), 1, dst_file);
+	if (written != 1)
+		Fatal("Could not write Chunk header (size)!");
+}
+
+static bool ReadChunkHeader(FILE *src_file, DocChunkTypes& type, uint32_t& size)
+{
+	if (fread(&type, sizeof(DocChunkTypes), 1, src_file) != 1)
+		return false;
+	if (fread(&size, sizeof(uint32_t), 1, src_file) != 1)
+		return false;
+	return true;
+}
+
 void Document::Save(const string & filename)
 {
 	Debug("Saving document to file \"%s\"...", filename.c_str());
@@ -35,14 +55,17 @@ void Document::Save(const string & filename)
 
 	size_t written;
 	Debug("Number of objects (%u)...", ObjectCount());
+	WriteChunkHeader(file, CT_NUMOBJS, sizeof(m_count));
 	written = fwrite(&m_count, sizeof(m_count), 1, file);
 	if (written != 1)
 		Fatal("Failed to write number of objects!");
 
 	Debug("Object types...");
+	WriteChunkHeader(file, CT_OBJTYPES, m_objects.types.size() * sizeof(ObjectType));
 	SaveStructVector<ObjectType>(file, m_objects.types);
 
 	Debug("Object bounds...");
+	WriteChunkHeader(file, CT_OBJBOUNDS, m_objects.bounds.size() * sizeof(Rect));
 	SaveStructVector<Rect>(file, m_objects.bounds);
 
 	int err = fclose(file);
@@ -67,17 +90,29 @@ void Document::Load(const string & filename)
 		Fatal("Couldn't open file \"%s\"", filename.c_str(), strerror(errno));
 
 	size_t read;
-	read = fread(&m_count, sizeof(m_count), 1, file);
-	if (read != 1)
-		Fatal("Failed to read number of objects!");
-	Debug("Number of objects: %u", ObjectCount());
 
-	Debug("Object types...");
-	LoadStructVector<ObjectType>(file, ObjectCount(), m_objects.types);
-	
-	Debug("Object bounds...");
-	LoadStructVector<Rect>(file, ObjectCount(), m_objects.bounds);
-	
+	DocChunkTypes chunk_type;
+	uint32_t chunk_size;
+	while (ReadChunkHeader(file, chunk_type, chunk_size))
+	{
+		switch(chunk_type)
+		{
+		case CT_NUMOBJS:
+			read = fread(&m_count, sizeof(m_count), 1, file);
+			if (read != 1)
+				Fatal("Failed to read number of objects!");
+			Debug("Number of objects: %u", ObjectCount());
+			break;
+		case CT_OBJTYPES:
+			Debug("Object types...");
+			LoadStructVector<ObjectType>(file, chunk_size/sizeof(ObjectType), m_objects.types);
+			break;
+		case CT_OBJBOUNDS:
+			Debug("Object bounds...");
+			LoadStructVector<Rect>(file, chunk_size/sizeof(Rect), m_objects.bounds);
+			break;
+		}
+	}
 	Debug("Successfully loaded %u objects from \"%s\"", ObjectCount(), filename.c_str());
 }
 
