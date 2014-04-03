@@ -20,7 +20,7 @@ namespace IPDF
 	struct Real
 	{
 		Real() = default;
-		Real(float r) : value(r) 
+		Real(double r) : value(r) 
 		{
 			int & a = *((int*)(&value)); // um...
 			// mask out extra bits in exponent
@@ -30,14 +30,19 @@ namespace IPDF
 
 		}	
 	
-		Real operator+(float f) {return Real(value+f);}
-		Real operator-(float f) {return Real(value+f);}
-		Real operator/(float f) {return Real(value/f);}
-		Real operator*(float f) {return Real(value*f);}
-		Real operator+(const Real & r) {return this->operator+(r.value);}
-		Real operator-(const Real & r) {return this->operator-(r.value);}
-		Real operator*(const Real & r) {return this->operator*(r.value);}
-		Real operator/(const Real & r) {return this->operator/(r.value);}
+		Real operator+(float f) const {return Real(value+f);}
+		Real operator-(float f) const {return Real(value+f);}
+		Real operator/(float f) const {return Real(value/f);}
+		Real operator*(float f) const {return Real(value*f);}
+		Real operator+(const Real & r) const {return Real(this->value + r.value);}
+		Real operator-(const Real & r) const {return Real(this->value - r.value);}
+		Real operator*(const Real & r) const {return Real(this->value * r.value);}
+		Real operator/(const Real & r) const {return Real(this->value / r.value);}
+		Real & operator+=(const Real & r) {this->value += r.value; return *this;}
+		Real & operator-=(const Real & r) {this->value -= r.value; return *this;}
+		Real & operator/=(const Real & r) {this->value /= r.value; return *this;}
+		Real & operator*=(const Real & r) {this->value *= r.value; return *this;}
+
 		float value;
 	};
 	inline float Float(Real r) {return r.value;}
