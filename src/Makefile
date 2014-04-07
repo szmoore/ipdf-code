@@ -4,15 +4,15 @@ CXX = g++ -std=gnu++0x -Wall -Werror -Wshadow -pedantic -g
 MAIN = main.o
 OBJ = log.o document.o view.o screen.o
 LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL
-LIB_i686 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL
+LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL
 MAINRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../contrib/lib'
-MAINRPATH_i686 = -Wl,-rpath,'$$ORIGIN/../contrib/lib32'
+MAINRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../contrib/lib32'
 TESTRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib'
-TESTRPATH_i686 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib32'
+TESTRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib32'
 OBJPATHS = $(OBJ:%=../obj/%)
 DEPS := $(OBJPATHS:%.o=%.d)
 CFLAGS_x86_64 := -I../contrib/include/SDL2 -I`pwd`
-CFLAGS_i686 := -I../contrib/include32/SDL2 -I`pwd`
+CFLAGS_i386 := -I../contrib/include32/SDL2 -I`pwd`
 LIB := $(LIB_$(ARCH))
 MAINRPATH := $(MAINRPATH_$(ARCH))
 TESTRPATH := $(TESTRPATH_$(ARCH))
