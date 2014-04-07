@@ -2,10 +2,12 @@
 CXX = g++ -std=gnu++0x -Wall -Werror -Wshadow -pedantic -g
 MAIN = main.o
 OBJ = log.o document.o view.o screen.o
-LIB = `sdl2-config --libs` -lGL
+LIB = ../contrib/lib/libSDL2-2.0.so.0 -lGL
+MAINRPATH = -Wl,-rpath,'$$ORIGIN/../contrib/lib'
+TESTRPATH = -Wl,-rpath,'$$ORIGIN/../../contrib/lib'
 OBJPATHS = $(OBJ:%=../obj/%)
 DEPS := $(OBJPATHS:%.o=%.d)
-CFLAGS += `sdl2-config --cflags` -I`pwd`
+CFLAGS += -I../contrib/include/SDL2 -I`pwd`
 
 LINKOBJ = $(OBJPATHS)
 
@@ -16,7 +18,7 @@ BIN = ../bin/ipdf
 all : $(BIN)
 
 tests/% : tests/%.cpp ../obj/tests/%.o $(LINKOBJ)
-	$(CXX) -o $@.test $(LINKOBJ) ../obj/$@.o $(LIB)
+	$(CXX) -o $@.test $(LINKOBJ) ../obj/$@.o $(LIB) $(TESTRPATH)
 
 runtests : tests/runtests.sh
 	cd tests; ./runtests.sh
@@ -24,7 +26,7 @@ runtests : tests/runtests.sh
 
 $(BIN) : $(LINKOBJ) ../obj/$(MAIN)
 	@mkdir -p $(dir $@)
-	$(CXX) -o $(BIN) $(LINKOBJ) ../obj/$(MAIN) $(LIB)
+	$(CXX) -o $(BIN) $(LINKOBJ) ../obj/$(MAIN) $(LIB) $(MAINRPATH)
 
 ../obj/%.o : %.cpp
 	@mkdir -p $(dir $@)
