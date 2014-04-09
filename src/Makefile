@@ -2,7 +2,7 @@
 ARCH := $(shell uname -i)
 CXX = g++ -std=gnu++0x -Wall -Werror -Wshadow -pedantic -g
 MAIN = main.o
-OBJ = log.o document.o view.o screen.o
+OBJ = log.o document.o view.o screen.o vfpu.o
 LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL
 LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL
 LIB_unknown = $(LIB_x86_64)
