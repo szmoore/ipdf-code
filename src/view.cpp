@@ -7,8 +7,32 @@ using namespace std;
 
 void View::Translate(Real x, Real y)
 {
+	x *= m_bounds.w;
+	y *= m_bounds.h;
 	m_bounds.x += x;
 	m_bounds.y += y;
+}
+
+void View::ScaleAroundPoint(Real x, Real y, Real scaleAmt)
+{
+	// Convert to local coords.
+	x *= m_bounds.w;
+	y *= m_bounds.h;
+	x += m_bounds.x;
+	y += m_bounds.y;
+	
+	Debug("Mouse wheel event %f %f %f\n", Float(x), Float(y), Float(scaleAmt));
+	
+	Real top = y - m_bounds.y;
+	Real left = x - m_bounds.x;
+	
+	top *= scaleAmt;
+	left *= scaleAmt;
+	
+	m_bounds.x = x - left;
+	m_bounds.y = y - top;
+	m_bounds.w *= scaleAmt;
+	m_bounds.h *= scaleAmt;
 }
 
 void View::Render()

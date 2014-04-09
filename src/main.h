@@ -35,6 +35,11 @@ inline void MainLoop(Document & doc)
 		}
 		oldx = x;
 		oldy = y;
+		
+		if (wheel)
+		{
+			view.ScaleAroundPoint(Real(x)/Real(scr.ViewportWidth()),Real(y)/Real(scr.ViewportHeight()), expf(-wheel/20.f));
+		}
 	}
 	);
 	while (scr.PumpEvents())

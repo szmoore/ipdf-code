@@ -6,9 +6,9 @@
 namespace IPDF
 {
 
-//#define REAL_FLOAT
+#define REAL_SINGLE
 //#define REAL_DOUBLE
-#define REAL_HALF
+//#define REAL_HALF
 
 #ifdef REAL_SINGLE
 	typedef float Real;
