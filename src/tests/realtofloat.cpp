@@ -12,9 +12,9 @@ int main(int argc, char ** argv)
 	{
 		float test = test_min + (test_max-test_min)*((float)(rand() % (int)1e6)/1e6);
 		Real real(test);
-		float thiserror = abs(test - real.value);
+		float thiserror = abs(test - Float(real));
 		error += thiserror;
-		Debug("#%u: |test %.20f - real %.20f| = %.20f [mean %f]", i, test, real.value, thiserror, error/(i+1));
+		Debug("#%u: |test %.20f - real %.20f| = %.20f [mean %f]", i, test, Float(real), thiserror, error/(i+1));
 	}
 
 	if (error/test_count > error_thresh)
