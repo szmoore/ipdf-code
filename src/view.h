@@ -13,6 +13,8 @@ namespace IPDF
 			virtual ~View() {}
 
 			void Render();
+			
+			void Translate(Real x, Real y);
 		
 		private:
 			Document & m_document;

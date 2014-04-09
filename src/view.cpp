@@ -5,6 +5,12 @@
 using namespace IPDF;
 using namespace std;
 
+void View::Translate(Real x, Real y)
+{
+	m_bounds.x += x;
+	m_bounds.y += y;
+}
+
 void View::Render()
 {
 	static bool debug_output_done = false;
