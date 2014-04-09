@@ -12,6 +12,11 @@
 #include <signal.h>
 #include <string.h>
 
+#include <sstream>
+#include <iomanip>
+
+using namespace std;
+
 namespace VFPU
 {
 
@@ -79,45 +84,47 @@ int Halt()
 	return 0;
 }
 
+float Exec(float opa, float opb, Opcode op)
+{
+	unsigned a; memcpy(&a, &opa, sizeof(float));
+	unsigned b; memcpy(&b, &opb, sizeof(float));
+	
+	unsigned r = (unsigned)(Exec(Register(a), Register(b), op).to_ulong());
+	float result; memcpy(&result, &r, sizeof(float));
+	return result;
+}
+
 /**
  * Tell the VFPU to execute an instruction, wait for it to finish, return the result
- * TODO: Generalise for non 32bit Registers
+ * TODO: Make this not mix C++ and C so badly?
  */
-Register Exec(const Register & opa, const Register &  opb, Opcode op)
+Register Exec(const Register & a, const Register &  b, Opcode op)
 {
 	assert(g_running);
-	
-	// Copy floats into 32 bits (casting will alter the representation) 
-	unsigned a; memcpy(&a, &opa, 8);
-	unsigned b; memcpy(&b, &opb, 8);
+		
+	stringstream s;
+	s << hex << a.to_ullong() << "\n" << b.to_ullong() << "\n" << setw(3) << setfill('0') << op << "\n";
+	string str(s.str());
+	//fprintf(stderr, "Writing:\n%s\n", str.c_str());
 
-	
-	char buffer[BUFSIZ];
-	int len = sprintf(buffer, "%08x\n%08x\n%03x\n",a, b, op);  // This is... truly awful... why am I doing this
-	//fprintf(stderr, "Writing:\n%s", buffer);
-
-	assert(len == 9+9+4); 
-	assert(write(g_fpu_socket[1], buffer, len) == len);
+	// So we used C++ streams to make our C string...
+	assert(write(g_fpu_socket[1], str.c_str(), str.size()) == (int)str.size());
 	//fprintf(stderr, "Wrote!\n");
 
-	len = read(g_fpu_socket[1], buffer, sizeof(buffer));
-	assert(len == 9);
-	buffer[len] = '\0';
+	char buffer[BUFSIZ]; 
+	int len = read(g_fpu_socket[1], buffer, sizeof(buffer));
+	//assert(len == 9);
+	buffer[--len] = '\0'; // Get rid of newline
+	//fprintf(stderr, "Read!\n");
 	
-	
-	unsigned result = 0x00000000;
+	Register result(0);
 	for (int i = 0; i < len/2; ++i)
 	{
-		unsigned byte2; // cos its two bytes
-		sscanf(buffer+2*i, "%02x", &byte2);
-		result |= (byte2 << 8*(len/2-i-1));
+		unsigned byte; // It is ONE byte (2 nibbles == 2 hex digits)
+		sscanf(buffer+2*i, "%02x", &byte);
+		result |= (byte << 8*(len/2-i-1));
 	}
-	
-	//fprintf(stderr, "Buffer: %s\nResult: %08x\n", buffer, result);
-	
-	Register r;
-	memcpy(&r, &result, 8); // Amazing.
-	return r;
+	return result;
 }
 
 }

@@ -5,6 +5,8 @@
  * Implements a terrible and hacky interface to use a virtual FPU to do floating point operations
  */
 
+#include <bitset>
+
 namespace VFPU
 {
 	extern int Start(); // Starts the VFPU
@@ -21,10 +23,10 @@ namespace VFPU
 		-- 111 = unused
  */
 	typedef enum {ADD=0x000, SUB=0x001, MULT=0x010, DIV=0x011, SQRT=0x100} Opcode;
-	typedef float Register;
+	typedef std::bitset<32> Register;
 	
-	extern Register Exec(const Register & a, const Register & b, Opcode op);
-
+	extern Register Exec(const Register & a, const Register & b, Opcode op); // operate with registers
+	extern float Exec(float a, float b, Opcode op); //converts floats into registers and back
 }
 
 #endif //_VFPU_H
