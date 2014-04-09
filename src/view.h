@@ -15,6 +15,7 @@ namespace IPDF
 			void Render();
 			
 			void Translate(Real x, Real y);
+			void ScaleAroundPoint(Real x, Real y, Real scaleAmt);
 		
 		private:
 			Document & m_document;

@@ -58,6 +58,8 @@ bool Screen::PumpEvents()
 			}
 			break;
 		case SDL_MOUSEMOTION:
+			m_last_mouse_x = evt.motion.x;
+			m_last_mouse_y = evt.motion.y;
 			if (m_mouse_handler)
 			{
 				m_mouse_handler(evt.motion.x, evt.motion.y,evt.motion.state, 0);
@@ -65,9 +67,17 @@ bool Screen::PumpEvents()
 			break;
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
+			m_last_mouse_x = evt.button.x;
+			m_last_mouse_y = evt.button.y;
 			if (m_mouse_handler)
 			{
 				m_mouse_handler(evt.button.x, evt.button.y, evt.button.state, 0);
+			}
+			break;
+		case SDL_MOUSEWHEEL:
+			if (m_mouse_handler)
+			{
+				m_mouse_handler(m_last_mouse_x, m_last_mouse_y, 0, evt.wheel.y);
 			}
 			break;
 		default:

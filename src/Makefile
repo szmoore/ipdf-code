@@ -5,6 +5,7 @@ MAIN = main.o
 OBJ = log.o document.o view.o screen.o
 LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL
 LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL
+LIB_unknown = $(LIB_x86_64)
 MAINRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../contrib/lib'
 MAINRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../contrib/lib32'
 TESTRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib'
@@ -13,10 +14,13 @@ OBJPATHS = $(OBJ:%=../obj/%)
 DEPS := $(OBJPATHS:%.o=%.d)
 CFLAGS_x86_64 := -I../contrib/include/SDL2 -I`pwd`
 CFLAGS_i386 := -I../contrib/include32/SDL2 -I`pwd`
+CFLAGS_unknown = $(CFLAGS_x86_64)
+
 LIB := $(LIB_$(ARCH))
 MAINRPATH := $(MAINRPATH_$(ARCH))
 TESTRPATH := $(TESTRPATH_$(ARCH))
 CFLAGS := $(CFLAGS_$(ARCH))
+
 
 
 LINKOBJ = $(OBJPATHS)

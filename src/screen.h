@@ -47,6 +47,8 @@ namespace IPDF
 		void ResizeViewport(int width, int height);
 		
 		MouseHandler m_mouse_handler;
+		int m_last_mouse_x;
+		int m_last_mouse_y;
 
 		int m_viewport_width;
 		int m_viewport_height;
