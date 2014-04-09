@@ -33,7 +33,7 @@ void View::Render()
 	glBegin(GL_QUADS);
 	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
 	{
-		if (m_document.m_objects.types[id] == RECT_FILLED)
+		if (m_document.m_objects.types[id] != RECT_FILLED)
 			continue;
 		Rect obj_bounds = m_document.m_objects.bounds[id];
 		glVertex2f(Float(obj_bounds.x), Float(obj_bounds.y));
@@ -45,7 +45,7 @@ void View::Render()
 
 	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
 	{
-		if (m_document.m_objects.types[id] == RECT_OUTLINE)
+		if (m_document.m_objects.types[id] != RECT_OUTLINE)
 			continue;
 		Rect obj_bounds = m_document.m_objects.bounds[id];
 		glBegin(GL_LINE_LOOP);
