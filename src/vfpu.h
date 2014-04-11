@@ -9,7 +9,7 @@
 
 namespace VFPU
 {
-	extern int Start(); // Starts the VFPU
+	extern int Start(const char * vcd_output = NULL); // Starts the VFPU
 	extern int Halt(); // Halts the VFPU
 
 /**

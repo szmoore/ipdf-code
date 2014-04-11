@@ -32,7 +32,7 @@ static pid_t g_fpu_pid = -1;
  * Starts the VFPU
  * @returns 0 on success, errno of the failing function on failure
  */
-int Start()
+int Start(const char * vcd_output)
 {
 	assert(!g_running);
 	// create unix socket pair
@@ -59,7 +59,16 @@ int Start()
 
 		Debug("Child about to suppress stderr and exec vfpu");
 		dup2(open("/dev/null", O_APPEND), fileno(stderr)); //LALALA I AM NOT LISTENING TO YOUR STUPID ERRORS GHDL
-		execl(g_fpu, g_fpu,NULL);
+		if (vcd_output != NULL)
+		{
+			string s("--vcd=");
+			s += vcd_output;
+			execl(g_fpu, g_fpu, s.c_str(), NULL);
+		}
+		else	
+		{
+			execl(g_fpu, g_fpu,NULL);
+		}
 		int err = errno; // Because errno will be set again by the next system call
 		Fatal("Uh oh! %s\n", strerror(err)); // We will never see this if something goes wrong... oh dear
 		exit(err); // Child exits here.
