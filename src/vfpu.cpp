@@ -116,7 +116,7 @@ Register Exec(const Register & a, const Register &  b, Opcode op, Rmode rmode)
 	assert(g_running);
 		
 	stringstream s;
-	s << hex << setw(8) << setfill('0') << a.to_ullong() << "\n" << b.to_ullong() << "\n" << setw(3) << op <<"\n" << setw(2) << rmode << "\n\n";
+	s << hex << setw(8) << setfill('0') << a.to_ullong() << "\n" << b.to_ullong() << "\n" << setw(1) << op <<"\n" << setw(1) << rmode << "\n";
 	string str(s.str());
 	//Debug("Writing: %s", str.c_str());
 
