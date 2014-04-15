@@ -12,7 +12,7 @@ inline void MainLoop(Document & doc)
 {
 	View view(doc);
 	Screen scr;
-	scr.SetMouseHandler([&](int x, int y, int buttons, int wheel)
+	scr.SetMouseHandler([&](int x, int y, int buttons, int wheel) // [?] wtf
 	{
 		static bool oldButtonDown = false;
 		static int oldx, oldy;
@@ -42,6 +42,7 @@ inline void MainLoop(Document & doc)
 		}
 	}
 	);
+
 	while (scr.PumpEvents())
 	{
 		view.Render();

@@ -79,5 +79,4 @@ void View::Render()
 		glVertex2f(Float(obj_bounds.x), Float(obj_bounds.y) + Float(obj_bounds.h));
 		glEnd();
 	}
-
 }

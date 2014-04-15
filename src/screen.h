@@ -43,6 +43,8 @@ namespace IPDF
 			CursorHand
 		};
 		void SetMouseCursor(MouseCursors cursor);
+
+		void ScreenShot(const char * filename) const;
 	private:
 		void ResizeViewport(int width, int height);
 		

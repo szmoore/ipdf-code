@@ -80,6 +80,16 @@ bool Screen::PumpEvents()
 				m_mouse_handler(m_last_mouse_x, m_last_mouse_y, 0, evt.wheel.y);
 			}
 			break;
+		case SDL_KEYDOWN:
+		{
+			Debug("Key %c down", (char)evt.key.keysym.sym);
+			if (isalnum((char)evt.key.keysym.sym))
+			{
+				char filename[] = "0.bmp";
+				filename[0] = (char)evt.key.keysym.sym;
+				ScreenShot(filename);
+			}
+		}
 		default:
 			break;
 		}
@@ -109,3 +119,50 @@ void Screen::Present()
 	SDL_GL_SwapWindow(m_window);
 }
 
+void Screen::ScreenShot(const char * filename) const
+{
+	Debug("Attempting to save BMP to file %s", filename);
+	SDL_Surface * info = SDL_GetWindowSurface(m_window);
+	if (info == NULL)
+	{
+		Fatal("Failed to create info surface from m_window - %s", SDL_GetError());
+	}
+	
+	unsigned num_pix = info->w * info->h * info->format->BytesPerPixel;
+	unsigned char * pixels = new unsigned char[num_pix];
+	if (pixels == NULL)
+	{
+		Fatal("Failed to allocate %u pixel array - %s", num_pix, strerror(errno));
+	}
+
+	SDL_Renderer * renderer = SDL_GetRenderer(m_window);
+	if (renderer == NULL)
+	{
+		Fatal("Couldn't get renderer from m_window - %s", SDL_GetError());
+	}
+	if (SDL_RenderReadPixels(renderer, &(info->clip_rect), info->format->format, pixels, info->w * info->format->BytesPerPixel) != 0)
+	{
+		Fatal("SDL_RenderReadPixels failed - %s", SDL_GetError());
+	}
+
+	// This line is disgusting
+	SDL_Surface * save = SDL_CreateRGBSurfaceFrom(pixels, info->w, info->h, info->format->BitsPerPixel, info->w * info->format->BytesPerPixel, 
+											info->format->Rmask, info->format->Gmask, info->format->Bmask, info->format->Amask);
+	if (save == NULL)
+	{
+		Fatal("Couldn't create SDL_Surface from renderer pixel data - %s", SDL_GetError());
+	}
+	if (SDL_SaveBMP(save, filename) != 0)
+	{
+		Fatal("SDL_SaveBMP to %s failed - %s", filename, SDL_GetError());
+	}
+
+	//SDL_DestroyRenderer(renderer);
+	SDL_FreeSurface(save);
+	SDL_FreeSurface(info);
+	delete [] pixels;
+
+	Debug("Succeeded!");
+
+
+}
