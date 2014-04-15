@@ -24,8 +24,8 @@ namespace IPDF
 		void Present();
 
 		// Get the current width/height of the window's viewport.
-		int ViewportWidth() { return m_viewport_width; }
-		int ViewportHeight() { return m_viewport_height; }
+		int ViewportWidth() const { return m_viewport_width; }
+		int ViewportHeight() const { return m_viewport_height; }
 		
 		// Handle mouse input.
 		typedef std::function<void(int x, int y, int button, int wheel)> MouseHandler;

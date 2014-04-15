@@ -122,47 +122,23 @@ void Screen::Present()
 void Screen::ScreenShot(const char * filename) const
 {
 	Debug("Attempting to save BMP to file %s", filename);
-	SDL_Surface * info = SDL_GetWindowSurface(m_window);
-	if (info == NULL)
-	{
-		Fatal("Failed to create info surface from m_window - %s", SDL_GetError());
-	}
-	
-	unsigned num_pix = info->w * info->h * info->format->BytesPerPixel;
-	unsigned char * pixels = new unsigned char[num_pix];
+
+	int w = ViewportWidth();
+	int h = ViewportHeight();
+	unsigned char * pixels = new unsigned char[w*h*4];
 	if (pixels == NULL)
-	{
-		Fatal("Failed to allocate %u pixel array - %s", num_pix, strerror(errno));
-	}
+		Fatal("Failed to allocate %d x %d x 4 = %d pixel array", w, h, w*h*4);
 
-	SDL_Renderer * renderer = SDL_GetRenderer(m_window);
-	if (renderer == NULL)
-	{
-		Fatal("Couldn't get renderer from m_window - %s", SDL_GetError());
-	}
-	if (SDL_RenderReadPixels(renderer, &(info->clip_rect), info->format->format, pixels, info->w * info->format->BytesPerPixel) != 0)
-	{
-		Fatal("SDL_RenderReadPixels failed - %s", SDL_GetError());
-	}
+	glReadPixels(0,0,w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-	// This line is disgusting
-	SDL_Surface * save = SDL_CreateRGBSurfaceFrom(pixels, info->w, info->h, info->format->BitsPerPixel, info->w * info->format->BytesPerPixel, 
-											info->format->Rmask, info->format->Gmask, info->format->Bmask, info->format->Amask);
-	if (save == NULL)
-	{
-		Fatal("Couldn't create SDL_Surface from renderer pixel data - %s", SDL_GetError());
-	}
-	if (SDL_SaveBMP(save, filename) != 0)
-	{
-		Fatal("SDL_SaveBMP to %s failed - %s", filename, SDL_GetError());
-	}
+	SDL_Surface * surf = SDL_CreateRGBSurfaceFrom(pixels, w, h, 8*4, w*4, 0,0,0,0);
+	if (surf == NULL)
+		Fatal("Failed to create SDL_Surface from pixel data - %s", SDL_GetError());
 
-	//SDL_DestroyRenderer(renderer);
-	SDL_FreeSurface(save);
-	SDL_FreeSurface(info);
+	if (SDL_SaveBMP(surf, filename) != 0)
+		Fatal("SDL_SaveBMP failed - %s", SDL_GetError());
+	
+	SDL_FreeSurface(surf);
 	delete [] pixels;
-
 	Debug("Succeeded!");
-
-
 }
