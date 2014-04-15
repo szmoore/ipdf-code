@@ -18,6 +18,7 @@ namespace IPDF
 			void ScaleAroundPoint(Real x, Real y, Real scaleAmt);
 		
 		private:
+			void DrawGrid();
 			Document & m_document;
 			Rect m_bounds;
 	};
