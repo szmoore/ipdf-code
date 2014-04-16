@@ -142,3 +142,55 @@ void Screen::ScreenShot(const char * filename) const
 	delete [] pixels;
 	Debug("Succeeded!");
 }
+
+/**
+ * Render a BMP
+ * NOT PART OF THE DOCUMENT FORMAT
+ */
+void Screen::RenderBMP(const char * filename) const
+{
+	SDL_Surface * bmp = SDL_LoadBMP(filename);
+	if (bmp == NULL)
+		Fatal("Failed to load BMP from %s - %s", filename, SDL_GetError());
+
+	int w = bmp->w;
+	int h = bmp->h;
+
+	GLenum texture_format; 
+	switch (bmp->format->BytesPerPixel)
+	{
+		case 4: //contains alpha
+			texture_format = (bmp->format->Rmask == 0x000000FF) ? GL_RGBA : GL_BGRA;
+			break;
+		case 3: //does not contain alpha
+			texture_format = (bmp->format->Rmask == 0x000000FF) ? GL_RGB : GL_BGR;	
+			break;
+		default:
+			Fatal("Could not understand SDL_Surface format (%d colours)", bmp->format->BytesPerPixel);
+			break;	
+	}
+	Debug("SDL_Surface %d BytesPerPixel, format %d (RGB = %d, BGR = %d, RGBA = %d, BGRA = %d)", bmp->format->BytesPerPixel, texture_format, GL_RGB, GL_BGR, GL_RGBA, GL_BGRA);
+
+
+	GLuint texID;
+
+	glGenTextures(1, &texID);
+	glBindTexture(GL_TEXTURE_2D, texID);
+	glTexImage2D(GL_TEXTURE_2D, 0, bmp->format->BytesPerPixel, w, h, 0, texture_format, GL_UNSIGNED_BYTE, bmp->pixels);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texID);
+
+	glBegin(GL_QUADS);
+		glTexCoord2i(0,0); glVertex2f(-0.5f*w, -0.5f*h);
+		glTexCoord2i(1,0); glVertex2f(0.5f*w, -0.5f*h);
+		glTexCoord2i(1,1); glVertex2f(0.5f*w, 0.5f*h);
+		glTexCoord2i(0,1); glVertex2f(-0.5*w,0.5*h);
+	glEnd();
+
+	glDisable(GL_TEXTURE_2D);
+
+	//SDL_FreeSurface(bmp);	
+}

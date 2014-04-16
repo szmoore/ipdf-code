@@ -80,10 +80,7 @@ void View::Render()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-
-
-
-	glColor4f(0.f,0.f,0.f,1.f);
+	glColor4f(m_colour.r, m_colour.g, m_colour.b, m_colour.a);
 	glBegin(GL_QUADS);
 	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
 	{

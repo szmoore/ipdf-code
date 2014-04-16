@@ -45,6 +45,7 @@ namespace IPDF
 		void SetMouseCursor(MouseCursors cursor);
 
 		void ScreenShot(const char * filename) const;
+		void RenderBMP(const char * filename) const;
 	private:
 		void ResizeViewport(int width, int height);
 		

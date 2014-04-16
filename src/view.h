@@ -9,7 +9,8 @@ namespace IPDF
 	class View
 	{
 		public:
-			View(Document & document) : m_document(document), m_bounds(0,0,1,1) {}
+			View(Document & document, const Rect & bounds = Rect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f)) 
+				: m_document(document), m_bounds(bounds), m_colour(colour) {}
 			virtual ~View() {}
 
 			void Render();
@@ -21,6 +22,7 @@ namespace IPDF
 			void DrawGrid();
 			Document & m_document;
 			Rect m_bounds;
+			Colour m_colour;
 	};
 }
 
