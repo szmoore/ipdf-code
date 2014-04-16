@@ -72,7 +72,7 @@ void View::Render()
 	glClearColor(1.f,1.f,1.f,1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	DrawGrid(); // Draw the gridlines
+	//DrawGrid(); // Draw the gridlines
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();

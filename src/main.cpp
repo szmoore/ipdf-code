@@ -9,7 +9,8 @@ int main(int argc, char ** argv)
 	
 	Rect bounds(0,0,1,1);
 	Colour c(0,0,0,1);
-	const char * output_to_bmp = NULL;
+	const char * input_bmp = NULL;
+	const char * output_bmp = NULL;
 	const char * input_filename = NULL;
 
 	int i = 0;
@@ -25,8 +26,12 @@ int main(int argc, char ** argv)
 			case 'o':
 				mode = OUTPUT_TO_BMP;
 				if (++i >= argc)
-					Fatal("No argument following -o switch");
-				output_to_bmp = argv[i];
+					Fatal("No input argument following -o switch");
+				input_bmp = argv[i];
+				if (++i >= argc)
+					Fatal("No output argument following -o switch");
+				output_bmp = argv[i];
+
 				break;
 			case 'c':
 			{
@@ -51,7 +56,7 @@ int main(int argc, char ** argv)
 	{
 		doc.Load(input_filename);
 	}
-	else
+	else 
 	{
 		doc.Add(RECT_FILLED, Rect(0.2,0.2,0.6,0.6));
 	}
@@ -59,6 +64,6 @@ int main(int argc, char ** argv)
 	if (mode == LOOP)
 		MainLoop(doc, bounds, c);
 	else if (mode == OUTPUT_TO_BMP)
-		OverlayBMP(doc, output_to_bmp, bounds, c);
+		OverlayBMP(doc, input_bmp, output_bmp, bounds, c);
 	return 0;
 }
