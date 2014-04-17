@@ -18,6 +18,10 @@ Screen::Screen()
 	}
 
 	m_gl_context = SDL_GL_CreateContext(m_window);
+
+	glClearColor(1.f,1.f,1.f,1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	Present();
 	
 	ResizeViewport(800, 600);
 
@@ -80,6 +84,16 @@ bool Screen::PumpEvents()
 				m_mouse_handler(m_last_mouse_x, m_last_mouse_y, 0, evt.wheel.y);
 			}
 			break;
+		case SDL_KEYDOWN:
+		{
+			Debug("Key %c down", (char)evt.key.keysym.sym);
+			if (isalnum((char)evt.key.keysym.sym))
+			{
+				char filename[] = "0.bmp";
+				filename[0] = (char)evt.key.keysym.sym;
+				ScreenShot(filename);
+			}
+		}
 		default:
 			break;
 		}
@@ -109,3 +123,88 @@ void Screen::Present()
 	SDL_GL_SwapWindow(m_window);
 }
 
+void Screen::ScreenShot(const char * filename) const
+{
+	Debug("Attempting to save BMP to file %s", filename);
+
+	int w = ViewportWidth();
+	int h = ViewportHeight();
+	unsigned char * pixels = new unsigned char[w*h*4];
+	if (pixels == NULL)
+		Fatal("Failed to allocate %d x %d x 4 = %d pixel array", w, h, w*h*4);
+
+	glReadPixels(0,0,w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+	SDL_Surface * surf = SDL_CreateRGBSurfaceFrom(pixels, w, h, 8*4, w*4, 0,0,0,0);
+	if (surf == NULL)
+		Fatal("Failed to create SDL_Surface from pixel data - %s", SDL_GetError());
+
+	GLenum texture_format = (surf->format->Rmask == 0x000000FF) ? GL_RGBA : GL_BGRA;
+	Debug("SDL_Surface %d BytesPerPixel, format %d (RGB = %d, BGR = %d, RGBA = %d, BGRA = %d)", surf->format->BytesPerPixel, texture_format, GL_RGB, GL_BGR, GL_RGBA, GL_BGRA);
+
+	if (SDL_SaveBMP(surf, filename) != 0)
+		Fatal("SDL_SaveBMP failed - %s", SDL_GetError());
+	
+	SDL_FreeSurface(surf);
+	delete [] pixels;
+	Debug("Succeeded!");
+}
+
+/**
+ * Render a BMP
+ * NOT PART OF THE DOCUMENT FORMAT
+ */
+void Screen::RenderBMP(const char * filename) const
+{
+	SDL_Surface * bmp = SDL_LoadBMP(filename);
+	if (bmp == NULL)
+		Fatal("Failed to load BMP from %s - %s", filename, SDL_GetError());
+
+	int w = bmp->w;
+	int h = bmp->h;
+
+	GLenum texture_format; 
+	switch (bmp->format->BytesPerPixel)
+	{
+		case 4: //contains alpha
+			texture_format = (bmp->format->Rmask == 0x000000FF) ? GL_RGBA : GL_BGRA;
+			break;
+		case 3: //does not contain alpha
+			texture_format = (bmp->format->Rmask == 0x000000FF) ? GL_RGB : GL_BGR;	
+			break;
+		default:
+			Fatal("Could not understand SDL_Surface format (%d colours)", bmp->format->BytesPerPixel);
+			break;	
+	}
+
+	//Debug("SDL_Surface %d BytesPerPixel, format %d (RGB = %d, BGR = %d, RGBA = %d, BGRA = %d)", bmp->format->BytesPerPixel, texture_format, GL_RGB, GL_BGR, GL_RGBA, GL_BGRA);
+
+
+	GLuint texID;
+	glEnable(GL_TEXTURE_2D);
+	glGenTextures(1, &texID);
+	glBindTexture(GL_TEXTURE_2D, texID);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, bmp->format->BytesPerPixel, w, h, 0, texture_format, GL_UNSIGNED_BYTE, bmp->pixels);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0.0, 1.0, 1.0, 0.0, -1.f, 1.f);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	glBegin(GL_QUADS);
+		glTexCoord2i(0,0); glVertex2f(0,0);
+		glTexCoord2i(1,0); glVertex2f(1,0);
+		glTexCoord2i(1,1); glVertex2f(1,1);
+		glTexCoord2i(0,1); glVertex2f(0,1);
+	glEnd();
+
+	glDisable(GL_TEXTURE_2D);
+	SDL_FreeSurface(bmp);	
+}

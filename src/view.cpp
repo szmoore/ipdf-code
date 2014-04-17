@@ -35,6 +35,31 @@ void View::ScaleAroundPoint(Real x, Real y, Real scaleAmt)
 	m_bounds.h *= scaleAmt;
 }
 
+void View::DrawGrid()
+{
+	// Draw some grid lines at fixed pixel positions
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0.0, 1.0, 1.0, 0.0, -1.f, 1.f);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	glColor4f(0.9,0.9,0.9,0.1);
+	const float num_lines = 50.0;
+	for (float i = 0; i < num_lines; ++i)
+	{
+		glBegin(GL_LINES);
+		glVertex2f(i*(1.0/num_lines), 0.0);
+		glVertex2f(i*(1.0/num_lines), 1.0);
+		glEnd();
+		glBegin(GL_LINES);
+		glVertex2f(0.0,i*(1.0/num_lines));
+		glVertex2f(1.0,i*(1.0/num_lines));
+		glEnd();
+	
+	}
+}
+
 void View::Render()
 {
 	static bool debug_output_done = false;
@@ -47,13 +72,15 @@ void View::Render()
 	glClearColor(1.f,1.f,1.f,1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	//DrawGrid(); // Draw the gridlines
+
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(Float(m_bounds.x), Float(m_bounds.x)+Float(m_bounds.w), Float(m_bounds.y) + Float(m_bounds.h), Float(m_bounds.y), -1.f, 1.f);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	glColor4f(0.f,0.f,0.f,1.f);
+	glColor4f(m_colour.r, m_colour.g, m_colour.b, m_colour.a);
 	glBegin(GL_QUADS);
 	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
 	{
@@ -67,6 +94,7 @@ void View::Render()
 	}
 	glEnd();
 
+	
 	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
 	{
 		if (m_document.m_objects.types[id] != RECT_OUTLINE)

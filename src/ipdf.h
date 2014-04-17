@@ -35,6 +35,13 @@ namespace IPDF
 		}
 	};
 
+	struct Colour
+	{
+		float r; float g; float b; float a;
+		Colour() = default;
+		Colour(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
+	};
+
 	struct Objects
 	{
 		std::vector<ObjectType> types;		

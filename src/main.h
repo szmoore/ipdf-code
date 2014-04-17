@@ -3,16 +3,28 @@
 #include "document.h"
 #include "view.h"
 #include "screen.h"
+#include <unistd.h>
 
 
 using namespace std;
 using namespace IPDF;
 
-inline void MainLoop(Document & doc)
+inline void OverlayBMP(Document & doc, const char * input, const char * output, const Rect & bounds = Rect(0,0,1,1), const Colour & c = Colour(0.f,0.f,0.f,1.f))
 {
-	View view(doc);
+	View view(doc, bounds, c);
 	Screen scr;
-	scr.SetMouseHandler([&](int x, int y, int buttons, int wheel)
+	//view.Render();
+	scr.RenderBMP(input);
+	scr.Present();
+	sleep(5);
+	scr.ScreenShot(output);
+}
+
+inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const Colour & c = Colour(0.f,0.f,0.f,1.f))
+{
+	View view(doc,bounds, c);
+	Screen scr;
+	scr.SetMouseHandler([&](int x, int y, int buttons, int wheel) // [?] wtf
 	{
 		static bool oldButtonDown = false;
 		static int oldx, oldy;
@@ -42,6 +54,7 @@ inline void MainLoop(Document & doc)
 		}
 	}
 	);
+
 	while (scr.PumpEvents())
 	{
 		view.Render();
