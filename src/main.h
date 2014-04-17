@@ -16,8 +16,9 @@ inline void OverlayBMP(Document & doc, const char * input, const char * output, 
 	//view.Render();
 	scr.RenderBMP(input);
 	scr.Present();
-	sleep(5);
+	sleep(1);
 	scr.ScreenShot(output);
+	sleep(1);
 }
 
 inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const Colour & c = Colour(0.f,0.f,0.f,1.f))
