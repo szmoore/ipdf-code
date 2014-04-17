@@ -20,6 +20,9 @@ namespace IPDF
 		// Returns 'false' if the program should quit.
 		bool PumpEvents();
 
+		// Clears the screen to a given colour.
+		void Clear(float r=1.0, float g=1.0, float b=1.0, float a=1.0);
+
 		// Finishes rendering a frame, and presents it on the screen.
 		void Present();
 

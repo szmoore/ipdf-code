@@ -19,11 +19,11 @@ Screen::Screen()
 
 	m_gl_context = SDL_GL_CreateContext(m_window);
 
-	glClearColor(1.f,1.f,1.f,1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	ResizeViewport(800, 600);
+
+	Clear();
 	Present();
 	
-	ResizeViewport(800, 600);
 
 }
 
@@ -32,6 +32,12 @@ Screen::~Screen()
 	SDL_GL_DeleteContext(m_gl_context);
 	SDL_DestroyWindow(m_window);
 	SDL_Quit();
+}
+
+void Screen::Clear(float r, float g, float b, float a)
+{
+	glClearColor(r,g,b,a);
+	glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void Screen::ResizeViewport(int width, int height)
@@ -134,12 +140,16 @@ void Screen::ScreenShot(const char * filename) const
 		Fatal("Failed to allocate %d x %d x 4 = %d pixel array", w, h, w*h*4);
 
 
-	glReadBuffer(GL_FRONT);
-	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	for (int y = 0; y < h; ++y)
+	{
+		glReadPixels(0,h-y-1,w, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixels[y*w*4]);
+	}
 
-	glReadPixels(0,0,w, h, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
-
-	SDL_Surface * surf = SDL_CreateRGBSurfaceFrom(pixels, w, h, 8*4, w*4, 0,0,0,0);
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+	SDL_Surface * surf = SDL_CreateRGBSurfaceFrom(pixels, w, h, 8*4, w*4, 0x000000ff,0x0000ff00,0x00ff0000,0xff000000);
+#else
+	SDL_Surface * surf = SDL_CreateRGBSurfaceFrom(pixels, w, h, 8*4, w*4, 0xff000000,0x00ff0000,0x0000ff00,0x000000ff);
+#endif
 	if (surf == NULL)
 		Fatal("Failed to create SDL_Surface from pixel data - %s", SDL_GetError());
 

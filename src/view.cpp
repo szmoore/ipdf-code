@@ -69,8 +69,6 @@ void View::Render()
 		debug_output_done = true;
 	}
 
-	glClearColor(1.f,1.f,1.f,1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
 
 	//DrawGrid(); // Draw the gridlines
 
@@ -80,11 +78,16 @@ void View::Render()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
+	if (m_colour.a < 1.0f)
+	{
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	}
 	glColor4f(m_colour.r, m_colour.g, m_colour.b, m_colour.a);
 	glBegin(GL_QUADS);
 	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
 	{
-		if (m_document.m_objects.types[id] == RECT_FILLED)
+		if (m_document.m_objects.types[id] != RECT_FILLED)
 			continue;
 		Rect obj_bounds = m_document.m_objects.bounds[id];
 		glVertex2f(Float(obj_bounds.x), Float(obj_bounds.y));
@@ -97,7 +100,7 @@ void View::Render()
 	
 	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
 	{
-		if (m_document.m_objects.types[id] == RECT_OUTLINE)
+		if (m_document.m_objects.types[id] != RECT_OUTLINE)
 			continue;
 		Rect obj_bounds = m_document.m_objects.bounds[id];
 		glBegin(GL_LINE_LOOP);
@@ -106,6 +109,11 @@ void View::Render()
 		glVertex2f(Float(obj_bounds.x) + Float(obj_bounds.w), Float(obj_bounds.y) + Float(obj_bounds.h));
 		glVertex2f(Float(obj_bounds.x), Float(obj_bounds.y) + Float(obj_bounds.h));
 		glEnd();
+	}
+
+	if (m_colour.a < 1.0f)
+	{
+		glDisable(GL_BLEND);
 	}
 
 }
