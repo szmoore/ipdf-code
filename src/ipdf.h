@@ -4,6 +4,10 @@
 #include "common.h"
 #include "real.h"
 
+#define C_RED Colour(1,0,0,1)
+#define C_GREEN Colour(0,1,0,1)
+#define C_BLUE Colour(0,0,1,1)
+
 namespace IPDF
 {
 

@@ -2,7 +2,7 @@
 ARCH := $(shell uname -m)
 CXX = g++ -std=gnu++0x -Wall -Werror -Wshadow -pedantic -g
 MAIN = main.o
-OBJ = log.o document.o view.o screen.o vfpu.o
+OBJ = log.o real.o document.o view.o screen.o vfpu.o
 LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL
 LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL
 
@@ -21,7 +21,7 @@ MAINRPATH := $(MAINRPATH_$(ARCH))
 TESTRPATH := $(TESTRPATH_$(ARCH))
 CFLAGS := $(CFLAGS_$(ARCH))
 
-
+DEF = -DREAL=1
 
 LINKOBJ = $(OBJPATHS)
 
@@ -31,6 +31,15 @@ BIN = ../bin/ipdf
 
 all : $(BIN)
 
+single : DEF = -DREAL=0
+single : $(BIN)
+
+double : DEF = -DREAL=1
+double : $(BIN)
+
+# The tests will compile with the default REAL definition
+# To change that you can run as `make DEFS="REAL=X" tests/<target>` where X is your chosen type
+# But remember to make clean first.
 tests/% : tests/%.cpp ../obj/tests/%.o $(LINKOBJ)
 	$(CXX) -o $@.test $(LINKOBJ) ../obj/$@.o $(LIB) $(TESTRPATH)
 
@@ -44,7 +53,7 @@ $(BIN) : $(LINKOBJ) ../obj/$(MAIN)
 
 ../obj/%.o : %.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CFLAGS) -c -MMD -o $@ $<
+	$(CXX) $(CFLAGS) $(DEF) -c -MMD -o $@ $<
 
 -include $(DEPS)
 

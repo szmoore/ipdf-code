@@ -2,16 +2,19 @@
 #include <unistd.h> // Because we can.
 int main(int argc, char ** argv)
 {	
+	Debug("Compiled with REAL = %d => \"%s\"", REAL, g_real_name[REAL]);
+
 	Document doc;
 	srand(time(NULL));
 
 	enum {OUTPUT_TO_BMP, LOOP} mode = LOOP;
 	
-	Rect bounds(0,0,1,1);
+	
 	Colour c(0,0,0,1);
 	const char * input_bmp = NULL;
 	const char * output_bmp = NULL;
 	const char * input_filename = NULL;
+	float b[4] = {0,0,1,1};
 
 	int i = 0;
 	while (++i < argc)
@@ -49,6 +52,21 @@ int main(int argc, char ** argv)
 				i += 4;
 				break;
 			}
+			case 'b':
+			{
+				Debug("Reading view bounds");
+				for (int j = 1; j <= 4; ++j)
+				{
+					if (i+j >= argc)
+						Fatal("No %d bounds component following -b switch", j);
+					char * e;
+					b[j-1] = strtof(argv[i+j], &e);
+					if (*e != '\0')
+						Fatal("Bounds component %d not a valid float", j); 
+				}
+				i += 4;
+				break;
+			}
 		}	
 	}
 
@@ -58,8 +76,9 @@ int main(int argc, char ** argv)
 	}
 	else 
 	{
-		doc.Add(RECT_FILLED, Rect(0.2,0.2,0.6,0.6));
+		doc.Add(RECT_OUTLINE, Rect(0.5,0.5,1,1));
 	}
+	Rect bounds(b[0],b[1],b[2],b[3]);
 
 	if (mode == LOOP)
 		MainLoop(doc, bounds, c);
