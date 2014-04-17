@@ -129,13 +129,13 @@ void Screen::ScreenShot(const char * filename) const
 
 	int w = ViewportWidth();
 	int h = ViewportHeight();
-	unsigned char * pixels = new unsigned char[w*h*4];
+	unsigned char * pixels = new unsigned char[w*h*3];
 	if (pixels == NULL)
-		Fatal("Failed to allocate %d x %d x 4 = %d pixel array", w, h, w*h*4);
+		Fatal("Failed to allocate %d x %d x 4 = %d pixel array", w, h, w*h*3);
 
-	glReadPixels(0,0,w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	glReadPixels(0,0,w, h, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
 
-	SDL_Surface * surf = SDL_CreateRGBSurfaceFrom(pixels, w, h, 8*4, w*4, 0,0,0,0);
+	SDL_Surface * surf = SDL_CreateRGBSurfaceFrom(pixels, w, h, 8*3, w*3, 0,0,0,0);
 	if (surf == NULL)
 		Fatal("Failed to create SDL_Surface from pixel data - %s", SDL_GetError());
 
