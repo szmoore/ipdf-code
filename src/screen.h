@@ -5,6 +5,8 @@
 
 #include <functional>
 
+#include "stb_truetype.h"
+
 namespace IPDF
 {
 	/*
@@ -29,6 +31,12 @@ namespace IPDF
 		// Get the current width/height of the window's viewport.
 		int ViewportWidth() const { return m_viewport_width; }
 		int ViewportHeight() const { return m_viewport_height; }
+		
+		// Debug Font handling
+		void DebugFontInit(const char *font_name, float font_size = 12);
+		void DebugFontClear();
+		void DebugFontPrint(const char *str);
+		void DebugFontPrintF(const char *fmt, ...);
 		
 		// Handle mouse input.
 		typedef std::function<void(int x, int y, int button, int wheel)> MouseHandler;
@@ -60,6 +68,11 @@ namespace IPDF
 		int m_viewport_height;
 		SDL_Window *m_window;
 		SDL_GLContext m_gl_context;
+		stbtt_bakedchar m_debug_font_rects[96];
+		unsigned int m_debug_font_atlas;
+		float m_debug_font_x;
+		float m_debug_font_y;
+		float m_debug_font_size;
 	};
 
 }

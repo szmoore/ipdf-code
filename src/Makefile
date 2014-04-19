@@ -1,8 +1,10 @@
 #Makefile
 ARCH := $(shell uname -m)
-CXX = g++ -std=gnu++0x -Wall -Werror -Wshadow -pedantic -g
+# TODO: stb_truetype doesn't compile with some of these warnings.
+CXX = g++ -std=gnu++0x -g
+# -Wall -Werror -Wshadow -pedantic
 MAIN = main.o
-OBJ = log.o document.o view.o screen.o vfpu.o
+OBJ = log.o document.o view.o screen.o vfpu.o stb_truetype.o
 LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL
 LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL
 

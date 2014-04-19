@@ -17,6 +17,8 @@ inline void OverlayBMP(Document & doc, const char * input, const char * output, 
 	view.Render();
 	scr.Present();
 	sleep(5);
+	scr.RenderBMP(input);
+	view.Render();
 	scr.ScreenShot(output);
 }
 
@@ -24,6 +26,7 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 {
 	View view(doc,bounds, c);
 	Screen scr;
+	scr.DebugFontInit("DejaVuSansMono.ttf");
 	scr.SetMouseHandler([&](int x, int y, int buttons, int wheel) // [?] wtf
 	{
 		static bool oldButtonDown = false;
@@ -55,10 +58,14 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 	}
 	);
 
+	double init_time = SDL_GetPerformanceCounter();
 	while (scr.PumpEvents())
 	{
 		scr.Clear();
 		view.Render();
+		scr.DebugFontPrintF("[CPU] Render took %lf ms (%lf FPS)\n", (SDL_GetPerformanceCounter() - init_time)* 1000.0/SDL_GetPerformanceFrequency(), SDL_GetPerformanceFrequency()/(SDL_GetPerformanceCounter() - init_time));
+		scr.DebugFontPrintF("View bounds: (%f, %f) - (%f, %f)\n", view.GetBounds().x, view.GetBounds().y, view.GetBounds().w, view.GetBounds().h);
 		scr.Present();
+		init_time = SDL_GetPerformanceCounter();
 	}
 }

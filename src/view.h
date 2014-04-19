@@ -17,6 +17,8 @@ namespace IPDF
 			
 			void Translate(Real x, Real y);
 			void ScaleAroundPoint(Real x, Real y, Real scaleAmt);
+			
+			const Rect& GetBounds() const { return m_bounds; }
 		
 		private:
 			void DrawGrid();

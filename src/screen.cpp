@@ -38,6 +38,7 @@ void Screen::Clear(float r, float g, float b, float a)
 {
 	glClearColor(r,g,b,a);
 	glClear(GL_COLOR_BUFFER_BIT);
+	DebugFontClear();
 }
 
 void Screen::ResizeViewport(int width, int height)
@@ -138,7 +139,8 @@ void Screen::ScreenShot(const char * filename) const
 	unsigned char * pixels = new unsigned char[w*h*4];
 	if (pixels == NULL)
 		Fatal("Failed to allocate %d x %d x 4 = %d pixel array", w, h, w*h*4);
-
+	glReadBuffer(GL_FRONT);
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	for (int y = 0; y < h; ++y)
 	{
 		glReadPixels(0,h-y-1,w, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixels[y*w*4]);
@@ -220,4 +222,80 @@ void Screen::RenderBMP(const char * filename) const
 
 	glDisable(GL_TEXTURE_2D);
 	SDL_FreeSurface(bmp);	
+}
+
+void Screen::DebugFontInit(const char *name, float font_size)
+{
+	unsigned char font_atlas_data[1024*1024];
+	FILE *font_file = fopen(name, "rb");
+	fseek(font_file, 0, SEEK_END);
+	size_t font_file_size = ftell(font_file);
+	fseek(font_file, 0, SEEK_SET);
+	unsigned char *font_file_data = (unsigned char*)malloc(font_file_size);
+	fread(font_file_data, 1, font_file_size, font_file);
+	fclose(font_file);
+	stbtt_BakeFontBitmap(font_file_data,0, font_size, font_atlas_data,1024,1024, 32,96, m_debug_font_rects);
+	free(font_file_data);
+	glGenTextures(1, &m_debug_font_atlas);
+	glBindTexture(GL_TEXTURE_2D, m_debug_font_atlas);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 1024,1024, 0, GL_ALPHA, GL_UNSIGNED_BYTE, font_atlas_data);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	m_debug_font_size = font_size;
+}
+
+void Screen::DebugFontClear()
+{
+	m_debug_font_x = m_debug_font_y = 0;
+	DebugFontPrint("\n");
+}
+
+void Screen::DebugFontPrint(const char* str)
+{
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+ 	glOrtho(0,ViewportWidth(), ViewportHeight(), 0, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	
+	
+	
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBindTexture(GL_TEXTURE_2D, m_debug_font_atlas);
+	glBegin(GL_QUADS);
+	while (*str) {
+		if (*str >= 32 && *str < 128) {
+			stbtt_aligned_quad q;
+			stbtt_GetBakedQuad(m_debug_font_rects, 1024,1024, *str-32, &m_debug_font_x,&m_debug_font_y,&q,1);
+			glTexCoord2f(q.s0,q.t0); glVertex2f(q.x0,q.y0);
+			glTexCoord2f(q.s1,q.t0); glVertex2f(q.x1,q.y0);
+			glTexCoord2f(q.s1,q.t1); glVertex2f(q.x1,q.y1);
+			glTexCoord2f(q.s0,q.t1); glVertex2f(q.x0,q.y1);
+		}
+		else if (*str == '\n')
+		{
+			m_debug_font_x = 0;
+			m_debug_font_y += m_debug_font_size;
+		}
+		++str;
+	}
+	glEnd();
+	glDisable(GL_BLEND);
+	glDisable(GL_TEXTURE_2D);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+}
+
+void Screen::DebugFontPrintF(const char *fmt, ...)
+{
+	char buffer[BUFSIZ];
+	va_list va;
+	va_start(va, fmt);
+	vsnprintf(buffer, BUFSIZ, fmt,va);
+	va_end(va);
+	DebugFontPrint(buffer);
 }
