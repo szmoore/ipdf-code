@@ -82,7 +82,7 @@ bool Screen::PumpEvents()
 			m_last_mouse_y = evt.button.y;
 			if (m_mouse_handler)
 			{
-				m_mouse_handler(evt.button.x, evt.button.y, evt.button.state, 0);
+				m_mouse_handler(evt.button.x, evt.button.y, evt.button.state?evt.button.button:0, 0);
 			}
 			break;
 		case SDL_MOUSEWHEEL:
@@ -100,6 +100,7 @@ bool Screen::PumpEvents()
 				filename[0] = (char)evt.key.keysym.sym;
 				ScreenShot(filename);
 			}
+			break;
 		}
 		default:
 			break;

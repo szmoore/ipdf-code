@@ -6,8 +6,8 @@
 namespace IPDF
 {
 
-#define REAL_SINGLE
-//#define REAL_DOUBLE
+//#define REAL_SINGLE
+#define REAL_DOUBLE
 //#define REAL_HALF
 
 #ifdef REAL_SINGLE

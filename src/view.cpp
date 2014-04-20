@@ -35,6 +35,17 @@ void View::ScaleAroundPoint(Real x, Real y, Real scaleAmt)
 	m_bounds.h *= scaleAmt;
 }
 
+Rect View::TransformToViewCoords(const Rect& inp) const
+{
+	Rect out;
+	out.x = (inp.x - m_bounds.x) / m_bounds.w;
+	out.y = (inp.y - m_bounds.y) / m_bounds.h;
+
+	out.w = inp.w / m_bounds.w;
+	out.h = inp.h / m_bounds.h;
+	return out;
+}
+
 void View::DrawGrid()
 {
 	// Draw some grid lines at fixed pixel positions
@@ -74,7 +85,14 @@ void View::Render()
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(Float(m_bounds.x), Float(m_bounds.x)+Float(m_bounds.w), Float(m_bounds.y) + Float(m_bounds.h), Float(m_bounds.y), -1.f, 1.f);
+	if (m_use_gpu_transform)
+	{
+		glOrtho(Float(m_bounds.x), Float(m_bounds.x)+Float(m_bounds.w), Float(m_bounds.y) + Float(m_bounds.h), Float(m_bounds.y), -1.f, 1.f);
+	}
+	else
+	{
+		glOrtho(0,1,1,0,-1,1);
+	}
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
@@ -89,7 +107,15 @@ void View::Render()
 	{
 		if (m_document.m_objects.types[id] != RECT_FILLED)
 			continue;
-		Rect obj_bounds = m_document.m_objects.bounds[id];
+		Rect obj_bounds;
+		if (m_use_gpu_transform)
+		{
+			obj_bounds = m_document.m_objects.bounds[id];
+		}
+		else
+		{
+			obj_bounds = TransformToViewCoords(m_document.m_objects.bounds[id]);
+		}
 		glVertex2f(Float(obj_bounds.x), Float(obj_bounds.y));
 		glVertex2f(Float(obj_bounds.x) + Float(obj_bounds.w), Float(obj_bounds.y));
 		glVertex2f(Float(obj_bounds.x) + Float(obj_bounds.w), Float(obj_bounds.y) + Float(obj_bounds.h));
@@ -102,7 +128,15 @@ void View::Render()
 	{
 		if (m_document.m_objects.types[id] != RECT_OUTLINE)
 			continue;
-		Rect obj_bounds = m_document.m_objects.bounds[id];
+		Rect obj_bounds;
+		if (m_use_gpu_transform)
+		{
+			obj_bounds = m_document.m_objects.bounds[id];
+		}
+		else
+		{
+			obj_bounds = TransformToViewCoords(m_document.m_objects.bounds[id]);
+		}
 		glBegin(GL_LINE_LOOP);
 		glVertex2f(Float(obj_bounds.x), Float(obj_bounds.y));
 		glVertex2f(Float(obj_bounds.x) + Float(obj_bounds.w), Float(obj_bounds.y));
