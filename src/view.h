@@ -10,7 +10,10 @@ namespace IPDF
 	{
 		public:
 			View(Document & document, const Rect & bounds = Rect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f)) 
-				: m_document(document), m_bounds(bounds), m_colour(colour), m_use_gpu_transform(false) {}
+				: m_document(document), m_bounds(bounds), m_colour(colour), m_use_gpu_transform(false)
+			{
+				Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
+			}
 			virtual ~View() {}
 
 			void Render();

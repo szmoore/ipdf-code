@@ -13,13 +13,12 @@ inline void OverlayBMP(Document & doc, const char * input, const char * output, 
 {
 	View view(doc, bounds, c);
 	Screen scr;
-	scr.RenderBMP(input);
+	if (input != NULL)
+		scr.RenderBMP(input);
 	view.Render();
+	if (output != NULL)
+		scr.ScreenShot(output);
 	scr.Present();
-	sleep(5);
-	scr.RenderBMP(input);
-	view.Render();
-	scr.ScreenShot(output);
 }
 
 inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const Colour & c = Colour(0.f,0.f,0.f,1.f))

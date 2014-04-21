@@ -2,6 +2,8 @@
 #include "screen.h"
 
 #include "SDL_opengl.h"
+#include <fcntl.h> // for access(2)
+#include <unistd.h> // for access(2)
 
 using namespace IPDF;
 using namespace std;
@@ -140,8 +142,7 @@ void Screen::ScreenShot(const char * filename) const
 	unsigned char * pixels = new unsigned char[w*h*4];
 	if (pixels == NULL)
 		Fatal("Failed to allocate %d x %d x 4 = %d pixel array", w, h, w*h*4);
-	glReadBuffer(GL_FRONT);
-	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
 	for (int y = 0; y < h; ++y)
 	{
 		glReadPixels(0,h-y-1,w, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixels[y*w*4]);
@@ -172,6 +173,11 @@ void Screen::ScreenShot(const char * filename) const
  */
 void Screen::RenderBMP(const char * filename) const
 {
+	if (access(filename, R_OK) == -1)
+	{
+		Error("No such file \"%s\" - Nothing to render - You might have done this deliberately?", filename);
+		return;
+	}
 	SDL_Surface * bmp = SDL_LoadBMP(filename);
 	if (bmp == NULL)
 		Fatal("Failed to load BMP from %s - %s", filename, SDL_GetError());

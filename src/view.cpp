@@ -11,17 +11,19 @@ void View::Translate(Real x, Real y)
 	y *= m_bounds.h;
 	m_bounds.x += x;
 	m_bounds.y += y;
+	Debug("View Bounds => %s", m_bounds.Str().c_str());
 }
 
 void View::ScaleAroundPoint(Real x, Real y, Real scaleAmt)
 {
+	// x and y are coordinates in the window
 	// Convert to local coords.
 	x *= m_bounds.w;
 	y *= m_bounds.h;
 	x += m_bounds.x;
 	y += m_bounds.y;
 	
-	Debug("Mouse wheel event %f %f %f\n", Float(x), Float(y), Float(scaleAmt));
+	//Debug("Mouse wheel event %f %f %f\n", Float(x), Float(y), Float(scaleAmt));
 	
 	Real top = y - m_bounds.y;
 	Real left = x - m_bounds.x;
@@ -33,6 +35,7 @@ void View::ScaleAroundPoint(Real x, Real y, Real scaleAmt)
 	m_bounds.y = y - top;
 	m_bounds.w *= scaleAmt;
 	m_bounds.h *= scaleAmt;
+	Debug("View Bounds => %s", m_bounds.Str().c_str());
 }
 
 Rect View::TransformToViewCoords(const Rect& inp) const
