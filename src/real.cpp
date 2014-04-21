@@ -6,7 +6,8 @@ namespace IPDF
 	const char * g_real_name[] = {
 		"single",
 		"double",
-		"long double"
+		"long double",
+		"single [fast2sum]"
 	};
 
 }

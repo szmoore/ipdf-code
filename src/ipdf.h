@@ -13,7 +13,7 @@ namespace IPDF
 
 	inline Real Random(Real max=1, Real min=0)
 	{
-		return min + (max-min) * ((Real)(rand() % (int)1e6) / 1e6);
+		return min + (max-min) * (Real(rand() % (int)1e6) / Real(1e6));
 	}
 
 	typedef unsigned ObjectID;
@@ -31,10 +31,11 @@ namespace IPDF
 		Real x; Real y; Real w; Real h;
 		Rect() = default; // Needed so we can fread/fwrite this struct
 		Rect(Real _x, Real _y, Real _w, Real _h) : x(_x), y(_y), w(_w), h(_h) {}
-		std::string Str() 
+		std::string Str() const
 		{
 			std::stringstream s;
-			s << "{" << x << ", " << y << ", " << w << ", " << h << "}";
+			// float conversion needed because it is fucking impossible to get ostreams working with template classes
+			s << "{" << Float(x) << ", " << Float(y) << ", " << Float(w) << ", " << Float(h) << "}";
 			return s.str();
 		}
 	};

@@ -81,9 +81,9 @@ int main(int argc, char ** argv)
 	}
 	else 
 	{
-		for(int i = 0; i < 1024; ++i)
+		for(int i = 0; i < 8; ++i)
 		{
-			for (int j = 0; j < 1024; ++j)
+			for (int j = 0; j < 8; ++j)
 			{
 				doc.Add(((i^j)&1)?RECT_OUTLINE:RECT_FILLED, Rect(0.2+i-512.0,0.2+j-512.0,0.6,0.6));
 			}

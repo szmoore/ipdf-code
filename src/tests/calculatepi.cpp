@@ -68,7 +68,7 @@ int main(int argc, char ** argv)
 		#if REAL > REAL_LONG_DOUBLE
 			Real error_real = Integrate<Real>(f<Real>,Real(0.0L), Real(1.0L), intervals) - Real(PI);
 			clock_t clock_real = clock() - start;	
-			printf("\t%.30lf\t%li\n", error_real, clock_real);
+			printf("\t%.30lf\t%li\n", Float(error_real), clock_real);
 		#else
 			printf("\n");
 		#endif

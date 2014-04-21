@@ -71,7 +71,7 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 		scr.Clear();
 		view.Render();
 		scr.DebugFontPrintF("[CPU] Render took %lf ms (%lf FPS)\n", (SDL_GetPerformanceCounter() - init_time)* 1000.0/SDL_GetPerformanceFrequency(), SDL_GetPerformanceFrequency()/(SDL_GetPerformanceCounter() - init_time));
-		scr.DebugFontPrintF("View bounds: (%f, %f) - (%f, %f)\n", view.GetBounds().x, view.GetBounds().y, view.GetBounds().w, view.GetBounds().h);
+		scr.DebugFontPrintF("View bounds: %s\n", view.GetBounds().Str().c_str());
 		if (view.UsingGPUTransform())
 		{
 			scr.DebugFontPrint("Doing coordinate transform on the GPU.\n");
