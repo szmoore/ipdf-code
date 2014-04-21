@@ -4,7 +4,7 @@ ARCH := $(shell uname -m)
 CXX = g++ -std=gnu++0x -g
 # -Wall -Werror -Wshadow -pedantic
 MAIN = main.o
-OBJ = log.o real.o document.o view.o screen.o vfpu.o stb_truetype.o
+OBJ = log.o real.o document.o view.o screen.o vfpu.o graphicsbuffer.o stb_truetype.o
 LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL
 LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL
 

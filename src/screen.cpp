@@ -293,7 +293,7 @@ void Screen::DebugFontPrint(const char* str)
 	glDisable(GL_BLEND);
 	glDisable(GL_TEXTURE_2D);
 	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
+	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 }
 

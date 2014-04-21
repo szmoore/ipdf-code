@@ -3,6 +3,7 @@
 
 #include "ipdf.h"
 #include "document.h"
+#include "graphicsbuffer.h"
 
 namespace IPDF
 {
@@ -10,7 +11,7 @@ namespace IPDF
 	{
 		public:
 			View(Document & document, const Rect & bounds = Rect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f)) 
-				: m_document(document), m_bounds(bounds), m_colour(colour), m_use_gpu_transform(false)
+				: m_document(document), m_bounds(bounds), m_colour(colour), m_use_gpu_transform(false), m_bounds_dirty(true)
 			{
 				Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
 			}
@@ -26,14 +27,20 @@ namespace IPDF
 			const Rect& GetBounds() const { return m_bounds; }
 			
 			const bool UsingGPUTransform() const { return m_use_gpu_transform; }
-			void ToggleGPUTransform() { m_use_gpu_transform = (!m_use_gpu_transform); }
+			void ToggleGPUTransform() { m_use_gpu_transform = (!m_use_gpu_transform); m_bounds_dirty = true; }
 		
 		private:
+			void ReRender();
 			void DrawGrid();
 			bool m_use_gpu_transform;
+			bool m_bounds_dirty;
+			GraphicsBuffer m_vertex_buffer;
+			GraphicsBuffer m_index_buffer;
 			Document & m_document;
 			Rect m_bounds;
 			Colour m_colour;
+			uint32_t m_rendered_filled;
+			uint32_t m_rendered_outline;
 	};
 }
 

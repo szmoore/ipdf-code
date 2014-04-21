@@ -76,7 +76,14 @@ int main(int argc, char ** argv)
 	}
 	else 
 	{
-		doc.Add(RECT_OUTLINE, Rect(0.5,0.5,1,1));
+		for(int i = 0; i < 1024; ++i)
+		{
+			for (int j = 0; j < 1024; ++j)
+			{
+				doc.Add(((i^j)&1)?RECT_OUTLINE:RECT_FILLED, Rect(0.2+i-512.0,0.2+j-512.0,0.6,0.6));
+			}
+		}
+		
 	}
 	Rect bounds(b[0],b[1],b[2],b[3]);
 
