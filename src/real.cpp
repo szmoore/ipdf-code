@@ -5,7 +5,8 @@ namespace IPDF
 	// Maps the REAL to a string
 	const char * g_real_name[] = {
 		"single",
-		"double"
+		"double",
+		"long double"
 	};
 
 }

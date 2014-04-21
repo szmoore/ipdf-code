@@ -2,7 +2,12 @@
 #include <unistd.h> // Because we can.
 int main(int argc, char ** argv)
 {	
-	Debug("Compiled with REAL = %d => \"%s\"", REAL, g_real_name[REAL]);
+	#ifndef __STDC_IEC_559__
+       	Warn("__STDC_IEC_559__ not defined. IEEE 754 floating point not fully supported.\n");
+	#endif
+
+
+	Debug("Compiled with REAL = %d => \"%s\" sizeof(Real) == %d bytes", REAL, g_real_name[REAL], sizeof(Real));
 
 	Document doc;
 	srand(time(NULL));
