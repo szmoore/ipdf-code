@@ -127,7 +127,7 @@ void View::ReRender()
 	static bool debug_output_done = false;
 	if (!debug_output_done)
 	{
-		m_document.DebugDumpObjects();
+		//m_document.DebugDumpObjects();
 		debug_output_done = true;
 
 		m_vertex_buffer.SetType(GraphicsBuffer::BufferTypeVertex);
