@@ -22,13 +22,10 @@ namespace IPDF
 
 #if REAL == REAL_SINGLE
 	typedef float Real;
-	inline float Float(Real r) {return r;}
 #elif REAL == REAL_DOUBLE
 	typedef double Real;
-	inline double Float(Real r) {return r;}
 #elif REAL == REAL_LONG_DOUBLE
 	typedef long double Real;
-	inline long double Float(Real r) {return r;}
 #elif REAL == REAL_SINGLE_FAST2SUM
 	typedef RealF2S<float> Real;
 	inline float Float(Real r) {return r.m_value;}
@@ -37,6 +34,12 @@ namespace IPDF
 	#error "Type of Real unspecified."
 #endif //REAL
 
+	// Allow us to call Float on the primative types
+	// Useful so I can template some things that could be either (a more complicated) Real or a primitive type
+	// Mostly in the testers.
+	inline float Float(float f) {return f;}
+	inline double Float(double f) {return f;}
+	inline long double Float(long double f) {return f;}
 }
 
 #endif //_REAL_H
