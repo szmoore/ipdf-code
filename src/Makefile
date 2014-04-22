@@ -31,6 +31,7 @@ RM = rm -f
 BIN = ../bin/ipdf
 
 
+
 all : $(BIN)
 
 single : DEF = -DREAL=0
@@ -45,13 +46,18 @@ double : $(BIN)
 tests/% : tests/%.cpp ../obj/tests/%.o $(LINKOBJ)
 	$(CXX) -o $@.test $(LINKOBJ) ../obj/$@.o $(LIB) $(TESTRPATH)
 
+-include $(DEPS)
+
 runtests : tests/runtests.sh
 	cd tests; ./runtests.sh
 
 
 $(BIN) : $(LINKOBJ) ../obj/$(MAIN)
+	echo $(LINKOBJ)
 	@mkdir -p $(dir $@)
 	$(CXX) -o $(BIN) $(LINKOBJ) ../obj/$(MAIN) $(LIB) $(MAINRPATH)
+
+-include $(DEPS)
 
 ../obj/%.o : %.cpp
 	@mkdir -p $(dir $@)
