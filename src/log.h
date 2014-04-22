@@ -35,7 +35,7 @@ inline std::string methodName(const std::string& prettyFunction)
 
 #define Debug(...) LogEx(LOG_DEBUG, __func__, __FILE__, __LINE__, __VA_ARGS__)
 #define Error(...) LogEx(LOG_ERR, __func__, __FILE__, __LINE__, __VA_ARGS__)
-#define Warn(...) LogEx(LOG_WARN, __func__, __FILE__, __LINE__, __VA_ARGS__)
+#define Warn(...) LogEx(LOG_WARNING, __func__, __FILE__, __LINE__, __VA_ARGS__)
 
 
 extern void LogEx(int level, const char * funct, const char * file, int line,  ...); // General function for printing log messages to stderr

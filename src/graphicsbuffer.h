@@ -9,7 +9,7 @@
 namespace IPDF
 {
 	/*
-	 * The "Screen" class handles managing the OS window (using SDL2).
+	 * Implementation of an OpenGL buffer, with some extra cleverness.
 	 */
 	class GraphicsBuffer
 	{
@@ -53,15 +53,19 @@ namespace IPDF
 
 		void Resize(size_t length);
 		const size_t GetSize() const { return m_buffer_size; }
+
+		void Invalidate();
 		
 		void Bind();
 	private:
+		void RecreateBuffer();
 		GLuint m_buffer_handle;
 		BufferType m_buffer_type;
 		BufferUsage m_buffer_usage;
 		void *m_map_pointer;
 		size_t m_buffer_size;
 		bool m_invalidated;
+		bool m_buffer_shape_dirty;
 	};
 
 }

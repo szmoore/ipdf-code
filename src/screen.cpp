@@ -255,7 +255,7 @@ void Screen::DebugFontInit(const char *name, float font_size)
 
 	m_debug_font_vertices.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
 	m_debug_font_vertices.SetType(GraphicsBuffer::BufferTypeVertex);
-	m_debug_font_vertices.Upload(512, nullptr);
+	m_debug_font_vertices.Upload(8192, nullptr);
 	m_debug_font_vertex_head = 0;
 }
 
@@ -290,7 +290,6 @@ void Screen::DebugFontFlush()
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glVertexPointer(2, GL_FLOAT, 4*sizeof(float), (void*)(2*sizeof(float)));
 	glTexCoordPointer(2, GL_FLOAT, 4*sizeof(float), 0);
-	Debug("Flushing Debug Font arrays, %d verts (%d floats)", m_debug_font_vertex_head/4, m_debug_font_vertex_head);
 	glDrawArrays(GL_QUADS, 0, m_debug_font_vertex_head/4);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);

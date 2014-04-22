@@ -69,7 +69,9 @@ static GLenum BufferTypeToGLType(GraphicsBuffer::BufferType buffer_type)
 GraphicsBuffer::GraphicsBuffer()
 {
 	m_invalidated = true;
+	m_map_pointer = nullptr;
 	m_buffer_size = 0;
+	m_buffer_shape_dirty = true;
 	SetUsage(BufferUsageStaticDraw);
 }
 
@@ -84,13 +86,41 @@ GraphicsBuffer::~GraphicsBuffer()
 
 void GraphicsBuffer::SetType(GraphicsBuffer::BufferType bufType)
 {
-	glGenBuffers(1, &m_buffer_handle);
 	m_buffer_type = bufType;
 }
 
 void GraphicsBuffer::SetUsage(GraphicsBuffer::BufferUsage bufUsage)
 {
-	m_buffer_usage = bufUsage;
+	if (bufUsage != m_buffer_usage)
+	{
+		m_buffer_usage = bufUsage;
+		m_buffer_shape_dirty = true;
+	}
+}
+
+void GraphicsBuffer::Invalidate()
+{
+	m_invalidated = true;
+	// Apparently not supported.
+	//glInvalidateBufferData(m_buffer_handle);
+}
+
+void GraphicsBuffer::RecreateBuffer()
+{
+	// If the buffer is not dirty, don't recreate it.
+	if (!m_buffer_shape_dirty) return;
+	// If the buffer is mapped, don't recreate it.
+	if (m_map_pointer) return;
+	// If the buffer has data in it we need, don't recreate it.
+	if (!m_invalidated) return;
+	if (m_buffer_handle)
+	{
+		glDeleteBuffers(1, &m_buffer_handle);
+	}
+	glGenBuffers(1, &m_buffer_handle);
+	m_buffer_shape_dirty = false;
+	if (m_buffer_size)
+		Upload(m_buffer_size, nullptr);
 }
 
 void* GraphicsBuffer::Map(bool read, bool write, bool invalidate)
@@ -98,12 +128,19 @@ void* GraphicsBuffer::Map(bool read, bool write, bool invalidate)
 	GLbitfield access = ((read)?GL_MAP_READ_BIT:0) | ((write)?GL_MAP_WRITE_BIT:0) | ((invalidate)?GL_MAP_INVALIDATE_BUFFER_BIT:0);
 	GLenum target = BufferTypeToGLType(m_buffer_type);
 
+	if (invalidate)
+	       m_invalidated = true;
+
+	if (m_map_pointer)
+		Warn("Tried to map already mapped buffer!");	
+
+	RecreateBuffer();
+
 	Bind();
 	
-	return glMapBufferRange(target, 0, m_buffer_size, access);
+	m_map_pointer = glMapBufferRange(target, 0, m_buffer_size, access);
 	
-	//TODO: Emulate DSA
-	//return glMapNamedBufferEXT(m_bufferHandle, access);
+	return m_map_pointer;
 }
 
 void* GraphicsBuffer::MapRange(int offset, int length, bool read, bool write, bool invalidate)
@@ -111,12 +148,15 @@ void* GraphicsBuffer::MapRange(int offset, int length, bool read, bool write, bo
 	GLbitfield access = ((read)?GL_MAP_READ_BIT:0) | ((write)?GL_MAP_WRITE_BIT:0) | ((invalidate)?GL_MAP_INVALIDATE_RANGE_BIT:0);
 	GLenum target = BufferTypeToGLType(m_buffer_type);
 
+	if (m_map_pointer)
+		Warn("Tried to map already mapped buffer!");	
+
+	RecreateBuffer();
+
 	Bind();
 	
-	return glMapBufferRange(target, offset, length, access);
-
-	//TODO: Emulate DSA
-	//return glMapNamedBufferRangeEXT(m_bufferHandle, offset, length, access);
+	m_map_pointer = glMapBufferRange(target, offset, length, access);
+	return m_map_pointer;
 }
 
 void GraphicsBuffer::UnMap()
@@ -125,7 +165,7 @@ void GraphicsBuffer::UnMap()
 	
 	Bind();
 	glUnmapBuffer(target);
-	//glUnmapNamedBufferEXT(m_bufferHandle);
+	m_map_pointer = nullptr;
 }
 
 void GraphicsBuffer::Upload(size_t length, const void* data)
@@ -133,27 +173,31 @@ void GraphicsBuffer::Upload(size_t length, const void* data)
 	GLenum target = BufferTypeToGLType(m_buffer_type);
 	
 	GLenum usage = BufferUsageToGLUsage(m_buffer_usage);
+
+	m_invalidated = true;
+	RecreateBuffer();
 	
 	Bind();
 	glBufferData(target, length, data, usage);
 	m_buffer_size = length;
-	//glNamedBufferDataEXT(m_bufferHandle, length, data, usage);
 }
 
 void GraphicsBuffer::UploadRange(size_t length, intptr_t offset, const void* data)
 {
 	GLenum target = BufferTypeToGLType(m_buffer_type);
+
+	RecreateBuffer();
 	
 	Bind();
 	glBufferSubData(target, offset, length, data);
-	//glNamedBufferSubDataEXT(m_bufferHandle, offset, length, data);
 }
 
 void GraphicsBuffer::Resize(size_t length)
 {
 	if (m_invalidated)
 	{
-		Upload(length, nullptr);
+		m_buffer_size = length;
+		RecreateBuffer();	
 	}
 	else
 	{
@@ -166,9 +210,8 @@ void GraphicsBuffer::Resize(size_t length)
 		glBindBuffer(GL_COPY_WRITE_BUFFER, m_buffer_handle);
 		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, m_buffer_size);
 		glDeleteBuffers(1, &old_buffer);
+		m_buffer_size = length;
 	}
-	m_buffer_size = length;
-
 }
 
 void GraphicsBuffer::Bind()
