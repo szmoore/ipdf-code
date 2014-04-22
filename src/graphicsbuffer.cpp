@@ -5,6 +5,66 @@
 
 using namespace IPDF;
 
+static GLenum BufferUsageToGLUsage(GraphicsBuffer::BufferUsage buffer_usage)
+{
+	GLenum usage;
+	switch (buffer_usage)
+	{
+	case GraphicsBuffer::BufferUsageStaticDraw:
+		usage = GL_STATIC_DRAW;
+		break;
+	case GraphicsBuffer::BufferUsageStaticRead:
+		usage = GL_STATIC_READ;
+		break;
+	case GraphicsBuffer::BufferUsageStaticCopy:
+		usage = GL_STATIC_COPY;
+		break;
+	case GraphicsBuffer::BufferUsageDynamicDraw:
+		usage = GL_DYNAMIC_DRAW;
+		break;
+	case GraphicsBuffer::BufferUsageDynamicRead:
+		usage = GL_DYNAMIC_READ;
+		break;
+	case GraphicsBuffer::BufferUsageDynamicCopy:
+		usage = GL_DYNAMIC_COPY;
+		break;
+	case GraphicsBuffer::BufferUsageStreamDraw:
+		usage = GL_STREAM_DRAW;
+		break;
+	case GraphicsBuffer::BufferUsageStreamRead:
+		usage = GL_STREAM_READ;
+		break;
+	case GraphicsBuffer::BufferUsageStreamCopy:
+		usage = GL_STREAM_COPY;
+		break;
+	default:
+		SDL_assert(false && "Unknown buffer usage type.");
+		usage = GL_DYNAMIC_DRAW;
+	}
+	return usage;
+}
+
+static GLenum BufferTypeToGLType(GraphicsBuffer::BufferType buffer_type)
+{
+	switch (buffer_type)
+	{
+	case GraphicsBuffer::BufferTypeVertex:
+		return GL_ARRAY_BUFFER;
+	case GraphicsBuffer::BufferTypeIndex:
+		return GL_ELEMENT_ARRAY_BUFFER;
+	case GraphicsBuffer::BufferTypePixelPack:
+		return GL_PIXEL_PACK_BUFFER;
+	case GraphicsBuffer::BufferTypePixelUnpack:
+		return GL_PIXEL_UNPACK_BUFFER;
+	case GraphicsBuffer::BufferTypeUniform:
+		return GL_UNIFORM_BUFFER;
+	case GraphicsBuffer::BufferTypeDrawIndirect:
+		return GL_DRAW_INDIRECT_BUFFER;
+	default:
+		return GL_COPY_READ_BUFFER;
+	}
+}
+
 GraphicsBuffer::GraphicsBuffer()
 {
 	SetUsage(BufferUsageStaticDraw);
@@ -33,8 +93,8 @@ void GraphicsBuffer::SetUsage(GraphicsBuffer::BufferUsage bufUsage)
 void* GraphicsBuffer::Map(bool read, bool write, bool invalidate)
 {
 	GLbitfield access = ((read)?GL_MAP_READ_BIT:0) | ((write)?GL_MAP_WRITE_BIT:0) | ((invalidate)?GL_MAP_INVALIDATE_BUFFER_BIT:0);
-	GLenum target = (m_buffer_type == GraphicsBuffer::BufferTypeVertex)?GL_ARRAY_BUFFER:GL_ELEMENT_ARRAY_BUFFER;
-	
+	GLenum target = BufferTypeToGLType(m_buffer_type);
+
 	Bind();
 	
 	return glMapBufferRange(target, 0, m_buffer_size, access);
@@ -46,7 +106,7 @@ void* GraphicsBuffer::Map(bool read, bool write, bool invalidate)
 void* GraphicsBuffer::MapRange(int offset, int length, bool read, bool write, bool invalidate)
 {
 	GLbitfield access = ((read)?GL_MAP_READ_BIT:0) | ((write)?GL_MAP_WRITE_BIT:0) | ((invalidate)?GL_MAP_INVALIDATE_RANGE_BIT:0);
-	GLenum target = (m_buffer_type == GraphicsBuffer::BufferTypeVertex)?GL_ARRAY_BUFFER:GL_ELEMENT_ARRAY_BUFFER;
+	GLenum target = BufferTypeToGLType(m_buffer_type);
 	
 	Bind();
 	
@@ -58,7 +118,7 @@ void* GraphicsBuffer::MapRange(int offset, int length, bool read, bool write, bo
 
 void GraphicsBuffer::UnMap()
 {
-	GLenum target = (m_buffer_type == GraphicsBuffer::BufferTypeVertex)?GL_ARRAY_BUFFER:GL_ELEMENT_ARRAY_BUFFER;
+	GLenum target = BufferTypeToGLType(m_buffer_type);
 	
 	Bind();
 	glUnmapBuffer(target);
@@ -67,42 +127,9 @@ void GraphicsBuffer::UnMap()
 
 void GraphicsBuffer::Upload(size_t length, const void* data)
 {
-	GLenum target = (m_buffer_type == GraphicsBuffer::BufferTypeVertex)?GL_ARRAY_BUFFER:GL_ELEMENT_ARRAY_BUFFER;
+	GLenum target = BufferTypeToGLType(m_buffer_type);
 	
-	GLenum usage;
-	switch (m_buffer_usage)
-	{
-	case BufferUsageStaticDraw:
-		usage = GL_STATIC_DRAW;
-		break;
-	case BufferUsageStaticRead:
-		usage = GL_STATIC_READ;
-		break;
-	case BufferUsageStaticCopy:
-		usage = GL_STATIC_COPY;
-		break;
-	case BufferUsageDynamicDraw:
-		usage = GL_DYNAMIC_DRAW;
-		break;
-	case BufferUsageDynamicRead:
-		usage = GL_DYNAMIC_READ;
-		break;
-	case BufferUsageDynamicCopy:
-		usage = GL_DYNAMIC_COPY;
-		break;
-	case BufferUsageStreamDraw:
-		usage = GL_STREAM_DRAW;
-		break;
-	case BufferUsageStreamRead:
-		usage = GL_STREAM_READ;
-		break;
-	case BufferUsageStreamCopy:
-		usage = GL_STREAM_COPY;
-		break;
-	default:
-		SDL_assert(false && "Unknown buffer usage type.");
-		usage = GL_DYNAMIC_DRAW;
-	}
+	GLenum usage = BufferUsageToGLUsage(m_buffer_usage);
 	
 	Bind();
 	glBufferData(target, length, data, usage);
@@ -112,26 +139,39 @@ void GraphicsBuffer::Upload(size_t length, const void* data)
 
 void GraphicsBuffer::UploadRange(size_t length, intptr_t offset, const void* data)
 {
-	GLenum target = (m_buffer_type == GraphicsBuffer::BufferTypeVertex)?GL_ARRAY_BUFFER:GL_ELEMENT_ARRAY_BUFFER;
+	GLenum target = BufferTypeToGLType(m_buffer_type);
 	
 	Bind();
 	glBufferSubData(target, offset, length, data);
 	//glNamedBufferSubDataEXT(m_bufferHandle, offset, length, data);
 }
 
+void GraphicsBuffer::Resize(size_t length)
+{
+	if (m_invalidated)
+	{
+		Upload(length, nullptr);
+	}
+	else
+	{
+		// Create a new buffer and copy the old data into it.
+		UnMap();
+		GLuint old_buffer = m_buffer_handle;	
+		glGenBuffers(1, &m_buffer_handle);
+		Upload(length, nullptr);
+		glBindBuffer(GL_COPY_READ_BUFFER, old_buffer);
+		glBindBuffer(GL_COPY_WRITE_BUFFER, m_buffer_handle);
+		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, m_buffer_size);
+		glDeleteBuffers(1, &old_buffer);
+	}
+
+}
+
 void GraphicsBuffer::Bind()
 {
-	if (m_buffer_type == BufferTypeVertex)
-		glBindBuffer(GL_ARRAY_BUFFER, m_buffer_handle);
-	else if (m_buffer_type == BufferTypeIndex)
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffer_handle);
-	else if (m_buffer_type == BufferTypePixelPack)
-		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_buffer_handle);
-	else if (m_buffer_type == BufferTypePixelUnpack)
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_buffer_handle);
-	else if (m_buffer_type == BufferTypeUniform)
+	if (m_buffer_type == BufferTypeUniform)
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_buffer_handle);
-	else if (m_buffer_type == BufferTypeDrawIndirect)
-		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_buffer_handle);
+	else
+		glBindBuffer(BufferTypeToGLType(m_buffer_type), m_buffer_handle);
 }
 
