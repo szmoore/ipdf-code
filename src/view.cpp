@@ -13,7 +13,10 @@ void View::Translate(Real x, Real y)
 	m_bounds.y += y;
 	Debug("View Bounds => %s", m_bounds.Str().c_str());
 	if (!m_use_gpu_transform)
-		m_bounds_dirty = true;
+	{
+		m_buffer_dirty = true;
+	}
+	m_bounds_dirty = true;
 }
 
 void View::ScaleAroundPoint(Real x, Real y, Real scaleAmt)
@@ -39,7 +42,8 @@ void View::ScaleAroundPoint(Real x, Real y, Real scaleAmt)
 	m_bounds.h *= scaleAmt;
 	Debug("View Bounds => %s", m_bounds.Str().c_str());
 	if (!m_use_gpu_transform)
-		m_bounds_dirty = true;
+		m_buffer_dirty = true;
+	m_bounds_dirty = true;
 }
 
 Rect View::TransformToViewCoords(const Rect& inp) const
@@ -80,8 +84,22 @@ void View::DrawGrid()
 
 void glPrimitiveRestartIndex(GLuint index);
 
-void View::Render()
+void View::Render(int width, int height)
 {
+	if (width != m_cached_display.GetWidth() || height != m_cached_display.GetHeight())
+	{
+		m_cached_display.Create(width, height);
+		m_bounds_dirty = true;
+	}
+
+	if (!m_bounds_dirty)
+	{
+		m_cached_display.UnBind();
+		m_cached_display.Blit();
+		return;
+	}
+	m_cached_display.Bind();
+	m_cached_display.Clear();
 	
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -94,7 +112,7 @@ void View::Render()
 		glOrtho(0,1,1,0,-1,1);
 	}
 
-	if (m_bounds_dirty)
+	if (m_buffer_dirty)
 		ReRender();
 
 	glMatrixMode(GL_MODELVIEW);
@@ -118,7 +136,8 @@ void View::Render()
 	{
 		glDisable(GL_BLEND);
 	}
-
+	m_cached_display.UnBind();
+	m_cached_display.Blit();
 
 }
 
