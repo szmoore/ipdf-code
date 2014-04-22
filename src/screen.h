@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "stb_truetype.h"
+#include "graphicsbuffer.h"
 
 namespace IPDF
 {
@@ -59,6 +60,7 @@ namespace IPDF
 		void RenderBMP(const char * filename) const;
 	private:
 		void ResizeViewport(int width, int height);
+		void DebugFontFlush();
 		
 		MouseHandler m_mouse_handler;
 		int m_last_mouse_x;
@@ -73,6 +75,10 @@ namespace IPDF
 		float m_debug_font_x;
 		float m_debug_font_y;
 		float m_debug_font_size;
+		GraphicsBuffer m_debug_font_vertices;
+		GraphicsBuffer m_debug_font_indices;
+		int m_debug_font_vertex_head;
+		int m_debug_font_index_head;
 	};
 
 }

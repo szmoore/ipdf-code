@@ -21,6 +21,8 @@ Screen::Screen()
 
 	m_gl_context = SDL_GL_CreateContext(m_window);
 
+	m_debug_font_atlas = 0;
+
 	ResizeViewport(800, 600);
 
 	Clear();
@@ -130,6 +132,8 @@ void Screen::SetMouseCursor(Screen::MouseCursors cursor)
 
 void Screen::Present()
 {
+	if (m_debug_font_atlas)
+		DebugFontFlush();
 	SDL_GL_SwapWindow(m_window);
 }
 
@@ -248,16 +252,23 @@ void Screen::DebugFontInit(const char *name, float font_size)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 1024,1024, 0, GL_ALPHA, GL_UNSIGNED_BYTE, font_atlas_data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	m_debug_font_size = font_size;
+
+	m_debug_font_vertices.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
+	m_debug_font_vertices.SetType(GraphicsBuffer::BufferTypeVertex);
+	m_debug_font_vertices.Upload(512, nullptr);
+	m_debug_font_vertex_head = 0;
 }
 
 void Screen::DebugFontClear()
 {
 	m_debug_font_x = m_debug_font_y = 0;
+	if (!m_debug_font_atlas) return;
 	DebugFontPrint("\n");
 }
 
-void Screen::DebugFontPrint(const char* str)
+void Screen::DebugFontFlush()
 {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
@@ -266,21 +277,68 @@ void Screen::DebugFontPrint(const char* str)
 	glPushMatrix();
 	glLoadIdentity();
 	
+	glColor4f(0,0,0,1);
 	
-	
+		
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glBindTexture(GL_TEXTURE_2D, m_debug_font_atlas);
-	glBegin(GL_QUADS);
+
+	m_debug_font_vertices.Bind();
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 4*sizeof(float), (void*)(2*sizeof(float)));
+	glTexCoordPointer(2, GL_FLOAT, 4*sizeof(float), 0);
+	Debug("Flushing Debug Font arrays, %d verts (%d floats)", m_debug_font_vertex_head/4, m_debug_font_vertex_head);
+	glDrawArrays(GL_QUADS, 0, m_debug_font_vertex_head/4);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+
+	glDisable(GL_BLEND);
+	glDisable(GL_TEXTURE_2D);
+	glPopMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+
+	m_debug_font_vertex_head = 0;
+}
+
+void Screen::DebugFontPrint(const char* str)
+{
+	if (!m_debug_font_atlas) return;
+
+	float *vertexData = (float*)m_debug_font_vertices.MapRange(m_debug_font_vertex_head*sizeof(float), m_debug_font_vertices.GetSize() - m_debug_font_vertex_head*sizeof(float), false, true, true);
 	while (*str) {
+		if (m_debug_font_vertex_head*sizeof(float) + 16*sizeof(float) >= m_debug_font_vertices.GetSize() )
+		{
+			m_debug_font_vertices.UnMap();
+			DebugFontFlush();
+			DebugFontPrint(str);
+			return;
+		}
 		if (*str >= 32 && *str < 128) {
 			stbtt_aligned_quad q;
 			stbtt_GetBakedQuad(m_debug_font_rects, 1024,1024, *str-32, &m_debug_font_x,&m_debug_font_y,&q,1);
-			glTexCoord2f(q.s0,q.t0); glVertex2f(q.x0,q.y0);
-			glTexCoord2f(q.s1,q.t0); glVertex2f(q.x1,q.y0);
-			glTexCoord2f(q.s1,q.t1); glVertex2f(q.x1,q.y1);
-			glTexCoord2f(q.s0,q.t1); glVertex2f(q.x0,q.y1);
+			*vertexData = q.s0; vertexData++;
+			*vertexData = q.t0; vertexData++;
+			*vertexData = q.x0; vertexData++;
+			*vertexData = q.y0; vertexData++;
+			*vertexData = q.s1; vertexData++;
+			*vertexData = q.t0; vertexData++;
+			*vertexData = q.x1; vertexData++;
+			*vertexData = q.y0; vertexData++;
+			*vertexData = q.s1; vertexData++;
+			*vertexData = q.t1; vertexData++;
+			*vertexData = q.x1; vertexData++;
+			*vertexData = q.y1; vertexData++;
+			*vertexData = q.s0; vertexData++;
+			*vertexData = q.t1; vertexData++;
+			*vertexData = q.x0; vertexData++;
+			*vertexData = q.y1; vertexData++;
+
+			m_debug_font_vertex_head += 16;
+
 		}
 		else if (*str == '\n')
 		{
@@ -289,12 +347,8 @@ void Screen::DebugFontPrint(const char* str)
 		}
 		++str;
 	}
-	glEnd();
-	glDisable(GL_BLEND);
-	glDisable(GL_TEXTURE_2D);
-	glPopMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
+	m_debug_font_vertices.UnMap();
+	//DebugFontFlush();
 }
 
 void Screen::DebugFontPrintF(const char *fmt, ...)

@@ -1,4 +1,5 @@
 #include "graphicsbuffer.h"
+#include "log.h"
 #define GL_GLEXT_PROTOTYPES
 #include <SDL_opengl.h>
 #include <GL/glext.h>
@@ -67,6 +68,8 @@ static GLenum BufferTypeToGLType(GraphicsBuffer::BufferType buffer_type)
 
 GraphicsBuffer::GraphicsBuffer()
 {
+	m_invalidated = true;
+	m_buffer_size = 0;
 	SetUsage(BufferUsageStaticDraw);
 }
 
@@ -107,7 +110,7 @@ void* GraphicsBuffer::MapRange(int offset, int length, bool read, bool write, bo
 {
 	GLbitfield access = ((read)?GL_MAP_READ_BIT:0) | ((write)?GL_MAP_WRITE_BIT:0) | ((invalidate)?GL_MAP_INVALIDATE_RANGE_BIT:0);
 	GLenum target = BufferTypeToGLType(m_buffer_type);
-	
+
 	Bind();
 	
 	return glMapBufferRange(target, offset, length, access);
@@ -164,6 +167,7 @@ void GraphicsBuffer::Resize(size_t length)
 		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, m_buffer_size);
 		glDeleteBuffers(1, &old_buffer);
 	}
+	m_buffer_size = length;
 
 }
 

@@ -52,6 +52,7 @@ namespace IPDF
 		void UploadRange(size_t length, intptr_t offset, const void *data);
 
 		void Resize(size_t length);
+		const size_t GetSize() const { return m_buffer_size; }
 		
 		void Bind();
 	private:
