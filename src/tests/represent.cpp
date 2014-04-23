@@ -193,12 +193,12 @@ int main(int argc, char ** argv)
 
 	typedef pair<uint8_t, Real> Pear;
 	list<Pear> space;
-	uint8_t a0 = 0x00;
-	for (uint8_t a = a0; a < a0+0xFF; ++a)
+	uint16_t a0 = 0x0000;
+	for (uint16_t a = a0; a < a0+0x00FF; ++a)
 	{
-		Real x = BitsToReal<2,5>(&a);
-		uint8_t b = 0; BitsFromReal<2,5>(x, &b);
-		Real y = BitsToReal<2,5>(&b);
+		Real x = BitsToReal<5,10>(&a);
+		uint16_t b = 0; BitsFromReal<5,10>(x, &b);
+		Real y = BitsToReal<5,10>(&b);
 		if (y != x)
 		{
 			Warn("%x -> %lf -> %x -> %lf", a, Float(x), b, Float(y));
