@@ -39,7 +39,7 @@ namespace IPDF
 	// Mostly in the testers.
 	inline float Float(float f) {return f;}
 	inline double Float(double f) {return f;}
-	inline long double Float(long double f) {return f;}
+	inline double Float(long double f) {return double(f);}
 }
 
 #endif //_REAL_H

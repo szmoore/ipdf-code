@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cassert>
 #include <list>
+#include <bitset>
 
 using namespace std;
 using namespace IPDF;
@@ -11,6 +12,7 @@ using namespace IPDF;
  * This "tester" lets us construct Reals out of Floating Points with arbitrary sizes (but must be less than 64 bits currently)
  * Eventually it will also go the other way
  * This is originally for conceptual understanding but will ultimately become useful later on.
+ * Bahahaha
  */
 
 
@@ -26,73 +28,159 @@ long CountBits(long n)
 }
 
 /**
- * Converts data represented as an (se, e, m, sm) floating point number to a Real.
- * se = sign of exponent (1 bit)
- * e = exponent (EMAX bits)
- * m = mantissa (PREC bits)
- * sm = sign of mantissa (1 bit)
- * Total 1+EMAX+PREC+1 must not exceed 64 (at least, for the moment)
+ * Converts data represented as an (s, e, m) floating point number to a Real.
+ * Now actually correct for floats bigger than 8 bits!
+ * Now with 100% less memcpy and 100% more pointer arithmetic!
+ * Now with IEEE style encodings! (How many flops does it take to represent a float this way? TOO MANY!)
+ * Still probably breaks if you are not using an x86 based processor
+ * s = sign
+ * e = exponent (IEEE ``offset'' encoding)
+ * m = mantissa (IEEE encoding)
  */
-template <unsigned EMAX, unsigned PREC, unsigned BASE = 2> Real BitsToReal(void * data)
+template <size_t EMAX, size_t PREC, size_t BASE = 2> Real BitsToReal(void * data)
 {
 	if (PREC + EMAX > 62) // we need 1 bit for the sign of the exponent, 1 bit for the sign
 		Fatal("Can't do more than 62 bits (asked for %d + %d = %d)", PREC, EMAX, PREC+EMAX);
-	
-	// memcpy needs a whole number of bytes
-	// This means we need to do tricky bit shifting to get rid of parts of the exp/mantissa that overlap
-	size_t ebytes = ceil(double(EMAX+1.0) / 8.0); 	
-	size_t mbytes = ceil(double(PREC+1.0)/8.0);
-	size_t moffset = floor(double(EMAX+1.0) / 8.0); // offset to start of mantissa (nearest byte)
-	//Debug("ebytes %d, mbytes %d, moffset %d", ebytes, mbytes, moffset);
 
-	// Get the exponent and its sign
-	uint64_t exponent = 0L;
-	bool exp_sign = false;
-
-	memcpy(&exponent, data, ebytes); // Copy exponent
-	//Debug("exponent + garbage: %x", exponent);
-	exp_sign = (1L << (8*ebytes-1)) & exponent;
-	exponent &= ~(1L << (8*ebytes-1)); // mask out the sign
-	//Debug("exponent - masked sign: %x", exponent);
-	exponent = exponent >> (PREC+1); // shift out the extra bits (part of mantissa)
-	assert(CountBits(exponent) <= EMAX); //TODO: Remove once sure it actually works //TODO: Need more reliable sanity checks probably
-
-	// Get the mantissa and its sign
+	size_t mbytes = ceil(double(PREC)/8.0);	
+	size_t mtrunc = floor(double(PREC)/8.0);
 	uint64_t mantissa = 0L;
-	bool sign = false;
+	uint8_t * c = (uint8_t*)(data);
+	for (size_t i = 0; i < mbytes; ++i)
+	{
+		mantissa |= *(c++) << (i*8);	
+	}
+	mantissa &= ~(~0L << PREC);
 
-	memcpy(&mantissa, ((uint8_t*)(data) + moffset), mbytes); // copy data
-	//Debug("mantissa + garbage: %x", mantissa);
-	sign = mantissa & (1L); // get sign
-	mantissa = mantissa >> 1; // discard sign
-	mantissa = (mantissa << (8*sizeof(mantissa) - PREC)) >> (8*sizeof(mantissa) - PREC);
-	assert(CountBits(mantissa) <= PREC);
+	size_t ebytes = ceil(double(EMAX)/8.0);
+	uint64_t exponent = *(c-1) & (~0L << (PREC-8*mtrunc));
+	for (size_t i = 0; i < ebytes; ++i)
+	{
+		exponent |= *(c++) << (i+1)*8;
+	}
+	exponent = exponent >> (PREC-8*mtrunc);
+	bool sign = exponent & (1LL << EMAX);
+	exponent &= ~(~0L << EMAX);
+
+	// Floats are defined by
+	// x = (-1)^s * m * B^{e}
+
+	// In IEEE things get a little crazy though, the mantissa is stored reversed and the digits are summed indexed using negative powers of 2 (not positive)
+	// So to conform with IEEE can't just treat the mantissa as an unsigned integer
+
+	// Calculate the actual mantissa from the IEEE style encoding of the mantissa (sigh)
+	// This is obviously horribly inefficient but I guess that encoding not designed for ... whatever it is I'm doing here
+	Real M = (exponent != 0);
+	for (size_t i = 1; i < PREC; ++i)
+	{
+		if ((mantissa >> PREC-i) & 1)
+			M += Real(1) / powl(BASE, i);
+	}
 	
-	/*
-	Debug("EMAX %u, PREC %u, BASE %u", EMAX, PREC, BASE);
-	Debug("EXP: %x", exponent);
-	Debug("MANTISSA: %x", mantissa);
-	Debug("EXP_SIGN: %x", (uint8_t)exp_sign);
-	Debug("MANTISSA_SIGN: %x", (uint8_t)sign);
-	*/
-
-	Real Q = (exp_sign) ? pow(Real(BASE), -Real(exponent)) : pow(Real(BASE), Real(exponent));
-	Real x = Real(mantissa) * Q;
+	
+	//Debug("Mantissa: %x = %lf", mantissa, Float(M));
+	//Debug("Exponent: %x = %u => %lf", exponent, exponent, Float(Real(exponent + 1) - Real(1LL << (EMAX-1))));
+	//Debug("Sign: %x = %u", sign, sign);
+	
+	
+	Real x = M * powl(Real(BASE), Real(exponent + 1)-Real(1LL << (EMAX-1)));
 	return (sign) ? -x : x;
 }
 
+
 /**
  * Performs the inverse of BitsToReal
+ * Hopefully
+ * It chooses the normalised representation
  */
-template <int EMAX, int PREC, int BASE = 2> void BitsFromReal(const Real & x, void * data)
+template <size_t EMAX, size_t PREC, size_t BASE = 2> void BitsFromReal(const Real & x, void * data)
 {
-	bool sign;
-	uint64_t mantissa;
-	uint64_t exponent;
 	if (PREC + EMAX > 62)
 		Fatal("Can't do more than 62 bits (asked for %d + %d = %d)", PREC, EMAX, PREC+EMAX);
+
+	uint64_t integer = (uint64_t)(abs(x));
+	uint64_t fraction = 0L;
+	int64_t exponent = 0L;
+
+	int64_t exp_bias = (1LL << (EMAX-1) - 1);
+
+	Real f = Real(abs(x)) - Real(integer);
+	//f = 0.375; integer = 12;
+	// Get active fractional bits
+	for (size_t i = 0; i <= PREC && f > 0; ++i)
+	{
+		//Debug("%d, %lf", i, Float(f));
+		if (f >= 1)
+		{	
+			fraction |= (1LL << (PREC-i));
+			f -= 1.0L;	
+			//Debug("1");
+		}
+		//else
+			//Debug("0");
+		f *= 2.0L;
+	}
+
+	//Debug("Integer: %lx", integer);
+	int offset = 0; while ((integer >> (offset++) != 0) && (offset < 8*sizeof(integer))); --offset;
+	//Debug("Offset: %d", offset);
+	//Debug("Fraction: %lx", fraction);	
+	exponent += offset-1;
+	uint64_t mantissa = fraction;	
+	if (offset > 0)
+	{
+		//Debug("Mantissa %.2lx", mantissa);	
+		mantissa = (integer << PREC) | fraction;
+		//Debug("Mantissa %.2lx", mantissa);	
+		mantissa = mantissa >> (offset-1);
+		//Debug("Mantissa %.2lx", mantissa);	
+		//mantissa = mantissa >> (offset-1);
+	}
+	else
+	{
+		mantissa = mantissa << 1;
+	}
+	//Debug("Mantissa %.2lx", mantissa);	
+
+	//Debug("Exponent: %lx %li", exponent, exponent);
+	if (exponent < -exp_bias)
+	{
+		mantissa = mantissa >> (-exp_bias - exponent);
+		exponent = -exp_bias;
+	}
+	//Debug("Exponent: %lx %li", exponent, exponent);	
+	exponent = exp_bias + exponent;
+	//Real(exponent + 1) - Real(1LL << (EMAX-1))
+	//Debug("Exponent: %lx %li", exponent, exponent);
+	Real M = (exponent != 0);
+	for (size_t i = 1; i < PREC; ++i)
+	{
+		if ((mantissa >> PREC-i) & 1)
+			M += Real(1) / powl(BASE, i);
+	}
+	//Debug("M is %lf", Float(M));
+
+	// Now copy the bits in (fun times)
+	uint8_t * c = (uint8_t*)(data);
+	size_t i = 0;
+	for (i = 0; i < PREC; ++i)
+	{
+		*c |= ((mantissa >> i) & 1) << (i%8);
+		if ((i+1) % 8 == 0) 
+		{
+			++c;
+		}
+	}
+	for (; i < PREC+EMAX; ++i)
+	{
+		*c |= ((exponent >> (i-PREC)) & 1) << (i%8);
+		if ((i+1) % 8 == 0) 
+		{
+			++c;
+		}
+	}
+	*c |= ((x < 0) << (i%8));
 	
-	//TODO: Implement
 	
 }
 
@@ -105,21 +193,26 @@ int main(int argc, char ** argv)
 
 	typedef pair<uint8_t, Real> Pear;
 	list<Pear> space;
-
-	for (uint8_t a = 0x00; a < 0xFF; ++a)
+	uint8_t a0 = 0x00;
+	for (uint8_t a = a0; a < a0+0xFF; ++a)
 	{
-		Real x = BitsToReal<2,4>(&a);
-		space.push_back(pair<uint8_t, Real>(a, x));
+		Real x = BitsToReal<2,5>(&a);
+		uint8_t b = 0; BitsFromReal<2,5>(x, &b);
+		Real y = BitsToReal<2,5>(&b);
+		if (y != x)
+		{
+			Warn("%x -> %lf -> %x -> %lf", a, Float(x), b, Float(y));
+		}
+		space.push_back(Pear(a, x));
 	}
 	space.sort([=](const Pear & a, const Pear & b){return a.second < b.second;});
 	Real prev;
 	for (list<Pear>::iterator i = space.begin(); i != space.end(); ++i)
 	{
-		printf("%u\t%x\t%f", i->first, i->first, Float(i->second));
+		printf("%u\t%.2x\t%.20lf", i->first, i->first, Float(i->second));
 		if (i != space.begin())
-		{
-			printf("\t%f\n", Float(i->second - prev));
-		}	
+			printf("\t%f", Float(i->second - prev));
+		printf("\n");
 		prev = i->second;	 
 	}
 }
