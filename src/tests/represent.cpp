@@ -87,80 +87,35 @@ template <size_t EMAX, size_t PREC, size_t BASE = 2> Real BitsToReal(void * data
 	return (sign) ? -x : x;
 }
 
+/**
+ * Modifies fraction to contain the fractional part of x
+ * Returns position of the first '1' bit
+ */
+size_t Fraction(Real x, uint64_t & fraction)
+{
+	x = abs(x) - (uint64_t)(abs(x));
+	fraction = 0LL;
+	size_t offset = 0;
+	for (size_t i = 0; i < 8*sizeof(fraction); ++i)
+	{
+		x *= 2;
+		if (x >= 1.0)
+		{
+			offset = (offset == 0) ? i : offset;
+			fraction |= (1LL << (8*sizeof(fraction)-1-i));
+			x -= 1.0;
+		}
+		if (x <= 0.0)
+			break;
+	}
+	return fraction;
+}
 
 /**
- * Performs the inverse of BitsToReal
- * Hopefully
- * It chooses the normalised representation
+ * Copy mantissa and exponent into data
  */
-template <size_t EMAX, size_t PREC, size_t BASE = 2> void BitsFromReal(const Real & x, void * data)
+template <size_t EMAX, size_t PREC, size_t BASE = 2> void BitsFromRepr(bool sign, uint64_t mantissa, uint64_t exponent, void * data)
 {
-	if (PREC + EMAX > 62)
-		Fatal("Can't do more than 62 bits (asked for %d + %d = %d)", PREC, EMAX, PREC+EMAX);
-
-	uint64_t integer = (uint64_t)(abs(x));
-	uint64_t fraction = 0L;
-	int64_t exponent = 0L;
-
-	int64_t exp_bias = (1LL << (EMAX-1) - 1);
-
-	Real f = Real(abs(x)) - Real(integer);
-	//f = 0.375; integer = 12;
-	// Get active fractional bits
-	for (size_t i = 0; i <= PREC && f > 0; ++i)
-	{
-		//Debug("%d, %lf", i, Float(f));
-		if (f >= 1)
-		{	
-			fraction |= (1LL << (PREC-i));
-			f -= 1.0L;	
-			//Debug("1");
-		}
-		//else
-			//Debug("0");
-		f *= 2.0L;
-	}
-
-	//Debug("Integer: %lx", integer);
-	int offset = 0; while ((integer >> (offset++) != 0) && (offset < 8*sizeof(integer))); --offset;
-	//Debug("Offset: %d", offset);
-	//Debug("Fraction: %lx", fraction);	
-	exponent += offset-1;
-	uint64_t mantissa = fraction;	
-	if (offset > 0)
-	{
-		//Debug("Mantissa %.2lx", mantissa);	
-		mantissa = (integer << PREC) | fraction;
-		//Debug("Mantissa %.2lx", mantissa);	
-		mantissa = mantissa >> (offset-1);
-		//Debug("Mantissa %.2lx", mantissa);	
-		//mantissa = mantissa >> (offset-1);
-	}
-	else
-	{
-		mantissa = mantissa << 1;
-	}
-	//Debug("Mantissa %.2lx", mantissa);	
-
-	//Debug("Exponent: %lx %li", exponent, exponent);
-	if (exponent < -exp_bias)
-	{
-		mantissa = mantissa >> (-exp_bias - exponent);
-		exponent = -exp_bias;
-	}
-	//Debug("Exponent: %lx %li", exponent, exponent);	
-	exponent = exp_bias + exponent;
-	//Real(exponent + 1) - Real(1LL << (EMAX-1))
-	//Debug("Exponent: %lx %li", exponent, exponent);
-	Real M = (exponent != 0);
-	for (size_t i = 1; i < PREC; ++i)
-	{
-		if ((mantissa >> PREC-i) & 1)
-			M += Real(1) / powl(BASE, i);
-	}
-	//Debug("M is %lf", Float(M));
-
-	// Now copy the bits in (fun times)
 	uint8_t * c = (uint8_t*)(data);
 	size_t i = 0;
 	for (i = 0; i < PREC; ++i)
@@ -179,8 +134,103 @@ template <size_t EMAX, size_t PREC, size_t BASE = 2> void BitsFromReal(const Rea
 			++c;
 		}
 	}
-	*c |= ((x < 0) << (i%8));
+	*c |= (sign << (i%8));
+}
+
+
+
+
+/**
+ * Performs the inverse of BitsToReal
+ * Hopefully
+ * It chooses the normalised representation
+ */
+template <size_t EMAX, size_t PREC, size_t BASE = 2> void BitsFromReal(Real x, void * data)
+{
+	if (PREC + EMAX > 62)
+		Fatal("Can't do more than 62 bits (asked for %d + %d = %d)", PREC, EMAX, PREC+EMAX);
+
+	uint64_t integer = (uint64_t)(abs(x));
+	uint64_t fraction = 0LL;
+	const size_t max_bits = 8*sizeof(uint64_t);
+	bool sign = (x < 0);
+	x = abs(x) - integer;
 	
+	size_t fraction_leading_zeroes = max_bits;
+	for (size_t i = 0; i < max_bits; ++i)
+	{
+		x *= 2;
+		if (x >= 1.0)
+		{
+			if (fraction_leading_zeroes > i)
+				fraction_leading_zeroes = i;
+			x -= 1;
+			fraction |= (1LL << (max_bits-1-i));
+		}
+		if (x <= 0.0)
+			break;
+	}
+
+	uint64_t mantissa = 0LL;
+	int64_t biased_exponent = 0LL;
+	
+	// Combine integer and fraction into mantissa
+	if (integer == 0)
+	{
+		//Debug("0. %lx (%d)", fraction, fraction_leading_zeroes);
+		// Mantissa must have leading '1'; shift to get leading 1, then shift back to mantissa position
+		mantissa = (fraction << fraction_leading_zeroes) >> (max_bits - PREC);
+		biased_exponent -= fraction_leading_zeroes;
+		// If the unbiased exponent would be negative use a denormalised number instead
+		if (biased_exponent < -(1LL << (EMAX-1))+1)
+		{
+			mantissa = mantissa >> (-(1LL << (EMAX-1))+1 - biased_exponent);
+			biased_exponent = -(1LL << (EMAX-1))+1;
+		}
+	}
+	else
+	{
+
+		size_t integer_leading_zeroes = 0;
+		for (integer_leading_zeroes = 0; integer_leading_zeroes < max_bits; ++integer_leading_zeroes)
+		{
+			if ((integer >> (max_bits-1-integer_leading_zeroes)) & 1LL)
+				break;
+		}
+		//Debug("%.16lx . %.16lx (%li, %li)", integer,fraction,  integer_leading_zeroes, fraction_leading_zeroes);
+
+		mantissa = (integer << (integer_leading_zeroes)); // shift integer part
+		mantissa |= (fraction >> (max_bits-integer_leading_zeroes)); // append the fraction after it
+		//Debug("%.16lx (%.16lx << %i)", mantissa,  fraction, (fraction_leading_zeroes - max_bits + integer_leading_zeroes));
+		mantissa = mantissa >> (max_bits - PREC); // shift back to the mantissa position
+		biased_exponent = (max_bits - integer_leading_zeroes); // calculate exponent
+	}
+
+	// If the unbiased exponent would be non-zero, the IEEE has the leading 1 as implied; remove it and decrease exponent to compensate
+	if (biased_exponent != -(1LL << (EMAX-1))+1)
+	{
+		mantissa &= ~(1LL << max_bits - PREC);
+		mantissa = mantissa << 1;
+		biased_exponent -= 1;
+	}
+
+	uint64_t exponent = (uint64_t)(biased_exponent + (1LL << (EMAX-1))-1); // offset the exponent
+
+	// Debug
+	/*
+	Real M = (exponent != 0);
+	for (size_t i = 1; i < PREC; ++i)
+	{
+		if ((mantissa >> PREC-i) & 1)
+			M += Real(1) / powl(BASE, i);
+	}
+
+	Debug("Exponent: %lx %lu -> %li", exponent, exponent, biased_exponent);
+	Debug("Mantissa: %lx -> %f", mantissa, Float(M));
+	Debug("Both: %lx", mantissa | (exponent << (PREC)));
+	*/
+	// Now copy the bits in
+	BitsFromRepr<EMAX, PREC, BASE>(sign, mantissa, exponent, data);
 	
 }
 
@@ -191,17 +241,17 @@ int main(int argc, char ** argv)
 	printf("# Convert custom floats to a Real\n");
 	printf("# a\thex(a)\tReal(a)\tdelta(last2)\n");
 
-	typedef pair<uint8_t, Real> Pear;
+	typedef pair<uint16_t, Real> Pear;
 	list<Pear> space;
 	uint16_t a0 = 0x0000;
-	for (uint16_t a = a0; a < a0+0x00FF; ++a)
+	for (uint16_t a = a0; a < 0xFFFF; ++a)
 	{
 		Real x = BitsToReal<5,10>(&a);
 		uint16_t b = 0; BitsFromReal<5,10>(x, &b);
 		Real y = BitsToReal<5,10>(&b);
 		if (y != x)
 		{
-			Warn("%x -> %lf -> %x -> %lf", a, Float(x), b, Float(y));
+			Fatal("%x -> %lf -> %x -> %lf", a, Float(x), b, Float(y));
 		}
 		space.push_back(Pear(a, x));
 	}
