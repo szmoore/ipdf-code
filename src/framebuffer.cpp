@@ -1,7 +1,5 @@
 #include "framebuffer.h"
-#define GL_GLEXT_PROTOTYPES
-#include <SDL_opengl.h>
-#include <GL/glext.h>
+#include "gl_core44.h"
 
 using namespace IPDF;
 

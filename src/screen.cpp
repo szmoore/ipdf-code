@@ -1,12 +1,62 @@
 #include "common.h"
 #include "screen.h"
 
-#include "SDL_opengl.h"
+#include "gl_core44.h"
 #include <fcntl.h> // for access(2)
 #include <unistd.h> // for access(2)
 
+#include "shaderprogram.h"
+
+#define BASICTEX_VERT \
+	"#version 140\n"\
+	"#extension GL_ARB_shading_language_420pack : require\n"\
+	"#extension GL_ARB_explicit_attrib_location : require\n"\
+	"\n"\
+	"layout(std140, binding=0) uniform Viewport\n"\
+	"{\n"\
+	"\tfloat width;\n"\
+	"\tfloat height;\n"\
+	"};\n"\
+	"\n"\
+	"layout(location = 0) in vec2 position;\n"\
+	"layout(location = 1) in vec2 tex_coord;\n"\
+	"\n"\
+	"out vec2 fp_tex_coord;\n"\
+	"\n"\
+	"void main()\n"\
+	"{\n"\
+	"\t// Transform to clip coordinates (-1,1, -1,1).\n"\
+	"\tgl_Position.x = (position.x*2/width) - 1;\n"\
+	"\tgl_Position.y = 1 - (position.y*2/height);\n"\
+	"\tgl_Position.z = 0.0;\n"\
+	"\tgl_Position.w = 1.0;\n"\
+	"\tfp_tex_coord = tex_coord;\n"\
+	"}\n"
+
+#define BASICTEX_FRAG \
+	"#version 140\n"\
+	"\n"\
+	"in vec2 fp_tex_coord;\n"\
+	"\n"\
+	"out vec4 output_colour;\n"\
+	"\n"\
+	"uniform sampler2D tex;\n"\
+	"uniform vec4 colour;\n"\
+	"\n"\
+	"void main()\n"\
+	"{\n"\
+	"\toutput_colour = colour;\n"\
+	"\toutput_colour.a = texture(tex, fp_tex_coord).r;\n"\
+	"}\n"
+
 using namespace IPDF;
 using namespace std;
+
+static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* msg, const void *data)
+{
+	Error("OpenGL Error (%d): %s", id, msg);
+}
+
 
 Screen::Screen()
 {
@@ -19,7 +69,51 @@ Screen::Screen()
 		Fatal("Couldn't create window!");
 	}
 
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
 	m_gl_context = SDL_GL_CreateContext(m_window);
+
+	ogl_LoadFunctions();
+
+	// Why is this so horribly broken?
+	if (ogl_IsVersionGEQ(3,0))
+	{
+		Fatal("We require OpenGL 3.1, but you have version %d.%d!",ogl_GetMajorVersion(), ogl_GetMinorVersion());
+	}
+
+	if (!SDL_GL_ExtensionSupported("GL_ARB_shading_language_420pack"))
+	{
+		Fatal("Your system does not support the ARB_shading_language_420pack extension, which is required.");
+	}
+
+	if (!SDL_GL_ExtensionSupported("GL_ARB_explicit_attrib_location"))
+	{
+		Fatal("Your system does not support the ARB_explicit_attrib_location extension, which is required.");
+	}
+
+	glDebugMessageCallback(opengl_debug_callback, 0);
+
+	GLuint default_vao;
+	glGenVertexArrays(1, &default_vao);
+	glBindVertexArray(default_vao);
+
+	//TODO: Error checking.
+	m_texture_prog.AttachVertexProgram(BASICTEX_VERT);
+	m_texture_prog.AttachFragmentProgram(BASICTEX_FRAG);
+	m_texture_prog.Link();
+	m_texture_prog.Use();
+
+	// We always want to use the texture bound to texture unit 0.
+	GLint texture_uniform_location = m_texture_prog.GetUniformLocation("tex");
+	glUniform1i(texture_uniform_location, 0);
+
+	m_colour_uniform_location = m_texture_prog.GetUniformLocation("colour");
+
+	m_viewport_ubo.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
+	m_viewport_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
 
 	m_debug_font_atlas = 0;
 
@@ -50,6 +144,8 @@ void Screen::ResizeViewport(int width, int height)
 	glViewport(0, 0, width, height);
 	m_viewport_width = width;
 	m_viewport_height = height;
+	GLfloat viewportfloats[] = {(float)width, (float)height};
+	m_viewport_ubo.Upload(sizeof(float)*2, viewportfloats);
 }
 
 bool Screen::PumpEvents()
@@ -205,9 +301,23 @@ void Screen::RenderBMP(const char * filename) const
 
 	//Debug("SDL_Surface %d BytesPerPixel, format %d (RGB = %d, BGR = %d, RGBA = %d, BGRA = %d)", bmp->format->BytesPerPixel, texture_format, GL_RGB, GL_BGR, GL_RGBA, GL_BGRA);
 
+	m_texture_prog.Use();
+	GraphicsBuffer quad_vertex_buffer;
+	quad_vertex_buffer.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
+	quad_vertex_buffer.SetType(GraphicsBuffer::BufferTypeVertex);
+	GLfloat quad[] = { 
+		0, 0, 0, 0,
+		1, 0, ViewportWidth(), 0,
+		1, 1, ViewportWidth(), ViewportHeight(),
+		0, 1, 0, ViewportHeight()
+	};
+	quad_vertex_buffer.Upload(sizeof(GLfloat) * 16, quad);
+	quad_vertex_buffer.Bind();
+	m_viewport_ubo.Bind();
+
+	glUniform4f(m_colour_uniform_location, 1.0f, 1.0f, 1.0f, 1.0f);
 
 	GLuint texID;
-	glEnable(GL_TEXTURE_2D);
 	glGenTextures(1, &texID);
 	glBindTexture(GL_TEXTURE_2D, texID);
 
@@ -218,20 +328,14 @@ void Screen::RenderBMP(const char * filename) const
 
 	glTexImage2D(GL_TEXTURE_2D, 0, bmp->format->BytesPerPixel, w, h, 0, texture_format, GL_UNSIGNED_BYTE, bmp->pixels);
 
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0.0, 1.0, 1.0, 0.0, -1.f, 1.f);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), 0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(0);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-	glBegin(GL_QUADS);
-		glTexCoord2i(0,0); glVertex2f(0,0);
-		glTexCoord2i(1,0); glVertex2f(1,0);
-		glTexCoord2i(1,1); glVertex2f(1,1);
-		glTexCoord2i(0,1); glVertex2f(0,1);
-	glEnd();
-
-	glDisable(GL_TEXTURE_2D);
 	SDL_FreeSurface(bmp);	
 }
 
@@ -249,7 +353,7 @@ void Screen::DebugFontInit(const char *name, float font_size)
 	free(font_file_data);
 	glGenTextures(1, &m_debug_font_atlas);
 	glBindTexture(GL_TEXTURE_2D, m_debug_font_atlas);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 1024,1024, 0, GL_ALPHA, GL_UNSIGNED_BYTE, font_atlas_data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 1024,1024, 0, GL_RED, GL_UNSIGNED_BYTE, font_atlas_data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	m_debug_font_size = font_size;
 
@@ -257,6 +361,11 @@ void Screen::DebugFontInit(const char *name, float font_size)
 	m_debug_font_vertices.SetType(GraphicsBuffer::BufferTypeVertex);
 	m_debug_font_vertices.Upload(8192, nullptr);
 	m_debug_font_vertex_head = 0;
+
+	m_debug_font_indices.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
+	m_debug_font_indices.SetType(GraphicsBuffer::BufferTypeIndex);
+	m_debug_font_indices.Resize(500);
+	m_debug_font_index_head = 0;
 }
 
 void Screen::DebugFontClear()
@@ -268,39 +377,32 @@ void Screen::DebugFontClear()
 
 void Screen::DebugFontFlush()
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
- 	glOrtho(0,ViewportWidth(), ViewportHeight(), 0, -1, 1);
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	
-	glColor4f(0,0,0,1);
 	
 		
-	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glBindTexture(GL_TEXTURE_2D, m_debug_font_atlas);
 
+	m_texture_prog.Use();
+	m_viewport_ubo.Bind();
 	m_debug_font_vertices.Bind();
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glVertexPointer(2, GL_FLOAT, 4*sizeof(float), (void*)(2*sizeof(float)));
-	glTexCoordPointer(2, GL_FLOAT, 4*sizeof(float), 0);
-	glDrawArrays(GL_QUADS, 0, m_debug_font_vertex_head/4);
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	m_debug_font_indices.Bind();
+	glUniform4f(m_colour_uniform_location, 0,0,0,1);
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnable(GL_PRIMITIVE_RESTART);
+	glPrimitiveRestartIndex(65535);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), 0);
+	glDrawElements(GL_TRIANGLE_STRIP, m_debug_font_index_head, GL_UNSIGNED_SHORT, 0);
+	glDisable(GL_PRIMITIVE_RESTART);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(0);
 
 	glDisable(GL_BLEND);
-	glDisable(GL_TEXTURE_2D);
-	glPopMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
 
 	m_debug_font_vertex_head = 0;
+	m_debug_font_index_head = 0;
 }
 
 void Screen::DebugFontPrint(const char* str)
@@ -308,9 +410,12 @@ void Screen::DebugFontPrint(const char* str)
 	if (!m_debug_font_atlas) return;
 
 	float *vertexData = (float*)m_debug_font_vertices.MapRange(m_debug_font_vertex_head*sizeof(float), m_debug_font_vertices.GetSize() - m_debug_font_vertex_head*sizeof(float), false, true, true);
+	uint16_t *indexData = (uint16_t*)m_debug_font_indices.MapRange(m_debug_font_index_head*sizeof(uint16_t), m_debug_font_indices.GetSize() - m_debug_font_index_head*sizeof(uint16_t), false, true, true);
 	while (*str) {
-		if (m_debug_font_vertex_head*sizeof(float) + 16*sizeof(float) >= m_debug_font_vertices.GetSize() )
+		if ((m_debug_font_vertex_head*sizeof(float) + 16*sizeof(float) >= m_debug_font_vertices.GetSize() ) ||
+			(m_debug_font_index_head*sizeof(uint16_t) + 5*sizeof(uint16_t) >= m_debug_font_indices.GetSize()))
 		{
+			m_debug_font_indices.UnMap();
 			m_debug_font_vertices.UnMap();
 			DebugFontFlush();
 			DebugFontPrint(str);
@@ -336,7 +441,14 @@ void Screen::DebugFontPrint(const char* str)
 			*vertexData = q.x0; vertexData++;
 			*vertexData = q.y1; vertexData++;
 
+			*indexData = m_debug_font_vertex_head/4; indexData++;
+			*indexData = m_debug_font_vertex_head/4+1; indexData++;
+			*indexData = m_debug_font_vertex_head/4+3; indexData++;
+			*indexData = m_debug_font_vertex_head/4+2; indexData++;
+			*indexData = 65535; indexData++;
+
 			m_debug_font_vertex_head += 16;
+			m_debug_font_index_head += 5;
 
 		}
 		else if (*str == '\n')
@@ -346,6 +458,7 @@ void Screen::DebugFontPrint(const char* str)
 		}
 		++str;
 	}
+	m_debug_font_indices.UnMap();
 	m_debug_font_vertices.UnMap();
 	//DebugFontFlush();
 }

@@ -1,8 +1,5 @@
 #include "graphicsbuffer.h"
 #include "log.h"
-#define GL_GLEXT_PROTOTYPES
-#include <SDL_opengl.h>
-#include <GL/glext.h>
 
 using namespace IPDF;
 
@@ -72,6 +69,8 @@ GraphicsBuffer::GraphicsBuffer()
 	m_map_pointer = nullptr;
 	m_buffer_size = 0;
 	m_buffer_shape_dirty = true;
+	m_buffer_handle = 0;
+	m_buffer_usage = BufferUsageDynamicDraw;
 	SetUsage(BufferUsageStaticDraw);
 }
 
@@ -129,7 +128,14 @@ void* GraphicsBuffer::Map(bool read, bool write, bool invalidate)
 	GLenum target = BufferTypeToGLType(m_buffer_type);
 
 	if (invalidate)
-	       m_invalidated = true;
+	{
+		m_invalidated = true;
+
+		// Intel's Mesa driver does not rename the buffer when we map with GL_MAP_INVALIDATE_BUFFER_BIT,
+		// resulting in the CPU stalling waiting for rendering from the buffer to complete on the GPU.
+		// We manually force the buffer to be renamed here to avoid this.
+		m_buffer_shape_dirty = true;
+	}
 
 	if (m_map_pointer)
 		Warn("Tried to map already mapped buffer!");	
@@ -166,6 +172,7 @@ void GraphicsBuffer::UnMap()
 	Bind();
 	glUnmapBuffer(target);
 	m_map_pointer = nullptr;
+	m_invalidated = false;
 }
 
 void GraphicsBuffer::Upload(size_t length, const void* data)
@@ -179,6 +186,8 @@ void GraphicsBuffer::Upload(size_t length, const void* data)
 	
 	Bind();
 	glBufferData(target, length, data, usage);
+	if (data != nullptr)
+		m_invalidated = false;
 	m_buffer_size = length;
 }
 
@@ -190,6 +199,7 @@ void GraphicsBuffer::UploadRange(size_t length, intptr_t offset, const void* dat
 	
 	Bind();
 	glBufferSubData(target, offset, length, data);
+	m_invalidated = false;
 }
 
 void GraphicsBuffer::Resize(size_t length)
@@ -214,7 +224,7 @@ void GraphicsBuffer::Resize(size_t length)
 	}
 }
 
-void GraphicsBuffer::Bind()
+void GraphicsBuffer::Bind() const
 {
 	if (m_buffer_type == BufferTypeUniform)
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_buffer_handle);

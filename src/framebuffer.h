@@ -2,14 +2,13 @@
 #define _FRAMEBUFFER_H
 
 #include <SDL.h>
-#define GL_GLEXT_PROTOTYPES
-#include <SDL_opengl.h>
+#include "gl_core44.h"
 
 
 namespace IPDF
 {
 	/*
-	 * The "Screen" class handles managing the OS window (using SDL2).
+	 * The "FrameBuffer" class represents an offscreen render target. 
 	 */
 	class FrameBuffer
 	{

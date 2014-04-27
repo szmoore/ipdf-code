@@ -1,9 +1,47 @@
 #include "view.h"
 
-#include "SDL_opengl.h"
+#include "gl_core44.h"
 
 using namespace IPDF;
 using namespace std;
+#define RECT_VERT \
+	"#version 140\n"\
+	"#extension GL_ARB_shading_language_420pack : require\n"\
+	"#extension GL_ARB_explicit_attrib_location : require\n"\
+	"\n"\
+	"layout(std140, binding=0) uniform ViewBounds\n"\
+	"{\n"\
+	"\tfloat bounds_x;\n"\
+	"\tfloat bounds_y;\n"\
+	"\tfloat bounds_w;\n"\
+	"\tfloat bounds_h;\n"\
+	"};\n"\
+	"\n"\
+	"layout(location = 0) in vec2 position;\n"\
+	"\n"\
+	"void main()\n"\
+	"{\n"\
+	"\tvec2 transformed_position;\n"\
+	"\ttransformed_position.x = (position.x - bounds_x) / bounds_w;\n"\
+	"\ttransformed_position.y = (position.y - bounds_y) / bounds_h;\n"\
+	"\t// Transform to clip coordinates (-1,1, -1,1).\n"\
+	"\tgl_Position.x = (transformed_position.x*2) - 1;\n"\
+	"\tgl_Position.y = 1 - (transformed_position.y*2);\n"\
+	"\tgl_Position.z = 0.0;\n"\
+	"\tgl_Position.w = 1.0;\n"\
+	"}\n"
+
+#define RECT_FRAG \
+	"#version 140\n"\
+	"\n"\
+	"out vec4 output_colour;\n"\
+	"\n"\
+	"uniform vec4 colour;\n"\
+	"\n"\
+	"void main()\n"\
+	"{\n"\
+	"\toutput_colour = colour;\n"\
+	"}\n"
 
 void View::Translate(Real x, Real y)
 {
@@ -59,6 +97,8 @@ Rect View::TransformToViewCoords(const Rect& inp) const
 
 void View::DrawGrid()
 {
+	//TODO: Implement this with OpenGL 3.1+
+#if 0
 	// Draw some grid lines at fixed pixel positions
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -80,9 +120,8 @@ void View::DrawGrid()
 		glEnd();
 	
 	}
+#endif
 }
-
-void glPrimitiveRestartIndex(GLuint index);
 
 void View::Render(int width, int height)
 {
@@ -100,37 +139,41 @@ void View::Render(int width, int height)
 	}
 	m_cached_display.Bind();
 	m_cached_display.Clear();
-	
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	if (m_use_gpu_transform)
-	{
-		glOrtho(Float(m_bounds.x), Float(m_bounds.x)+Float(m_bounds.w), Float(m_bounds.y) + Float(m_bounds.h), Float(m_bounds.y), -1.f, 1.f);
-	}
-	else
-	{
-		glOrtho(0,1,1,0,-1,1);
-	}
 
 	if (m_buffer_dirty)
 		ReRender();
 
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
+	if (m_bounds_dirty)
+	{
+		if (m_use_gpu_transform)
+		{
+			GLfloat glbounds[] = {Float(m_bounds.x), Float(m_bounds.y), Float(m_bounds.w), Float(m_bounds.h)};
+			m_bounds_ubo.Upload(sizeof(float)*4, glbounds);
+		}
+		else
+		{
+			GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f};
+			m_bounds_ubo.Upload(sizeof(float)*4, glbounds);
+		}
+	}
+	m_bounds_dirty = false;
+
 	if (m_colour.a < 1.0f)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
-	glColor4f(m_colour.r, m_colour.g, m_colour.b, m_colour.a);
 	m_vertex_buffer.Bind();
 	m_index_buffer.Bind();
+	m_bounds_ubo.Bind();
+	m_rect_shader.Use();
 	glEnable(GL_PRIMITIVE_RESTART);
 	glPrimitiveRestartIndex(0xFFFFFFFF);
-	glVertexPointer(2, GL_FLOAT, 0, 0);
-	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glDrawElements(GL_TRIANGLE_STRIP, m_rendered_filled * 5, GL_UNSIGNED_INT, 0);
 	glDrawElements(GL_LINE_LOOP, m_rendered_outline*5, GL_UNSIGNED_INT,(void*)(sizeof(uint32_t)*m_rendered_filled*5));
+	glDisableVertexAttribArray(0);
 	glDisable(GL_PRIMITIVE_RESTART);
 	if (m_colour.a < 1.0f)
 	{
@@ -148,6 +191,16 @@ void View::ReRender()
 	{
 		//m_document.DebugDumpObjects();
 		debug_output_done = true;
+
+		// TODO: Error check here.
+		m_rect_shader.AttachVertexProgram(RECT_VERT);
+		m_rect_shader.AttachFragmentProgram(RECT_FRAG);
+		m_rect_shader.Link();
+		m_rect_shader.Use();
+		glUniform4f(m_rect_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
+
+		m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
+		m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
 
 		m_vertex_buffer.SetType(GraphicsBuffer::BufferTypeVertex);
 		m_index_buffer.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
@@ -243,6 +296,6 @@ void View::ReRender()
 	m_vertex_buffer.UnMap();
 	m_index_buffer.UnMap();
 
-	m_bounds_dirty = false;
+	m_buffer_dirty = false;
 
 }

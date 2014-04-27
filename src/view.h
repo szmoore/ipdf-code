@@ -5,6 +5,7 @@
 #include "document.h"
 #include "graphicsbuffer.h"
 #include "framebuffer.h"
+#include "shaderprogram.h"
 
 namespace IPDF
 {
@@ -12,7 +13,7 @@ namespace IPDF
 	{
 		public:
 			View(Document & document, const Rect & bounds = Rect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f)) 
-				: m_document(document), m_bounds(bounds), m_colour(colour), m_use_gpu_transform(false), m_bounds_dirty(true), m_buffer_dirty(true)
+				: m_colour(colour), m_use_gpu_transform(false), m_bounds_dirty(true), m_buffer_dirty(true), m_document(document), m_bounds(bounds) 
 			{
 				Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
 			}
@@ -36,6 +37,8 @@ namespace IPDF
 			bool m_use_gpu_transform;
 			bool m_bounds_dirty;
 			bool m_buffer_dirty;
+			ShaderProgram m_rect_shader;
+			GraphicsBuffer m_bounds_ubo;
 			GraphicsBuffer m_vertex_buffer;
 			GraphicsBuffer m_index_buffer;
 			FrameBuffer m_cached_display;

@@ -7,6 +7,7 @@
 
 #include "stb_truetype.h"
 #include "graphicsbuffer.h"
+#include "shaderprogram.h"
 
 namespace IPDF
 {
@@ -70,6 +71,9 @@ namespace IPDF
 		int m_viewport_height;
 		SDL_Window *m_window;
 		SDL_GLContext m_gl_context;
+		ShaderProgram m_texture_prog;
+		GLint m_colour_uniform_location;
+		GraphicsBuffer m_viewport_ubo;
 		stbtt_bakedchar m_debug_font_rects[96];
 		unsigned int m_debug_font_atlas;
 		float m_debug_font_x;

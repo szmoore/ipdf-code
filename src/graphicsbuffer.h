@@ -2,8 +2,7 @@
 #define _GRAPHICSBUFFER_H
 
 #include <SDL.h>
-#define GL_GLEXT_PROTOTYPES
-#include <SDL_opengl.h>
+#include "gl_core44.h"
 
 
 namespace IPDF
@@ -56,7 +55,7 @@ namespace IPDF
 
 		void Invalidate();
 		
-		void Bind();
+		void Bind() const;
 	private:
 		void RecreateBuffer();
 		GLuint m_buffer_handle;
