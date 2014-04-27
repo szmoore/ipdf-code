@@ -94,6 +94,12 @@ Screen::Screen()
 		Fatal("Your system does not support the ARB_explicit_attrib_location extension, which is required.");
 	}
 
+	m_frame_begin_time = SDL_GetPerformanceCounter();
+	m_last_frame_time = 0;
+	m_last_frame_gpu_timer = 0;
+	glGenQueries(1, &m_frame_gpu_timer);
+	glBeginQuery(GL_TIME_ELAPSED, m_frame_gpu_timer);
+
 	glDebugMessageCallback(opengl_debug_callback, 0);
 
 	GLuint default_vao;
@@ -230,7 +236,24 @@ void Screen::Present()
 {
 	if (m_debug_font_atlas)
 		DebugFontFlush();
+	m_last_frame_time = SDL_GetPerformanceCounter() - m_frame_begin_time;
+	glEndQuery(GL_TIME_ELAPSED);
 	SDL_GL_SwapWindow(m_window);
+	m_frame_begin_time = SDL_GetPerformanceCounter();
+	if (m_last_frame_gpu_timer)
+		glDeleteQueries(1, &m_last_frame_gpu_timer);
+	m_last_frame_gpu_timer = m_frame_gpu_timer;
+	glGenQueries(1, &m_frame_gpu_timer);
+	glBeginQuery(GL_TIME_ELAPSED, m_frame_gpu_timer);
+}
+
+double Screen::GetLastFrameTimeGPU() const
+{
+	if (!m_last_frame_gpu_timer)
+		return 0;
+	uint64_t frame_time_ns;
+	glGetQueryObjectui64v(m_last_frame_gpu_timer, GL_QUERY_RESULT, &frame_time_ns);
+	return frame_time_ns/1000000000.0;
 }
 
 void Screen::ScreenShot(const char * filename) const

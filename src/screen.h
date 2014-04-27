@@ -59,6 +59,11 @@ namespace IPDF
 
 		void ScreenShot(const char * filename) const;
 		void RenderBMP(const char * filename) const;
+
+		// Returns the CPU time (in seconds) it took to render the last completed frame.
+		double GetLastFrameTimeCPU() const { return m_last_frame_time / SDL_GetPerformanceFrequency(); }
+		// Returns the GPU time (in seconds) it took to render the last completed frame.
+		double GetLastFrameTimeGPU() const;
 	private:
 		void ResizeViewport(int width, int height);
 		void DebugFontFlush();
@@ -66,6 +71,11 @@ namespace IPDF
 		MouseHandler m_mouse_handler;
 		int m_last_mouse_x;
 		int m_last_mouse_y;
+
+		double m_last_frame_time;
+		double m_frame_begin_time;
+		GLuint m_frame_gpu_timer;
+		GLuint m_last_frame_gpu_timer;
 
 		int m_viewport_width;
 		int m_viewport_height;
