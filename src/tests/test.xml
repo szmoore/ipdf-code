@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<!-- This is a test to see how hard it is to work with XML and pugixml -->
+<rect x="0.5" y="0.5" w="0.5" h="0.5" outline="true"></rect>
+<rect x="0.25" y="0.25" w="0.5" h="0.5"></rect>
