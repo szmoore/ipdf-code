@@ -70,7 +70,8 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 	{
 		scr.Clear();
 		view.Render(scr.ViewportWidth(), scr.ViewportHeight());
-		scr.DebugFontPrintF("[CPU] Render took %lf ms (%lf FPS)\n", (SDL_GetPerformanceCounter() - init_time)* 1000.0/SDL_GetPerformanceFrequency(), SDL_GetPerformanceFrequency()/(SDL_GetPerformanceCounter() - init_time));
+		scr.DebugFontPrintF("[CPU] Render took %lf ms (%lf FPS)\n", (scr.GetLastFrameTimeCPU())* 1000.0, 1.0/scr.GetLastFrameTimeCPU());
+		scr.DebugFontPrintF("[GPU] Render took %lf ms (%lf FPS)\n", (scr.GetLastFrameTimeGPU())* 1000.0, 1.0/scr.GetLastFrameTimeGPU());
 		scr.DebugFontPrintF("View bounds: %s\n", view.GetBounds().Str().c_str());
 		if (view.UsingGPUTransform())
 		{
