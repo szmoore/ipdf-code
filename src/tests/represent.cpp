@@ -70,13 +70,8 @@ template <size_t EMAX, size_t PREC, size_t BASE = 2> Real BitsToReal(void * data
 
 	// Calculate the actual mantissa from the IEEE style encoding of the mantissa (sigh)
 	// This is obviously horribly inefficient but I guess that encoding not designed for ... whatever it is I'm doing here
-	Real M = (exponent != 0);
-	for (size_t i = 1; i < PREC; ++i)
-	{
-		if ((mantissa >> PREC-i) & 1)
-			M += Real(1) / powl(BASE, i);
-	}
-	
+	// NOW WITH LESS TERRIBLE LOOPING THAT GIVES SLIGHTLY WRONG RESULTS! Order a copy today.
+	Real M = (((exponent != 0) << PREC) + (uint64_t)(mantissa))/powl(BASE,PREC);
 	
 	//Debug("Mantissa: %x = %lf", mantissa, Float(M));
 	//Debug("Exponent: %x = %u => %lf", exponent, exponent, Float(Real(exponent + 1) - Real(1LL << (EMAX-1))));
@@ -174,45 +169,51 @@ template <size_t EMAX, size_t PREC, size_t BASE = 2> void BitsFromReal(Real x, v
 	uint64_t mantissa = 0LL;
 	int64_t biased_exponent = 0LL;
 	
-	// Combine integer and fraction into mantissa
-	if (integer == 0)
+	size_t integer_leading_zeroes = 0;
+	for (integer_leading_zeroes = 0; integer_leading_zeroes < max_bits; ++integer_leading_zeroes)
 	{
-		//Debug("0. %lx (%d)", fraction, fraction_leading_zeroes);
-		// Mantissa must have leading '1'; shift to get leading 1, then shift back to mantissa position
-		mantissa = (fraction << fraction_leading_zeroes) >> (max_bits - PREC);
-		biased_exponent -= fraction_leading_zeroes;
-		// If the unbiased exponent would be negative use a denormalised number instead
-		if (biased_exponent < -(1LL << (EMAX-1))+1)
-		{
-			mantissa = mantissa >> (-(1LL << (EMAX-1))+1 - biased_exponent);
-			biased_exponent = -(1LL << (EMAX-1))+1;
-		}
+		if ((integer >> (max_bits-1-integer_leading_zeroes)) & 1LL)
+			break;
+	}
+
+	// 0|011 11|00 0000 0001
+	// 0001
+	// 0000 0000 0100
+	// 10000 0000 0100
+	if (integer != 0)
+	{
+		mantissa = (integer << (integer_leading_zeroes));
+		mantissa |= (fraction >> (max_bits - integer_leading_zeroes));
 	}
 	else
 	{
-
-		size_t integer_leading_zeroes = 0;
-		for (integer_leading_zeroes = 0; integer_leading_zeroes < max_bits; ++integer_leading_zeroes)
-		{
-			if ((integer >> (max_bits-1-integer_leading_zeroes)) & 1LL)
-				break;
-		}
-		//Debug("%.16lx . %.16lx (%li, %li)", integer,fraction,  integer_leading_zeroes, fraction_leading_zeroes);
-
-		mantissa = (integer << (integer_leading_zeroes)); // shift integer part
-		mantissa |= (fraction >> (max_bits-integer_leading_zeroes)); // append the fraction after it
-		//Debug("%.16lx (%.16lx << %i)", mantissa,  fraction, (fraction_leading_zeroes - max_bits + integer_leading_zeroes));
-		mantissa = mantissa >> (max_bits - PREC); // shift back to the mantissa position
-		biased_exponent = (max_bits - integer_leading_zeroes); // calculate exponent
+		mantissa = (fraction << (fraction_leading_zeroes));
 	}
+	//Debug("Mantissa with fraction %.16lx (%.16lx >><>?<< %lu)", mantissa, fraction, fraction_leading_zeroes);
+	mantissa = (mantissa >> (max_bits - PREC - 1));
+	//Debug("Mantissa is %.16lx (%.16lx . %.16lx)", mantissa, fraction, integer);
+	biased_exponent = (integer != 0) ? (max_bits - integer_leading_zeroes) : (-fraction_leading_zeroes);
+	if (biased_exponent < -(1LL << (EMAX-1))+1)
+	{
+		//Debug("Denormalising for glory or death! %li , %li", biased_exponent, -(1LL << (EMAX-1)) - biased_exponent + 1);
+		mantissa = mantissa >> (-(1LL << (EMAX-1)) - biased_exponent + 1);
+		biased_exponent = -(1LL << (EMAX-1))+1;
+	}
+	//Debug("Biased exponent is %li", biased_exponent);
 
 	// If the unbiased exponent would be non-zero, the IEEE has the leading 1 as implied; remove it and decrease exponent to compensate
 	if (biased_exponent != -(1LL << (EMAX-1))+1)
 	{
-		mantissa &= ~(1LL << max_bits - PREC);
-		mantissa = mantissa << 1;
+		//Debug("Implied 1 in mantissa %.16lx", mantissa);
+		mantissa &= ~(1LL << (PREC));
+		//Debug("Implied 1 in mantissa %.16lx", mantissa);
 		biased_exponent -= 1;
 	}
+	else
+	{
+		mantissa >>= 1;
+	}
+	//Debug("%.16lx", mantissa);
 
 	uint64_t exponent = (uint64_t)(biased_exponent + (1LL << (EMAX-1))-1); // offset the exponent
 
@@ -241,17 +242,21 @@ int main(int argc, char ** argv)
 	printf("# Convert custom floats to a Real\n");
 	printf("# a\thex(a)\tReal(a)\tdelta(last2)\n");
 
-	typedef pair<uint16_t, Real> Pear;
+	typedef uint16_t Bits;
+	typedef pair<Bits, Real> Pear;
+	const uint8_t E = 5;
+	const uint8_t P = 10;
+	
 	list<Pear> space;
-	uint16_t a0 = 0x0000;
-	for (uint16_t a = a0; a < 0xFFFF; ++a)
+	Bits a0 = 0x0000;
+	for (Bits a = a0; a < 0xFFFF; ++a)
 	{
-		Real x = BitsToReal<5,10>(&a);
-		uint16_t b = 0; BitsFromReal<5,10>(x, &b);
-		Real y = BitsToReal<5,10>(&b);
+		Real x = BitsToReal<E,P>(&a);
+		Bits b = 0; BitsFromReal<E,P>(x, &b);
+		Real y = BitsToReal<E,P>(&b);
 		if (y != x)
 		{
-			Fatal("%x -> %lf -> %x -> %lf", a, Float(x), b, Float(y));
+			Fatal("%x -> %.10lf -> %x -> %.10lf", a, Float(x), b, Float(y));
 		}
 		space.push_back(Pear(a, x));
 	}
@@ -266,3 +271,7 @@ int main(int argc, char ** argv)
 		prev = i->second;	 
 	}
 }
+
+//0|011 11|00 0000 0001 
+
+//0|000 01|00 0000 0000
