@@ -81,11 +81,11 @@ int main(int argc, char ** argv)
 	}
 	else 
 	{
-		for(int i = 0; i < 8; ++i)
+		for(int x = 0; x < 8; ++x)
 		{
-			for (int j = 0; j < 8; ++j)
+			for (int y = 0; y < 8; ++y)
 			{
-				doc.Add(((i^j)&1)?RECT_OUTLINE:RECT_FILLED, Rect(0.2+i-4.0,0.2+j-4.0,0.6,0.6));
+				doc.Add(((x^y)&1)?RECT_OUTLINE:RECT_FILLED, Rect(0.2+x-4.0,0.2+y-4.0,0.6,0.6));
 			}
 		}
 		

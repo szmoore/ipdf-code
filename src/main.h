@@ -65,7 +65,6 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 	}
 	);
 
-	double init_time = SDL_GetPerformanceCounter();
 	while (scr.PumpEvents())
 	{
 		scr.Clear();
@@ -82,6 +81,5 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 			scr.DebugFontPrint("Doing coordinate transform on the CPU.\n");
 		}
 		scr.Present();
-		init_time = SDL_GetPerformanceCounter();
 	}
 }

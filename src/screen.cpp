@@ -330,9 +330,9 @@ void Screen::RenderBMP(const char * filename) const
 	quad_vertex_buffer.SetType(GraphicsBuffer::BufferTypeVertex);
 	GLfloat quad[] = { 
 		0, 0, 0, 0,
-		1, 0, ViewportWidth(), 0,
-		1, 1, ViewportWidth(), ViewportHeight(),
-		0, 1, 0, ViewportHeight()
+		1, 0, (float)ViewportWidth(), 0,
+		1, 1, (float)ViewportWidth(), (float)ViewportHeight(),
+		0, 1, 0, (float)ViewportHeight()
 	};
 	quad_vertex_buffer.Upload(sizeof(GLfloat) * 16, quad);
 	quad_vertex_buffer.Bind();

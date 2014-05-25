@@ -147,7 +147,7 @@ void View::Render(int width, int height)
 	{
 		if (m_use_gpu_transform)
 		{
-			GLfloat glbounds[] = {Float(m_bounds.x), Float(m_bounds.y), Float(m_bounds.w), Float(m_bounds.h)};
+			GLfloat glbounds[] = {static_cast<GLfloat>(Float(m_bounds.x)), static_cast<GLfloat>(Float(m_bounds.y)), static_cast<GLfloat>(Float(m_bounds.w)), static_cast<GLfloat>(Float(m_bounds.h))};
 			m_bounds_ubo.Upload(sizeof(float)*4, glbounds);
 		}
 		else

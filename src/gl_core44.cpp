@@ -4,7 +4,21 @@
 #include "gl_core44.h"
 
 #include <SDL.h>
-#define IntGetProcAddress(name) SDL_GL_GetProcAddress(name)
+
+// Casting between function and data pointers is invalid C++ (but we need to
+// do it for OpenGL to work at all (yay!), so use gcc __extension__ operator
+// to silence warnings and errors here.
+typedef void (*func_ptr)();
+
+func_ptr IntGetProcAddress(const char *name)
+{
+#ifdef __GNUC__
+	__extension__ func_ptr fn = reinterpret_cast<func_ptr>(SDL_GL_GetProcAddress(name));
+	return fn;
+#else
+	return (func_ptr)SDL_GL_GetProcAddress(name);
+#endif
+}
 
 int ogl_ext_NV_texture_barrier = ogl_LOAD_FAILED;
 int ogl_ext_NV_copy_image = ogl_LOAD_FAILED;
@@ -1771,7 +1785,7 @@ static int Load_Version_4_4()
 typedef int (*PFN_LOADFUNCPOINTERS)();
 typedef struct ogl_StrToExtMap_s
 {
-	char *extensionName;
+	const char *extensionName;
 	int *extensionVariable;
 	PFN_LOADFUNCPOINTERS LoadExtension;
 } ogl_StrToExtMap;
