@@ -5,6 +5,7 @@
 #include <fcntl.h> // for access(2)
 #include <unistd.h> // for access(2)
 
+#include "bufferbuilder.h"
 #include "shaderprogram.h"
 
 #define BASICTEX_VERT \
@@ -415,8 +416,8 @@ void Screen::DebugFontFlush()
 	glEnableVertexAttribArray(1);
 	glEnable(GL_PRIMITIVE_RESTART);
 	glPrimitiveRestartIndex(65535);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), 0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), 0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
 	glDrawElements(GL_TRIANGLE_STRIP, m_debug_font_index_head, GL_UNSIGNED_SHORT, 0);
 	glDisable(GL_PRIMITIVE_RESTART);
 	glDisableVertexAttribArray(1);
@@ -432,11 +433,17 @@ void Screen::DebugFontPrint(const char* str)
 {
 	if (!m_debug_font_atlas) return;
 
-	float *vertexData = (float*)m_debug_font_vertices.MapRange(m_debug_font_vertex_head*sizeof(float), m_debug_font_vertices.GetSize() - m_debug_font_vertex_head*sizeof(float), false, true, true);
-	uint16_t *indexData = (uint16_t*)m_debug_font_indices.MapRange(m_debug_font_index_head*sizeof(uint16_t), m_debug_font_indices.GetSize() - m_debug_font_index_head*sizeof(uint16_t), false, true, true);
+	struct fontvertex
+	{
+		float x, y, s, t;
+	};
+
+	BufferBuilder<fontvertex> vertexData(m_debug_font_vertices.MapRange(m_debug_font_vertex_head*sizeof(float), m_debug_font_vertices.GetSize() - m_debug_font_vertex_head*sizeof(float), false, true, true), m_debug_font_vertices.GetSize() - m_debug_font_vertex_head*sizeof(float));
+	BufferBuilder<uint16_t> indexData(m_debug_font_indices.MapRange(m_debug_font_index_head*sizeof(uint16_t), m_debug_font_indices.GetSize() - m_debug_font_index_head*sizeof(uint16_t), false, true, true), m_debug_font_indices.GetSize() - m_debug_font_index_head*sizeof(uint16_t));
+
+	size_t baseVertex = m_debug_font_vertex_head/4;
 	while (*str) {
-		if ((m_debug_font_vertex_head*sizeof(float) + 16*sizeof(float) >= m_debug_font_vertices.GetSize() ) ||
-			(m_debug_font_index_head*sizeof(uint16_t) + 5*sizeof(uint16_t) >= m_debug_font_indices.GetSize()))
+		if (!vertexData.Free(4) || !indexData.Free(5))
 		{
 			m_debug_font_indices.UnMap();
 			m_debug_font_vertices.UnMap();
@@ -447,28 +454,19 @@ void Screen::DebugFontPrint(const char* str)
 		if (*str >= 32 && *str < 128) {
 			stbtt_aligned_quad q;
 			stbtt_GetBakedQuad(m_debug_font_rects, 1024,1024, *str-32, &m_debug_font_x,&m_debug_font_y,&q,1);
-			*vertexData = q.s0; vertexData++;
-			*vertexData = q.t0; vertexData++;
-			*vertexData = q.x0; vertexData++;
-			*vertexData = q.y0; vertexData++;
-			*vertexData = q.s1; vertexData++;
-			*vertexData = q.t0; vertexData++;
-			*vertexData = q.x1; vertexData++;
-			*vertexData = q.y0; vertexData++;
-			*vertexData = q.s1; vertexData++;
-			*vertexData = q.t1; vertexData++;
-			*vertexData = q.x1; vertexData++;
-			*vertexData = q.y1; vertexData++;
-			*vertexData = q.s0; vertexData++;
-			*vertexData = q.t1; vertexData++;
-			*vertexData = q.x0; vertexData++;
-			*vertexData = q.y1; vertexData++;
-
-			*indexData = m_debug_font_vertex_head/4; indexData++;
-			*indexData = m_debug_font_vertex_head/4+1; indexData++;
-			*indexData = m_debug_font_vertex_head/4+3; indexData++;
-			*indexData = m_debug_font_vertex_head/4+2; indexData++;
-			*indexData = 65535; indexData++;
+			size_t index = vertexData.Add({q.x0, q.y0, q.s0, q.t0});
+			index += baseVertex;
+			indexData.Add(index);
+			index = vertexData.Add({q.x1, q.y0, q.s1, q.t0});
+			index += baseVertex;
+			indexData.Add(index);
+			index = vertexData.Add({q.x0, q.y1, q.s0, q.t1});
+			index += baseVertex;
+			indexData.Add(index);
+			index = vertexData.Add({q.x1, q.y1, q.s1, q.t1});
+			index += baseVertex;
+			indexData.Add(index);
+			indexData.Add(65535);
 
 			m_debug_font_vertex_head += 16;
 			m_debug_font_index_head += 5;
