@@ -309,7 +309,7 @@ void Screen::RenderBMP(const char * filename) const
 	int w = bmp->w;
 	int h = bmp->h;
 
-	GLenum texture_format; 
+	GLenum texture_format = GL_RGBA;
 	switch (bmp->format->BytesPerPixel)
 	{
 		case 4: //contains alpha
@@ -451,7 +451,7 @@ void Screen::DebugFontPrint(const char* str)
 			DebugFontPrint(str);
 			return;
 		}
-		if (*str >= 32 && *str < 128) {
+		if (*str >= 32 && (unsigned char)(*str) < 128) {
 			stbtt_aligned_quad q;
 			stbtt_GetBakedQuad(m_debug_font_rects, 1024,1024, *str-32, &m_debug_font_x,&m_debug_font_y,&q,1);
 			size_t index = vertexData.Add({q.x0, q.y0, q.s0, q.t0});

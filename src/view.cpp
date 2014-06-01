@@ -1,4 +1,5 @@
 #include "view.h"
+#include "bufferbuilder.h"
 
 #include "gl_core44.h"
 
@@ -41,6 +42,46 @@ using namespace std;
 	"void main()\n"\
 	"{\n"\
 	"\toutput_colour = colour;\n"\
+	"}\n"
+
+#define RECT_OUTLINE_GEOM \
+	"#version 150\n"\
+	"\n"\
+	"layout(lines) in;\n"\
+	"layout(line_strip, max_vertices = 5) out;\n"\
+	"\n"\
+	"void main()\n"\
+	"{\n"\
+	"\tgl_Position = gl_in[0].gl_Position;\n"\
+	"\tEmitVertex();\n"\
+	"\tgl_Position = vec4(gl_in[0].gl_Position.x, gl_in[1].gl_Position.y, 0.0, 1.0);\n"\
+	"\tEmitVertex();\n"\
+	"\tgl_Position = gl_in[1].gl_Position;\n"\
+	"\tEmitVertex();\n"\
+	"\tgl_Position = vec4(gl_in[1].gl_Position.x, gl_in[0].gl_Position.y, 0.0, 1.0);\n"\
+	"\tEmitVertex();\n"\
+	"\tgl_Position = gl_in[0].gl_Position;\n"\
+	"\tEmitVertex();\n"\
+	"\tEndPrimitive();\n"\
+	"}\n"
+
+#define RECT_FILLED_GEOM \
+	"#version 150\n"\
+	"\n"\
+	"layout(lines) in;\n"\
+	"layout(triangle_strip, max_vertices = 4) out;\n"\
+	"\n"\
+	"void main()\n"\
+	"{\n"\
+	"\tgl_Position = gl_in[0].gl_Position;\n"\
+	"\tEmitVertex();\n"\
+	"\tgl_Position = vec4(gl_in[0].gl_Position.x, gl_in[1].gl_Position.y, 0.0, 1.0);\n"\
+	"\tEmitVertex();\n"\
+	"\tgl_Position = vec4(gl_in[1].gl_Position.x, gl_in[0].gl_Position.y, 0.0, 1.0);\n"\
+	"\tEmitVertex();\n"\
+	"\tgl_Position = gl_in[1].gl_Position;\n"\
+	"\tEmitVertex();\n"\
+	"\tEndPrimitive();\n"\
 	"}\n"
 
 void View::Translate(Real x, Real y)
@@ -140,8 +181,11 @@ void View::Render(int width, int height)
 	m_cached_display.Bind();
 	m_cached_display.Clear();
 
+	if (!m_render_inited)
+		PrepareRender();
+
 	if (m_buffer_dirty)
-		ReRender();
+		UpdateObjBoundsVBO();
 
 	if (m_bounds_dirty)
 	{
@@ -163,18 +207,21 @@ void View::Render(int width, int height)
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
-	m_vertex_buffer.Bind();
-	m_index_buffer.Bind();
+	m_objbounds_vbo.Bind();
 	m_bounds_ubo.Bind();
-	m_rect_shader.Use();
-	glEnable(GL_PRIMITIVE_RESTART);
-	glPrimitiveRestartIndex(0xFFFFFFFF);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glDrawElements(GL_TRIANGLE_STRIP, m_rendered_filled * 5, GL_UNSIGNED_INT, 0);
-	glDrawElements(GL_LINE_LOOP, m_rendered_outline*5, GL_UNSIGNED_INT,(void*)(sizeof(uint32_t)*m_rendered_filled*5));
+
+	// Filled Rectangles
+	m_rect_filled_shader.Use();
+	m_filled_ibo.Bind();
+	glDrawElements(GL_LINES, m_rendered_filled*2, GL_UNSIGNED_INT, 0);
+
+	// Rectangle Outlines
+	m_rect_outline_shader.Use();
+	m_outline_ibo.Bind();
+	glDrawElements(GL_LINES, m_rendered_outline*2, GL_UNSIGNED_INT, 0);
 	glDisableVertexAttribArray(0);
-	glDisable(GL_PRIMITIVE_RESTART);
 	if (m_colour.a < 1.0f)
 	{
 		glDisable(GL_BLEND);
@@ -184,118 +231,103 @@ void View::Render(int width, int height)
 
 }
 
-void View::ReRender()
+struct GPUObjBounds
 {
-	static bool debug_output_done = false;
-	if (!debug_output_done)
-	{
-		//m_document.DebugDumpObjects();
-		debug_output_done = true;
+	float x0, y0;
+	float x1, y1;
+};
 
-		// TODO: Error check here.
-		m_rect_shader.AttachVertexProgram(RECT_VERT);
-		m_rect_shader.AttachFragmentProgram(RECT_FRAG);
-		m_rect_shader.Link();
-		m_rect_shader.Use();
-		glUniform4f(m_rect_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
-
-		m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
-		m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
-
-		m_vertex_buffer.SetType(GraphicsBuffer::BufferTypeVertex);
-		m_index_buffer.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
-		m_index_buffer.SetType(GraphicsBuffer::BufferTypeIndex);
-
-		m_vertex_buffer.Upload(m_document.ObjectCount() * 8 * sizeof(float), NULL);
-		m_index_buffer.Upload(m_document.ObjectCount() * 5 * sizeof(uint32_t), NULL);
-	}
-	m_rendered_filled = m_rendered_outline = 0;
-	
+void View::UpdateObjBoundsVBO()
+{
+	m_objbounds_vbo.Invalidate();
+	m_objbounds_vbo.SetType(GraphicsBuffer::BufferTypeVertex);
 	if (m_use_gpu_transform)
 	{
-		m_vertex_buffer.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
+		m_objbounds_vbo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
 	}
 	else
 	{
-		m_vertex_buffer.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
+		m_objbounds_vbo.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
 	}
+	m_objbounds_vbo.Resize(m_document.ObjectCount()*sizeof(GPUObjBounds));
+
+	BufferBuilder<GPUObjBounds> obj_bounds_builder(m_objbounds_vbo.Map(false, true, true), m_objbounds_vbo.GetSize());
+
+	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
+	{
+		Rect obj_bounds;
+		if (m_use_gpu_transform)
+		{
+			obj_bounds = m_document.m_objects.bounds[id];
+		}
+		else
+		{
+			obj_bounds = TransformToViewCoords(m_document.m_objects.bounds[id]);
+		}
+		GPUObjBounds gpu_bounds = {
+			(float)Float(obj_bounds.x),
+			(float)Float(obj_bounds.y),
+			(float)Float(obj_bounds.x + obj_bounds.w),
+			(float)Float(obj_bounds.y + obj_bounds.h)
+		};
+		obj_bounds_builder.Add(gpu_bounds);
+
+	}
+	m_objbounds_vbo.UnMap();
+	m_buffer_dirty = false;
+}
+
+void View::PrepareRender()
+{
+	// TODO: Error check here.
+	m_rect_outline_shader.AttachGeometryProgram(RECT_OUTLINE_GEOM);
+	m_rect_outline_shader.AttachVertexProgram(RECT_VERT);
+	m_rect_outline_shader.AttachFragmentProgram(RECT_FRAG);
+	m_rect_outline_shader.Link();
+	m_rect_outline_shader.Use();
+	glUniform4f(m_rect_outline_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
+
+	m_rect_filled_shader.AttachGeometryProgram(RECT_FILLED_GEOM);
+	m_rect_filled_shader.AttachVertexProgram(RECT_VERT);
+	m_rect_filled_shader.AttachFragmentProgram(RECT_FRAG);
+	m_rect_filled_shader.Link();
+	m_rect_filled_shader.Use();
+	glUniform4f(m_rect_filled_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
+
+	m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
+	m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
+
+	m_outline_ibo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
+	m_outline_ibo.SetType(GraphicsBuffer::BufferTypeIndex);
+	m_outline_ibo.Resize(m_document.ObjectCount() * 2 * sizeof(uint32_t));
+	BufferBuilder<uint32_t> outline_builder(m_outline_ibo.Map(false, true, true), m_outline_ibo.GetSize());	
+
+	m_filled_ibo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
+	m_filled_ibo.SetType(GraphicsBuffer::BufferTypeIndex);
+	m_filled_ibo.Resize(m_document.ObjectCount() * 2 * sizeof(uint32_t));
+	BufferBuilder<uint32_t> filled_builder(m_filled_ibo.Map(false, true, true), m_filled_ibo.GetSize());
 
 
-	//DrawGrid(); // Draw the gridlines
-
-
-
-	float *vertexData = (float*)m_vertex_buffer.Map(false, true, true);
-	uint32_t *indexData = (uint32_t*)m_index_buffer.Map(false, true, true);
-
+	m_rendered_filled = m_rendered_outline = 0;
 	uint32_t currentIndex = 0;
 	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
 	{
 		if (m_document.m_objects.types[id] != RECT_FILLED)
-			continue;
-		Rect obj_bounds;
-		if (m_use_gpu_transform)
 		{
-			obj_bounds = m_document.m_objects.bounds[id];
+			outline_builder.Add(currentIndex++);
+			outline_builder.Add(currentIndex++);
+			m_rendered_outline++;
 		}
 		else
 		{
-			obj_bounds = TransformToViewCoords(m_document.m_objects.bounds[id]);
+			filled_builder.Add(currentIndex++);
+			filled_builder.Add(currentIndex++);
+			m_rendered_filled++;
 		}
-		*vertexData = Float(obj_bounds.x); vertexData++;
-		*vertexData = Float(obj_bounds.y); vertexData++;
-		*vertexData = Float(obj_bounds.x) + Float(obj_bounds.w); vertexData++;
-		*vertexData = Float(obj_bounds.y); vertexData++;
-		*vertexData = Float(obj_bounds.x) + Float(obj_bounds.w); vertexData++;
-		*vertexData = Float(obj_bounds.y) + Float(obj_bounds.h); vertexData++;
-		*vertexData = Float(obj_bounds.x); vertexData++;
-		*vertexData = Float(obj_bounds.y) + Float(obj_bounds.h); vertexData++;
-
-		*indexData = currentIndex; indexData++;
-		*indexData = currentIndex+1; indexData++;
-		*indexData = currentIndex+3; indexData++;
-		*indexData = currentIndex+2; indexData++;
-		*indexData = 0xFFFFFFFF; // Primitive restart.
-		indexData++;
-		currentIndex += 4;
-		m_rendered_filled++;
 
 	}
-	
-	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
-	{
-		if (m_document.m_objects.types[id] != RECT_OUTLINE)
-			continue;
-		Rect obj_bounds;
-		if (m_use_gpu_transform)
-		{
-			obj_bounds = m_document.m_objects.bounds[id];
-		}
-		else
-		{
-			obj_bounds = TransformToViewCoords(m_document.m_objects.bounds[id]);
-		}
-		*vertexData = Float(obj_bounds.x); vertexData++;
-		*vertexData = Float(obj_bounds.y); vertexData++;
-		*vertexData = Float(obj_bounds.x) + Float(obj_bounds.w); vertexData++;
-		*vertexData = Float(obj_bounds.y); vertexData++;
-		*vertexData = Float(obj_bounds.x) + Float(obj_bounds.w); vertexData++;
-		*vertexData = Float(obj_bounds.y) + Float(obj_bounds.h); vertexData++;
-		*vertexData = Float(obj_bounds.x); vertexData++;
-		*vertexData = Float(obj_bounds.y) + Float(obj_bounds.h); vertexData++;
+	m_outline_ibo.UnMap();
+	m_filled_ibo.UnMap();
 
-		*indexData = currentIndex; indexData++;
-		*indexData = currentIndex+1; indexData++;
-		*indexData = currentIndex+2; indexData++;
-		*indexData = currentIndex+3; indexData++;
-		*indexData = 0xFFFFFFFF; // Primitive restart.
-		indexData++;
-		currentIndex += 4;
-		m_rendered_outline++;
-	}
-	m_vertex_buffer.UnMap();
-	m_index_buffer.UnMap();
-
-	m_buffer_dirty = false;
-
+	m_render_inited = true;
 }

@@ -17,6 +17,7 @@ namespace IPDF
 		~ShaderProgram();
 		bool AttachVertexProgram(const char *src);
 		bool AttachFragmentProgram(const char *src);
+		bool AttachGeometryProgram(const char *src);
 		bool Link();
 		const void Use() const;
 		// Unfortunately, we don't require GL 4.3/ARB_explicit_uniform_location

@@ -13,7 +13,7 @@ namespace IPDF
 	{
 		public:
 			View(Document & document, const Rect & bounds = Rect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f)) 
-				: m_use_gpu_transform(false), m_bounds_dirty(true), m_buffer_dirty(true), m_document(document), m_bounds(bounds), m_colour(colour) 
+				: m_use_gpu_transform(false), m_bounds_dirty(true), m_buffer_dirty(true), m_render_inited(false), m_document(document), m_bounds(bounds), m_colour(colour) 
 			{
 				Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
 			}
@@ -32,15 +32,22 @@ namespace IPDF
 			void ToggleGPUTransform() { m_use_gpu_transform = (!m_use_gpu_transform); m_bounds_dirty = true; m_buffer_dirty = true; }
 		
 		private:
-			void ReRender();
+			void PrepareRender();
+			void UpdateObjBoundsVBO();
 			void DrawGrid();
 			bool m_use_gpu_transform;
 			bool m_bounds_dirty;
 			bool m_buffer_dirty;
-			ShaderProgram m_rect_shader;
+			bool m_render_inited;
+			ShaderProgram m_rect_outline_shader;
+			ShaderProgram m_rect_filled_shader;
+			// Stores the view bounds.
 			GraphicsBuffer m_bounds_ubo;
-			GraphicsBuffer m_vertex_buffer;
-			GraphicsBuffer m_index_buffer;
+			// Stores the bounds for _all_ objects.
+			GraphicsBuffer m_objbounds_vbo;
+			// Stores indices into the objbounds vbo for each type of object.
+			GraphicsBuffer m_outline_ibo;	// Rectangle outline
+			GraphicsBuffer m_filled_ibo;	// Filled rectangle
 			FrameBuffer m_cached_display;
 			Document & m_document;
 			Rect m_bounds;
