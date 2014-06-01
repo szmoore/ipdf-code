@@ -425,6 +425,8 @@ void Screen::DebugFontFlush()
 
 	glDisable(GL_BLEND);
 
+	m_debug_font_vertices.Invalidate();
+	m_debug_font_indices.Invalidate();
 	m_debug_font_vertex_head = 0;
 	m_debug_font_index_head = 0;
 }

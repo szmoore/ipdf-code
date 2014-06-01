@@ -100,6 +100,11 @@ void GraphicsBuffer::SetUsage(GraphicsBuffer::BufferUsage bufUsage)
 void GraphicsBuffer::Invalidate()
 {
 	m_invalidated = true;
+	if (!m_buffer_shape_dirty)
+	{
+		// Orphan the block of memory we're pointing to.
+		Upload(m_buffer_size, nullptr);
+	}
 	// Apparently not supported.
 	//glInvalidateBufferData(m_buffer_handle);
 }
