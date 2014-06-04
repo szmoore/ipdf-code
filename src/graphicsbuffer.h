@@ -57,7 +57,7 @@ namespace IPDF
 		
 		void Bind() const;
 	private:
-		void RecreateBuffer();
+		bool RecreateBuffer(const void *data = nullptr);
 		GLuint m_buffer_handle;
 		BufferType m_buffer_type;
 		BufferUsage m_buffer_usage;
@@ -65,6 +65,7 @@ namespace IPDF
 		size_t m_buffer_size;
 		bool m_invalidated;
 		bool m_buffer_shape_dirty;
+		bool m_faking_map;
 	};
 
 }

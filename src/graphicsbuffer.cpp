@@ -71,6 +71,7 @@ GraphicsBuffer::GraphicsBuffer()
 	m_buffer_shape_dirty = true;
 	m_buffer_handle = 0;
 	m_buffer_usage = BufferUsageDynamicDraw;
+	m_faking_map = false;
 	SetUsage(BufferUsageStaticDraw);
 }
 
@@ -109,14 +110,14 @@ void GraphicsBuffer::Invalidate()
 	//glInvalidateBufferData(m_buffer_handle);
 }
 
-void GraphicsBuffer::RecreateBuffer()
+bool GraphicsBuffer::RecreateBuffer(const void *data)
 {
 	// If the buffer is not dirty, don't recreate it.
-	if (!m_buffer_shape_dirty) return;
+	if (!m_buffer_shape_dirty) return false;
 	// If the buffer is mapped, don't recreate it.
-	if (m_map_pointer) return;
+	if (!m_faking_map && m_map_pointer) return false;
 	// If the buffer has data in it we need, don't recreate it.
-	if (!m_invalidated) return;
+	if (!m_invalidated) return false;
 	if (m_buffer_handle)
 	{
 		glDeleteBuffers(1, &m_buffer_handle);
@@ -124,7 +125,8 @@ void GraphicsBuffer::RecreateBuffer()
 	glGenBuffers(1, &m_buffer_handle);
 	m_buffer_shape_dirty = false;
 	if (m_buffer_size)
-		Upload(m_buffer_size, nullptr);
+		Upload(m_buffer_size, data);
+	return true;
 }
 
 void* GraphicsBuffer::Map(bool read, bool write, bool invalidate)
@@ -144,6 +146,14 @@ void* GraphicsBuffer::Map(bool read, bool write, bool invalidate)
 
 	if (m_map_pointer)
 		Warn("Tried to map already mapped buffer!");	
+
+
+	if (!read && m_buffer_usage == BufferUsage::BufferUsageStaticDraw)
+	{
+		m_map_pointer = malloc(m_buffer_size);
+		m_faking_map = true;
+		return m_map_pointer;
+	}
 
 	RecreateBuffer();
 
@@ -173,6 +183,16 @@ void* GraphicsBuffer::MapRange(int offset, int length, bool read, bool write, bo
 void GraphicsBuffer::UnMap()
 {
 	GLenum target = BufferTypeToGLType(m_buffer_type);
+
+	if (m_faking_map)
+	{
+		Upload(m_buffer_size, m_map_pointer);
+		free(m_map_pointer);
+		m_map_pointer = nullptr;
+		m_invalidated = false;
+		m_faking_map = false;
+		return;
+	}
 	
 	Bind();
 	glUnmapBuffer(target);
@@ -187,13 +207,14 @@ void GraphicsBuffer::Upload(size_t length, const void* data)
 	GLenum usage = BufferUsageToGLUsage(m_buffer_usage);
 
 	m_invalidated = true;
-	RecreateBuffer();
-	
-	Bind();
-	glBufferData(target, length, data, usage);
+	m_buffer_size = length;
+	if (!RecreateBuffer(data))
+	{
+		Bind();
+		glBufferData(target, length, data, usage);
+	}
 	if (data != nullptr)
 		m_invalidated = false;
-	m_buffer_size = length;
 }
 
 void GraphicsBuffer::UploadRange(size_t length, intptr_t offset, const void* data)
@@ -212,7 +233,6 @@ void GraphicsBuffer::Resize(size_t length)
 	if (m_invalidated)
 	{
 		m_buffer_size = length;
-		RecreateBuffer();	
 	}
 	else
 	{
