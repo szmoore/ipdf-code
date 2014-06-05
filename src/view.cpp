@@ -84,6 +84,47 @@ using namespace std;
 	"\tEndPrimitive();\n"\
 	"}\n"
 
+#define CIRCLE_FILLED_GEOM \
+	"#version 150\n"\
+	"\n"\
+	"layout(lines) in;\n"\
+	"layout(triangle_strip, max_vertices = 4) out;\n"\
+	"out vec2 objcoords;\n"\
+	"\n"\
+	"void main()\n"\
+	"{\n"\
+	"\tgl_Position = gl_in[0].gl_Position;\n"\
+	"\tobjcoords = vec2(-1.0, -1.0);\n"\
+	"\tEmitVertex();\n"\
+	"\tgl_Position = vec4(gl_in[0].gl_Position.x, gl_in[1].gl_Position.y, 0.0, 1.0);\n"\
+	"\tobjcoords = vec2(-1.0, 1.0);\n"\
+	"\tEmitVertex();\n"\
+	"\tgl_Position = vec4(gl_in[1].gl_Position.x, gl_in[0].gl_Position.y, 0.0, 1.0);\n"\
+	"\tobjcoords = vec2(1.0, -1.0);\n"\
+	"\tEmitVertex();\n"\
+	"\tgl_Position = gl_in[1].gl_Position;\n"\
+	"\tobjcoords = vec2(1.0, 1.0);\n"\
+	"\tEmitVertex();\n"\
+	"\tEndPrimitive();\n"\
+	"}\n"
+
+#define CIRCLE_FRAG \
+	"#version 140\n"\
+	"\n"\
+	"in vec2 objcoords;\n"\
+	"out vec4 output_colour;\n"\
+	"\n"\
+	"uniform vec4 colour;\n"\
+	"\n"\
+	"void main()\n"\
+	"{\n"\
+	"\tif ((objcoords.x)*(objcoords.x) + (objcoords.y)*(objcoords.y) > 1.0)\n"\
+	"\t{\n"\
+	"\t\tdiscard;\n"\
+	"\t}\n"\
+	"\toutput_colour = colour;\n"\
+	"}\n"
+
 void View::Translate(Real x, Real y)
 {
 	x *= m_bounds.w;
@@ -221,6 +262,11 @@ void View::Render(int width, int height)
 	m_rect_outline_shader.Use();
 	m_outline_ibo.Bind();
 	glDrawElements(GL_LINES, m_rendered_outline*2, GL_UNSIGNED_INT, 0);
+
+	// Filled Circles
+	m_circle_filled_shader.Use();
+	m_circle_ibo.Bind();
+	glDrawElements(GL_LINES, m_rendered_circle*2, GL_UNSIGNED_INT, 0);
 	glDisableVertexAttribArray(0);
 	if (m_colour.a < 1.0f)
 	{
@@ -294,6 +340,13 @@ void View::PrepareRender()
 	m_rect_filled_shader.Use();
 	glUniform4f(m_rect_filled_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
 
+	m_circle_filled_shader.AttachGeometryProgram(CIRCLE_FILLED_GEOM);
+	m_circle_filled_shader.AttachVertexProgram(RECT_VERT);
+	m_circle_filled_shader.AttachFragmentProgram(CIRCLE_FRAG);
+	m_circle_filled_shader.Link();
+	m_circle_filled_shader.Use();
+	glUniform4f(m_circle_filled_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
+
 	m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
 	m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
 
@@ -307,27 +360,38 @@ void View::PrepareRender()
 	m_filled_ibo.Resize(m_document.ObjectCount() * 2 * sizeof(uint32_t));
 	BufferBuilder<uint32_t> filled_builder(m_filled_ibo.Map(false, true, true), m_filled_ibo.GetSize());
 
+	m_circle_ibo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
+	m_circle_ibo.SetType(GraphicsBuffer::BufferTypeIndex);
+	m_circle_ibo.Resize(m_document.ObjectCount() * 2 * sizeof(uint32_t));
+	BufferBuilder<uint32_t> circle_builder(m_circle_ibo.Map(false, true, true), m_circle_ibo.GetSize());
 
-	m_rendered_filled = m_rendered_outline = 0;
+	m_rendered_filled = m_rendered_outline = m_rendered_circle = 0;
 	uint32_t currentIndex = 0;
 	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
 	{
-		if (m_document.m_objects.types[id] != RECT_FILLED)
+		if (m_document.m_objects.types[id] == RECT_OUTLINE)
 		{
 			outline_builder.Add(currentIndex++);
 			outline_builder.Add(currentIndex++);
 			m_rendered_outline++;
 		}
-		else
+		else if (m_document.m_objects.types[id] == RECT_FILLED)
 		{
 			filled_builder.Add(currentIndex++);
 			filled_builder.Add(currentIndex++);
 			m_rendered_filled++;
 		}
+		else
+		{
+			circle_builder.Add(currentIndex++);
+			circle_builder.Add(currentIndex++);
+			m_rendered_circle++;
+		}
 
 	}
 	m_outline_ibo.UnMap();
 	m_filled_ibo.UnMap();
+	m_circle_ibo.UnMap();
 
 	m_render_inited = true;
 }

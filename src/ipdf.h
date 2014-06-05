@@ -17,7 +17,7 @@ namespace IPDF
 	}
 
 	typedef unsigned ObjectID;
-	typedef enum {RECT_FILLED, RECT_OUTLINE} ObjectType;
+	typedef enum {RECT_FILLED, RECT_OUTLINE, CIRCLE_FILLED} ObjectType;
 
 	enum DocChunkTypes
 	{

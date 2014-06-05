@@ -41,6 +41,7 @@ namespace IPDF
 			bool m_render_inited;
 			ShaderProgram m_rect_outline_shader;
 			ShaderProgram m_rect_filled_shader;
+			ShaderProgram m_circle_filled_shader;
 			// Stores the view bounds.
 			GraphicsBuffer m_bounds_ubo;
 			// Stores the bounds for _all_ objects.
@@ -48,12 +49,14 @@ namespace IPDF
 			// Stores indices into the objbounds vbo for each type of object.
 			GraphicsBuffer m_outline_ibo;	// Rectangle outline
 			GraphicsBuffer m_filled_ibo;	// Filled rectangle
+			GraphicsBuffer m_circle_ibo;	// Filled circle
 			FrameBuffer m_cached_display;
 			Document & m_document;
 			Rect m_bounds;
 			Colour m_colour;
 			uint32_t m_rendered_filled;
 			uint32_t m_rendered_outline;
+			uint32_t m_rendered_circle;
 	};
 }
 

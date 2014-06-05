@@ -85,7 +85,7 @@ int main(int argc, char ** argv)
 		{
 			for (int y = 0; y < 8; ++y)
 			{
-				doc.Add(((x^y)&1)?RECT_OUTLINE:RECT_FILLED, Rect(0.2+x-4.0,0.2+y-4.0,0.6,0.6));
+				doc.Add(static_cast<IPDF::ObjectType>((x^y)%3), Rect(0.2+x-4.0,0.2+y-4.0,0.6,0.6));
 			}
 		}
 		
