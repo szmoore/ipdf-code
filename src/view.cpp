@@ -253,6 +253,11 @@ void View::Render(int width, int height)
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
+	// Filled Circles
+	m_circle_filled_shader.Use();
+	m_circle_ibo.Bind();
+	glDrawElements(GL_LINES, m_rendered_circle*2, GL_UNSIGNED_INT, 0);
+
 	// Filled Rectangles
 	m_rect_filled_shader.Use();
 	m_filled_ibo.Bind();
@@ -263,10 +268,6 @@ void View::Render(int width, int height)
 	m_outline_ibo.Bind();
 	glDrawElements(GL_LINES, m_rendered_outline*2, GL_UNSIGNED_INT, 0);
 
-	// Filled Circles
-	m_circle_filled_shader.Use();
-	m_circle_ibo.Bind();
-	glDrawElements(GL_LINES, m_rendered_circle*2, GL_UNSIGNED_INT, 0);
 	glDisableVertexAttribArray(0);
 	if (m_colour.a < 1.0f)
 	{
