@@ -218,6 +218,47 @@ double Screen::GetLastFrameTimeGPU() const
 	return frame_time_ns/1000000000.0;
 }
 
+void Screen::RenderPixels(int x, int y, int w, int h, void *pixels) const
+{
+	GLenum texture_format = GL_RGBA;
+
+	m_texture_prog.Use();
+	GraphicsBuffer quad_vertex_buffer;
+	quad_vertex_buffer.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
+	quad_vertex_buffer.SetType(GraphicsBuffer::BufferTypeVertex);
+	GLfloat quad[] = { 
+		0, 0, (float)x, (float)y,
+		1, 0, (float)(x+w), y,
+		1, 1, (float)(x+w), (float)(y+h),
+		0, 1, (float)x, (float)(y+h)
+	};
+	quad_vertex_buffer.Upload(sizeof(GLfloat) * 16, quad);
+	quad_vertex_buffer.Bind();
+	m_viewport_ubo.Bind();
+
+	glUniform4f(m_colour_uniform_location, 1.0f, 1.0f, 1.0f, 1.0f);
+
+	GLuint texID;
+	glGenTextures(1, &texID);
+	glBindTexture(GL_TEXTURE_2D, texID);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, w, h, 0, texture_format, GL_UNSIGNED_BYTE, pixels);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), 0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(0);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+}
+
 void Screen::ScreenShot(const char * filename) const
 {
 	Debug("Attempting to save BMP to file %s", filename);
