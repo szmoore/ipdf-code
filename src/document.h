@@ -17,6 +17,7 @@ namespace IPDF
 			void DebugDumpObjects();
 
 			unsigned ObjectCount() const {return m_count;}
+			inline const Objects & GetObjects() const {return m_objects;}
 
 			bool operator==(const Document & equ) const;
 			bool operator!=(const Document & equ) const {return !(this->operator==(equ));}

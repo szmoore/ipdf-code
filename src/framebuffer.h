@@ -7,8 +7,9 @@
 
 namespace IPDF
 {
-	/*
+	/**
 	 * The "FrameBuffer" class represents an offscreen render target. 
+	 * FrameBuffer::Create needs to be called to initialise it; constructor is trivial
 	 */
 	class FrameBuffer
 	{
@@ -17,9 +18,9 @@ namespace IPDF
 		~FrameBuffer() { Destroy(); }
 		void Create(int w, int h);
 		void Destroy();
-		void Bind();
-		void UnBind();
-		void Blit();
+		void Bind(); // set as render target
+		void UnBind(); // set render target to screen
+		void Blit(); // blit this FrameBuffer to current render target
 		void Clear(float r=1.0, float g=1.0, float b=1.0, float a=1.0);
 		int GetWidth() { return m_width; }
 		int GetHeight() { return m_height; }

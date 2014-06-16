@@ -7,6 +7,7 @@ void FrameBuffer::Create(int w, int h)
 {
 	if (m_render_texture)
 	{
+		// FrameBuffer was already Created, destroy it before creating again
 		Destroy();
 	}
 	m_width = w;
@@ -27,25 +28,26 @@ void FrameBuffer::Create(int w, int h)
 
 void FrameBuffer::Destroy()
 {
-	if (!m_render_texture) return;
+	if (!m_render_texture) return; // wasn't Created (or already Destroyed)
 	glDeleteFramebuffers(1, &m_render_fbo);
 	glDeleteTextures(1, &m_render_texture);
 }
 
 void FrameBuffer::Bind()
 {
+	// will draw to this FrameBuffer
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_render_fbo);
 }
 
 void FrameBuffer::UnBind()
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0); // will both draw to and read pixels from screen
 }
 
 void FrameBuffer::Blit()
 {
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_render_fbo);
-	glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_render_fbo); // read pixels from this FrameBuffer
+	glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST); // draw pixels
 }
 
 void FrameBuffer::Clear(float r, float g, float b, float a)

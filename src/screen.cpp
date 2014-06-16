@@ -22,6 +22,7 @@ static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum 
 
 Screen::Screen()
 {
+
 	SDL_Init(SDL_INIT_VIDEO);
 	m_window = SDL_CreateWindow("IPDF", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
@@ -68,10 +69,7 @@ Screen::Screen()
 	glGenVertexArrays(1, &default_vao);
 	glBindVertexArray(default_vao);
 
-	//TODO: Error checking.
-	m_texture_prog.AttachVertexProgram(BASICTEX_VERT);
-	m_texture_prog.AttachFragmentProgram(BASICTEX_FRAG);
-	m_texture_prog.Link();
+	m_texture_prog.InitialiseShaders(BASICTEX_VERT, BASICTEX_FRAG);
 	m_texture_prog.Use();
 
 	// We always want to use the texture bound to texture unit 0.
@@ -226,9 +224,10 @@ void Screen::RenderPixels(int x, int y, int w, int h, void *pixels) const
 	GraphicsBuffer quad_vertex_buffer;
 	quad_vertex_buffer.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
 	quad_vertex_buffer.SetType(GraphicsBuffer::BufferTypeVertex);
+	//rectangular texture == 2 triangles
 	GLfloat quad[] = { 
 		0, 0, (float)x, (float)y,
-		1, 0, (float)(x+w), y,
+		1, 0, (float)(x+w), (float)y,
 		1, 1, (float)(x+w), (float)(y+h),
 		0, 1, (float)x, (float)(y+h)
 	};

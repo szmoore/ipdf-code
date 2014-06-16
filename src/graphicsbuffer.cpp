@@ -36,7 +36,7 @@ static GLenum BufferUsageToGLUsage(GraphicsBuffer::BufferUsage buffer_usage)
 		usage = GL_STREAM_COPY;
 		break;
 	default:
-		SDL_assert(false && "Unknown buffer usage type.");
+		SDL_assert(false && "Unknown buffer usage type."); //WTF?
 		usage = GL_DYNAMIC_DRAW;
 	}
 	return usage;
@@ -66,7 +66,7 @@ static GLenum BufferTypeToGLType(GraphicsBuffer::BufferType buffer_type)
 GraphicsBuffer::GraphicsBuffer()
 {
 	m_invalidated = true;
-	m_map_pointer = nullptr;
+	m_map_pointer = NULL;
 	m_buffer_size = 0;
 	m_buffer_shape_dirty = true;
 	m_buffer_handle = 0;
@@ -104,7 +104,7 @@ void GraphicsBuffer::Invalidate()
 	if (!m_buffer_shape_dirty)
 	{
 		// Orphan the block of memory we're pointing to.
-		Upload(m_buffer_size, nullptr);
+		Upload(m_buffer_size, NULL);
 	}
 	// Apparently not supported.
 	//glInvalidateBufferData(m_buffer_handle);

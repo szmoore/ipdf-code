@@ -5,13 +5,51 @@
 
 using namespace IPDF;
 using namespace std;
-#define RECT_VERT "shaders/rect_vert.glsl"
-#define RECT_FRAG "shaders/rect_frag.glsl"
-#define RECT_OUTLINE_GEOM "shaders/rect_outline_geom.glsl"
-#define RECT_FILLED_GEOM "shaders/rect_filled_geom.glsl"
-#define CIRCLE_FILLED_GEOM "shaders/circle_filled_geom.glsl"
-#define CIRCLE_FRAG "shaders/circle_frag.glsl"
 
+/**
+ * Constructs a view
+ * Allocates memory for ObjectRenderers
+ * @param document - The document to associate the View with
+ * @param bounds - Initial bounds of the View
+ * @param colour - Colour to use for rendering this view. TODO: Make sure this actually works, or just remove it
+ */
+View::View(Document & document, const Rect & bounds, const Colour & colour)
+	: m_use_gpu_transform(USE_GPU_TRANSFORM), m_use_gpu_rendering(USE_GPU_RENDERING), m_bounds_dirty(true), m_buffer_dirty(true), 
+		m_render_dirty(true), m_document(document), m_cached_display(), m_bounds(bounds), m_colour(colour), m_bounds_ubo(), 
+		m_objbounds_vbo(), m_object_renderers(NUMBER_OF_OBJECT_TYPES)
+{
+	Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
+
+	// Create ObjectRenderers - new's match delete's in View::~View
+	// Ok, look, this may seem disgusting, but go look at View::PrepareRender before you murder me
+	m_object_renderers[RECT_FILLED] = new RectFilledRenderer();
+	m_object_renderers[RECT_OUTLINE] = new RectOutlineRenderer();
+	m_object_renderers[CIRCLE_FILLED] = new CircleFilledRenderer();
+
+	// To add rendering for a new type of object;
+	// 1. Add enum to ObjectType in ipdf.h
+	// 2. Implement class inheriting from ObjectRenderer using that type in objectrenderer.h and objectrenderer.cpp
+	// 3. Add it here
+	// 4. Profit
+}
+
+/**
+ * Destroy a view
+ * Frees memory used by ObjectRenderers
+ */
+View::~View()
+{
+	for (unsigned i = 0; i < m_object_renderers.size(); ++i)
+	{
+		//delete m_object_renderers[i];
+	}
+	m_object_renderers.clear();
+}
+
+/**
+ * Translate the view
+ * @param x, y - Amount to translate
+ */
 void View::Translate(Real x, Real y)
 {
 	x *= m_bounds.w;
@@ -20,13 +58,16 @@ void View::Translate(Real x, Real y)
 	m_bounds.y += y;
 	Debug("View Bounds => %s", m_bounds.Str().c_str());
 	if (!m_use_gpu_transform)
-	{
 		m_buffer_dirty = true;
-	}
 	m_bounds_dirty = true;
 }
 
-void View::ScaleAroundPoint(Real x, Real y, Real scaleAmt)
+/**
+ * Scale the View at a point
+ * @param x, y - Coordinates to scale at (eg: Mouse cursor position)
+ * @param scale_amount - Amount to scale by
+ */
+void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 {
 	// x and y are coordinates in the window
 	// Convert to local coords.
@@ -35,144 +76,124 @@ void View::ScaleAroundPoint(Real x, Real y, Real scaleAmt)
 	x += m_bounds.x;
 	y += m_bounds.y;
 	
-	//Debug("Mouse wheel event %f %f %f\n", Float(x), Float(y), Float(scaleAmt));
-	
 	Real top = y - m_bounds.y;
 	Real left = x - m_bounds.x;
 	
-	top *= scaleAmt;
-	left *= scaleAmt;
+	top *= scale_amount;
+	left *= scale_amount;
 	
 	m_bounds.x = x - left;
 	m_bounds.y = y - top;
-	m_bounds.w *= scaleAmt;
-	m_bounds.h *= scaleAmt;
+	m_bounds.w *= scale_amount;
+	m_bounds.h *= scale_amount;
 	Debug("View Bounds => %s", m_bounds.Str().c_str());
 	if (!m_use_gpu_transform)
 		m_buffer_dirty = true;
 	m_bounds_dirty = true;
 }
 
+/**
+ * Transform a point in the document to a point relative to the top left corner of the view
+ * This is the CPU coordinate transform code; used only if the CPU is doing coordinate transforms
+ * @param inp - Input Rect {x,y,w,h} in the document
+ * @returns output Rect {x,y,w,h} in the View
+ */
 Rect View::TransformToViewCoords(const Rect& inp) const
 {
 	Rect out;
 	out.x = (inp.x - m_bounds.x) / m_bounds.w;
 	out.y = (inp.y - m_bounds.y) / m_bounds.h;
-
 	out.w = inp.w / m_bounds.w;
 	out.h = inp.h / m_bounds.h;
 	return out;
 }
 
-void View::DrawGrid()
-{
-	//TODO: Implement this with OpenGL 3.1+
-#if 0
-	// Draw some grid lines at fixed pixel positions
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0.0, 1.0, 1.0, 0.0, -1.f, 1.f);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	glColor4f(0.9,0.9,0.9,0.1);
-	const float num_lines = 50.0;
-	for (float i = 0; i < num_lines; ++i)
-	{
-		glBegin(GL_LINES);
-		glVertex2f(i*(1.0/num_lines), 0.0);
-		glVertex2f(i*(1.0/num_lines), 1.0);
-		glEnd();
-		glBegin(GL_LINES);
-		glVertex2f(0.0,i*(1.0/num_lines));
-		glVertex2f(1.0,i*(1.0/num_lines));
-		glEnd();
-	
-	}
-#endif
-}
-
+/**
+ * Render the view
+ * Updates FrameBuffer if the document, object bounds, or view bounds have changed, then Blits it
+ * Otherwise just Blits the cached FrameBuffer
+ * @param width - Width of View to render
+ * @param height - Height of View to render
+ */
 void View::Render(int width, int height)
 {
+	// View dimensions have changed (ie: Window was resized)
 	if (width != m_cached_display.GetWidth() || height != m_cached_display.GetHeight())
 	{
 		m_cached_display.Create(width, height);
 		m_bounds_dirty = true;
 	}
 
+	// View bounds have not changed; blit the FrameBuffer as it is
 	if (!m_bounds_dirty)
 	{
 		m_cached_display.UnBind();
 		m_cached_display.Blit();
 		return;
 	}
-	m_cached_display.Bind();
+
+	// Bind FrameBuffer for rendering, and clear it
+	m_cached_display.Bind(); //NOTE: This is redundant; Clear already calls Bind
 	m_cached_display.Clear();
 
-	if (!m_render_inited)
+
+	if (m_render_dirty) // document has changed
 		PrepareRender();
 
-	if (m_buffer_dirty)
+	if (m_buffer_dirty) // object bounds have changed
 		UpdateObjBoundsVBO();
 
-	if (m_bounds_dirty)
+	if (m_use_gpu_transform)
 	{
-		if (m_use_gpu_transform)
-		{
-			GLfloat glbounds[] = {static_cast<GLfloat>(Float(m_bounds.x)), static_cast<GLfloat>(Float(m_bounds.y)), static_cast<GLfloat>(Float(m_bounds.w)), static_cast<GLfloat>(Float(m_bounds.h))};
-			m_bounds_ubo.Upload(sizeof(float)*4, glbounds);
-		}
-		else
-		{
-			GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f};
-			m_bounds_ubo.Upload(sizeof(float)*4, glbounds);
-		}
+		GLfloat glbounds[] = {static_cast<GLfloat>(Float(m_bounds.x)), static_cast<GLfloat>(Float(m_bounds.y)), static_cast<GLfloat>(Float(m_bounds.w)), static_cast<GLfloat>(Float(m_bounds.h))};
+		m_bounds_ubo.Upload(sizeof(float)*4, glbounds);
+	}
+	else
+	{
+		GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f};
+		m_bounds_ubo.Upload(sizeof(float)*4, glbounds);
 	}
 	m_bounds_dirty = false;
 
-	if (m_colour.a < 1.0f)
+
+	// Render using GPU
+	if (m_use_gpu_rendering) 
 	{
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		if (m_colour.a < 1.0f)
+		{
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		}
+		m_objbounds_vbo.Bind();
+		m_bounds_ubo.Bind();
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	
+		for (unsigned i = 0; i < m_object_renderers.size(); ++i)
+		{
+			m_object_renderers[i]->RenderUsingGPU();
+		}
+		
+		glDisableVertexAttribArray(0);
+		if (m_colour.a < 1.0f)
+		{
+			glDisable(GL_BLEND);
+		}
 	}
-	m_objbounds_vbo.Bind();
-	m_bounds_ubo.Bind();
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-	// Filled Circles
-	m_circle_filled_shader.Use();
-	m_circle_ibo.Bind();
-	glDrawElements(GL_LINES, m_rendered_circle*2, GL_UNSIGNED_INT, 0);
-
-	// Filled Rectangles
-	m_rect_filled_shader.Use();
-	m_filled_ibo.Bind();
-	glDrawElements(GL_LINES, m_rendered_filled*2, GL_UNSIGNED_INT, 0);
-
-	// Rectangle Outlines
-	m_rect_outline_shader.Use();
-	m_outline_ibo.Bind();
-	glDrawElements(GL_LINES, m_rendered_outline*2, GL_UNSIGNED_INT, 0);
-
-	glDisableVertexAttribArray(0);
-	if (m_colour.a < 1.0f)
+	else // Rasterise on CPU then blit texture to GPU
 	{
-		glDisable(GL_BLEND);
+		for (unsigned i = 0; i < m_object_renderers.size(); ++i)
+		{
+			m_object_renderers[i]->RenderUsingCPU();
+		}
 	}
-	m_cached_display.UnBind();
-	m_cached_display.Blit();
-
+	m_cached_display.UnBind(); // resets render target to the screen
+	m_cached_display.Blit(); // blit FrameBuffer to screen
 }
-
-struct GPUObjBounds
-{
-	float x0, y0;
-	float x1, y1;
-};
 
 void View::UpdateObjBoundsVBO()
 {
+	Debug("Called");
 	m_objbounds_vbo.Invalidate();
 	m_objbounds_vbo.SetType(GraphicsBuffer::BufferTypeVertex);
 	if (m_use_gpu_transform)
@@ -210,71 +231,40 @@ void View::UpdateObjBoundsVBO()
 	m_objbounds_vbo.UnMap();
 	m_buffer_dirty = false;
 }
-
+/**
+ * Prepare the document for rendering
+ * Will be called on View::Render if m_render_dirty is set
+ * (Called at least once, on the first Render)
+ */
 void View::PrepareRender()
 {
-	// TODO: Error check here.
-
-	m_rect_outline_shader.AttachShaderPrograms(RECT_OUTLINE_GEOM, RECT_VERT, RECT_FRAG);
-	m_rect_outline_shader.Link();
-	m_rect_outline_shader.Use();
-	glUniform4f(m_rect_outline_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
-
-	m_rect_filled_shader.AttachShaderPrograms(RECT_FILLED_GEOM, RECT_VERT, RECT_FRAG);
-	m_rect_filled_shader.Link();
-	m_rect_filled_shader.Use();
-	glUniform4f(m_rect_filled_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
-
-	m_circle_filled_shader.AttachShaderPrograms(CIRCLE_FILLED_GEOM, RECT_VERT, CIRCLE_FRAG);
-	m_circle_filled_shader.Link();
-	m_circle_filled_shader.Use();
-	glUniform4f(m_circle_filled_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
-
+	// Prepare bounds vbo
 	m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
 	m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
+	
+	// Instead of having each ObjectRenderer go through the whole document
+	//  we initialise them, go through the document once adding to the appropriate Renderers
+	//  and then finalise them
+	// This will totally be efficient if we have like, a lot of distinct ObjectTypes. Which could totally happen. You never know.
 
-	m_outline_ibo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
-	m_outline_ibo.SetType(GraphicsBuffer::BufferTypeIndex);
-	m_outline_ibo.Resize(m_document.ObjectCount() * 2 * sizeof(uint32_t));
-	BufferBuilder<uint32_t> outline_builder(m_outline_ibo.Map(false, true, true), m_outline_ibo.GetSize());	
+	// Prepare the buffers
+	for (unsigned i = 0; i < m_object_renderers.size(); ++i)
+	{
+		m_object_renderers[i]->PrepareBuffers(m_document.ObjectCount());
+	}
 
-	m_filled_ibo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
-	m_filled_ibo.SetType(GraphicsBuffer::BufferTypeIndex);
-	m_filled_ibo.Resize(m_document.ObjectCount() * 2 * sizeof(uint32_t));
-	BufferBuilder<uint32_t> filled_builder(m_filled_ibo.Map(false, true, true), m_filled_ibo.GetSize());
-
-	m_circle_ibo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
-	m_circle_ibo.SetType(GraphicsBuffer::BufferTypeIndex);
-	m_circle_ibo.Resize(m_document.ObjectCount() * 2 * sizeof(uint32_t));
-	BufferBuilder<uint32_t> circle_builder(m_circle_ibo.Map(false, true, true), m_circle_ibo.GetSize());
-
-	m_rendered_filled = m_rendered_outline = m_rendered_circle = 0;
-	uint32_t currentIndex = 0;
+	// Add objects from Document to buffers
 	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
 	{
-		if (m_document.m_objects.types[id] == RECT_OUTLINE)
-		{
-			outline_builder.Add(currentIndex++);
-			outline_builder.Add(currentIndex++);
-			m_rendered_outline++;
-		}
-		else if (m_document.m_objects.types[id] == RECT_FILLED)
-		{
-			filled_builder.Add(currentIndex++);
-			filled_builder.Add(currentIndex++);
-			m_rendered_filled++;
-		}
-		else
-		{
-			circle_builder.Add(currentIndex++);
-			circle_builder.Add(currentIndex++);
-			m_rendered_circle++;
-		}
-
+		ObjectType type = m_document.m_objects.types[id];
+		m_object_renderers.at(type)->AddObjectToBuffers(id); // Use at() in case the document is corrupt TODO: Better error handling?
+		// (Also, Wow I just actually used std::vector::at())
 	}
-	m_outline_ibo.UnMap();
-	m_filled_ibo.UnMap();
-	m_circle_ibo.UnMap();
 
-	m_render_inited = true;
+	// Finish the buffers
+	for (unsigned i = 0; i < m_object_renderers.size(); ++i)
+	{
+		m_object_renderers[i]->FinaliseBuffers();
+	}	
+	m_render_dirty = false;
 }

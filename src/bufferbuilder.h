@@ -11,10 +11,11 @@ namespace IPDF
 	{
 	public:
 		BufferBuilder(void *data, size_t size) : m_bufferData((T*)data), m_bufferSize(size), m_bufferOffset(0) {};
+		~BufferBuilder() {}
 		// Append an item to the buffer, returning its index.
 		size_t Add(const T& item) {m_bufferData[m_bufferOffset] = item; m_bufferOffset++; return m_bufferOffset-1;}
 		bool Free(size_t num = 1) const {return ((m_bufferOffset + num) * sizeof(T)) < m_bufferSize;}
-	private:
+	//private: // bah who needs privacy
 		T *m_bufferData;
 		size_t m_bufferSize; // In bytes, 'cause why make things easy?
 		size_t m_bufferOffset; // In elements, 'cause why make things consistant?

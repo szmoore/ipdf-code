@@ -7,7 +7,7 @@
 
 namespace IPDF
 {
-	/*
+	/**
 	 * Implementation of an OpenGL buffer, with some extra cleverness.
 	 */
 	class GraphicsBuffer

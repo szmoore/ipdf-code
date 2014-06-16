@@ -13,22 +13,13 @@ namespace IPDF
 	class ShaderProgram
 	{
 	public:
-		ShaderProgram() : m_program(0) {}
+		ShaderProgram() : m_program(0), m_valid(false) {};
 		~ShaderProgram();
-
-		inline bool AttachGeometryProgram(const char * geometry_file) {return AttachShader(geometry_file, GL_GEOMETRY_SHADER);}
-		inline bool AttachVertexProgram(const char * vertex_file) {return AttachShader(vertex_file, GL_VERTEX_SHADER);}
-		inline bool AttachFragmentProgram(const char * fragment_file) {return AttachShader(fragment_file, GL_FRAGMENT_SHADER);}
-
-		/** Read shaders from files and attach them
-		 * @returns false if any of the shaders cannot be attached
-		 */
-		inline bool AttachShaderPrograms(const char * geometry_file, const char * vertex_file, const char * fragment_file)
-		{
-			return AttachGeometryProgram(geometry_file) && AttachVertexProgram(vertex_file) && AttachFragmentProgram(fragment_file);
-		}
-		bool Link(); // currently always returns true?
+		bool InitialiseShaders(const char * vert_glsl_file, const char * frag_glsl_file, const char * geom_glsl_file = "");
 		const void Use() const;
+
+		bool Valid() const {return m_valid;}
+		
 		// Unfortunately, we don't require GL 4.3/ARB_explicit_uniform_location
 		// which would make this obsolete. One uday Mesa will support it.
 		// NOTE: We could actually get away with this by only using UBOs, as
@@ -37,10 +28,9 @@ namespace IPDF
 		const GLint GetUniformLocation(const char *uniform_name) const;
 
 	private:
-		void LazyCreateProgram();
-		/** Read shader source from src_file and attach it as type **/
-		bool AttachShader(const char * src_file, GLenum type);
 		char * GetShaderSource(const char * src_file) const;
+		bool AttachShader(const char * src_file, GLenum type);
+
 		GLuint m_program;
 		struct Shader
 		{
@@ -48,6 +38,7 @@ namespace IPDF
 			GLuint obj;
 		};
 		std::vector<Shader> m_shaders;
+		bool m_valid;
 	};
 
 }

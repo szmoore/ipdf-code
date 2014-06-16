@@ -17,13 +17,22 @@ namespace IPDF
 	}
 
 	typedef unsigned ObjectID;
-	typedef enum {RECT_FILLED, RECT_OUTLINE, CIRCLE_FILLED} ObjectType;
+	/** Type of object
+     * NOTE: Extra entry in the enum so we can use this as an array index
+	 */
+	typedef enum 
+	{
+		RECT_FILLED = 0,
+		RECT_OUTLINE,
+		CIRCLE_FILLED, 
+		NUMBER_OF_OBJECT_TYPES
+	} ObjectType;
 
 	enum DocChunkTypes
 	{
 		CT_NUMOBJS,
 		CT_OBJTYPES,
-		CT_OBJBOUNDS
+		CT_OBJBOUNDS,
 	};
 
 	struct Rect

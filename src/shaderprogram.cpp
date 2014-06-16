@@ -3,8 +3,50 @@
 
 using namespace IPDF;
 
+/**
+ * Initialise a shader program using GLSL source files
+ * @param geometry_file GLSL source for Geometry shader (optional)
+ * @param vertex_file GLSL source for vertex shader
+ * @param fragment_file GLSL source for fragment shader
+ * If a filename is the empty string it will be ignored
+ */
+bool ShaderProgram::InitialiseShaders(const char * vertex_file, const char * fragment_file, const char * geometry_file)
+{
+	if (m_valid)
+	{
+		Error("Shader already valid?");
+	}
+	m_program = glCreateProgram();
+	if (m_program == 0)
+	{
+		Error("glCreateProgram failed");
+		m_valid = false;
+		return m_valid;
+	}
+	m_valid = true;
+	if (geometry_file != NULL && geometry_file[0] != '\0')
+		m_valid &= AttachShader(geometry_file, GL_GEOMETRY_SHADER);
+	if (vertex_file != NULL && vertex_file[0] != '\0')
+		m_valid &= AttachShader(vertex_file, GL_VERTEX_SHADER);
+	if (fragment_file != NULL && fragment_file[0] != '\0')
+		m_valid &= AttachShader(fragment_file, GL_FRAGMENT_SHADER);
+
+	if (!m_valid)
+	{
+		Warn("One or more AttachShader calls failed but we will link the shader anyway");
+	}
+	glLinkProgram(m_program);
+	return m_valid;
+}
+
+
+
+/**
+ * Destroy a shader program
+ */
 ShaderProgram::~ShaderProgram()
 {
+	m_valid = false;
 	for(auto shader : m_shaders)
 	{
 		glDetachShader(m_program, shader.obj);
@@ -13,17 +55,6 @@ ShaderProgram::~ShaderProgram()
 
 	if (m_program)
 		glDeleteProgram(m_program);
-}
-
-/**
- * This is only called once, does it need a function?
- */
-void ShaderProgram::LazyCreateProgram()
-{
-	if (!m_program)
-	{
-		m_program = glCreateProgram();
-	}
 }
 
 /**
@@ -96,15 +127,7 @@ bool ShaderProgram::AttachShader(const char * src_file, GLenum type)
 	}
 
 	m_shaders.push_back(Shader{type, shader_obj});
-	LazyCreateProgram(); // um... why?
 	glAttachShader(m_program, shader_obj);
-	return true;
-}
-
-
-bool ShaderProgram::Link()
-{
-	glLinkProgram(m_program);
 	return true;
 }
 

@@ -3,60 +3,68 @@
 
 #include "ipdf.h"
 #include "document.h"
-#include "graphicsbuffer.h"
 #include "framebuffer.h"
-#include "shaderprogram.h"
+#include "objectrenderer.h"
+
+#define USE_GPU_TRANSFORM true
+#define USE_GPU_RENDERING true
 
 namespace IPDF
 {
+	/**
+	 * The View class manages a rectangular view into the document.
+	 * It is responsible for coordinate transforms and rendering the document.
+	 * ObjectRenderer's for each type of Object should be created in the constructor.
+	 */
 	class View
 	{
 		public:
-			View(Document & document, const Rect & bounds = Rect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f)) 
-				: m_use_gpu_transform(false), m_bounds_dirty(true), m_buffer_dirty(true), m_render_inited(false), m_document(document), m_bounds(bounds), m_colour(colour) 
-			{
-				Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
-			}
-			virtual ~View() {}
+			View(Document & document, const Rect & bounds = Rect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f));
+			virtual ~View();
 
 			void Render(int width = 0, int height = 0);
 			
 			void Translate(Real x, Real y);
-			void ScaleAroundPoint(Real x, Real y, Real scaleAmt);
+			void ScaleAroundPoint(Real x, Real y, Real scale_amount);
 			
 			Rect TransformToViewCoords(const Rect& inp) const;
 			
 			const Rect& GetBounds() const { return m_bounds; }
 			
-			const bool UsingGPUTransform() const { return m_use_gpu_transform; }
+			const bool UsingGPUTransform() const { return m_use_gpu_transform; } // whether view transform calculated on CPU or GPU
+			const bool UsingGPURendering() const { return m_use_gpu_rendering; } // whether GPU shaders are used or CPU rendering
 			void ToggleGPUTransform() { m_use_gpu_transform = (!m_use_gpu_transform); m_bounds_dirty = true; m_buffer_dirty = true; }
+			void ToggleGPURendering() { m_use_gpu_rendering = (!m_use_gpu_rendering); m_bounds_dirty = true; m_buffer_dirty = true; }
 		
 		private:
-			void PrepareRender();
-			void UpdateObjBoundsVBO();
-			void DrawGrid();
+			struct GPUObjBounds
+			{
+				float x0, y0;
+				float x1, y1;
+			};
+
+			void PrepareRender(); // call when m_render_dirty is true
+			void UpdateObjBoundsVBO(); // call when m_buffer_dirty is true
+
 			bool m_use_gpu_transform;
-			bool m_bounds_dirty;
-			bool m_buffer_dirty;
-			bool m_render_inited;
-			ShaderProgram m_rect_outline_shader;
-			ShaderProgram m_rect_filled_shader;
-			ShaderProgram m_circle_filled_shader;
-			// Stores the view bounds.
-			GraphicsBuffer m_bounds_ubo;
-			// Stores the bounds for _all_ objects.
-			GraphicsBuffer m_objbounds_vbo;
-			// Stores indices into the objbounds vbo for each type of object.
-			GraphicsBuffer m_outline_ibo;	// Rectangle outline
-			GraphicsBuffer m_filled_ibo;	// Filled rectangle
-			GraphicsBuffer m_circle_ibo;	// Filled circle
-			FrameBuffer m_cached_display;
+			bool m_use_gpu_rendering;
+			bool m_bounds_dirty; // the view bounds has changed (occurs when changing view)
+			bool m_buffer_dirty; // the object bounds have changed (also occurs when changing view, but only when not using GPU transforms)
+			bool m_render_dirty; // the document has changed (occurs when document first loaded)
 			Document & m_document;
+			FrameBuffer m_cached_display;
 			Rect m_bounds;
 			Colour m_colour;
-			uint32_t m_rendered_filled;
-			uint32_t m_rendered_outline;
-			uint32_t m_rendered_circle;
+
+			// Stores the view bounds.
+			GraphicsBuffer m_bounds_ubo; //bounds_dirty means this one has changed
+			// Stores the bounds for _all_ objects.
+			GraphicsBuffer m_objbounds_vbo; //buffer_dirty means this one has changed
+
+			// ObjectRenderers to be initialised in constructor
+			// Trust me it will be easier to generalise things this way. Even though there are pointers.
+			std::vector<ObjectRenderer*> m_object_renderers; 
+			
 	};
 }
 

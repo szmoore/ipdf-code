@@ -1,3 +1,8 @@
+/**
+ * @file common.h
+ * @brief Include common headers
+ */
+
 // C++ STD includes
 #include <iostream>
 #include <vector>

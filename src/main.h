@@ -23,8 +23,9 @@ inline void OverlayBMP(Document & doc, const char * input, const char * output, 
 
 inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const Colour & c = Colour(0.f,0.f,0.f,1.f))
 {
-	View view(doc,bounds, c);
+	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
 	Screen scr;
+	View view(doc,bounds, c);
 	scr.DebugFontInit("DejaVuSansMono.ttf");
 	scr.SetMouseHandler([&](int x, int y, int buttons, int wheel) // [?] wtf
 	{
@@ -79,6 +80,14 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 		else
 		{
 			scr.DebugFontPrint("Doing coordinate transform on the CPU.\n");
+		}
+		if (view.UsingGPURendering())
+		{
+			scr.DebugFontPrint("Doing rendering using GPU.\n");
+		}
+		else
+		{
+			scr.DebugFontPrint("Doing rendering using CPU.\n");
 		}
 		scr.Present();
 	}
