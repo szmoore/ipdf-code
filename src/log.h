@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <cstring> // for strerror etc
 
 inline std::string methodName(const std::string& prettyFunction)
 {

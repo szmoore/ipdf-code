@@ -2,6 +2,22 @@
 #define _POINTSTOBITMAP_H
 
 #include <SDL.h>
+#include <algorithm> // for min/max_element
+
+void AntiAlias(unsigned char * pixels, uint64_t w, uint64_t h, uint8_t stride = 4)
+{
+	int ri = (SDL_BYTEORDER == SDL_LIL_ENDIAN) ? 0 : 3;
+	int gi = (SDL_BYTEORDER == SDL_LIL_ENDIAN) ? 1 : 2;
+	int bi = (SDL_BYTEORDER == SDL_LIL_ENDIAN) ? 2 : 1;
+	for (uint64_t x = 1; x < w-1; ++x)
+	{
+		for (uint64_t y = 1; y < h-1; ++y)
+		{
+			uint64_t index = stride*(y*w + x);
+			
+		}
+	}
+}
 
 /**
  * Map vector of points onto a Bitmap
@@ -60,7 +76,16 @@ template <class T> void PointsToBitmap(const vector<pair<T, T> > & points, const
 
 	pair<LD,LD> min(left.first, bottom.second);
 	pair<LD,LD> max(right.first, top.second);
-
+	// Force to be square
+	if (max.first - min.first > max.second - min.second)
+	{
+		max.second = min.second + (max.first - min.first);
+	}
+	else
+	{
+		max.first = min.first + (max.second - min.second);
+	}
+	Debug("Bitmap: %llf %llf -> %llf %llf", min.first, min.second, max.first, max.second);
 	// Alternately, just do this:
 	/* 
 	pair<LD,LD> min(-scale, -scale);

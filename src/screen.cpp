@@ -8,47 +8,8 @@
 #include "bufferbuilder.h"
 #include "shaderprogram.h"
 
-#define BASICTEX_VERT \
-	"#version 140\n"\
-	"#extension GL_ARB_shading_language_420pack : require\n"\
-	"#extension GL_ARB_explicit_attrib_location : require\n"\
-	"\n"\
-	"layout(std140, binding=0) uniform Viewport\n"\
-	"{\n"\
-	"\tfloat width;\n"\
-	"\tfloat height;\n"\
-	"};\n"\
-	"\n"\
-	"layout(location = 0) in vec2 position;\n"\
-	"layout(location = 1) in vec2 tex_coord;\n"\
-	"\n"\
-	"out vec2 fp_tex_coord;\n"\
-	"\n"\
-	"void main()\n"\
-	"{\n"\
-	"\t// Transform to clip coordinates (-1,1, -1,1).\n"\
-	"\tgl_Position.x = (position.x*2/width) - 1;\n"\
-	"\tgl_Position.y = 1 - (position.y*2/height);\n"\
-	"\tgl_Position.z = 0.0;\n"\
-	"\tgl_Position.w = 1.0;\n"\
-	"\tfp_tex_coord = tex_coord;\n"\
-	"}\n"
-
-#define BASICTEX_FRAG \
-	"#version 140\n"\
-	"\n"\
-	"in vec2 fp_tex_coord;\n"\
-	"\n"\
-	"out vec4 output_colour;\n"\
-	"\n"\
-	"uniform sampler2D tex;\n"\
-	"uniform vec4 colour;\n"\
-	"\n"\
-	"void main()\n"\
-	"{\n"\
-	"\toutput_colour = colour;\n"\
-	"\toutput_colour.a = texture(tex, fp_tex_coord).r;\n"\
-	"}\n"
+#define BASICTEX_VERT "shaders/basictex_vert.glsl"
+#define BASICTEX_FRAG "shaders/basictex_frag.glsl"
 
 using namespace IPDF;
 using namespace std;

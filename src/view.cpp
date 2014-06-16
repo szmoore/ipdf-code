@@ -5,125 +5,12 @@
 
 using namespace IPDF;
 using namespace std;
-#define RECT_VERT \
-	"#version 140\n"\
-	"#extension GL_ARB_shading_language_420pack : require\n"\
-	"#extension GL_ARB_explicit_attrib_location : require\n"\
-	"\n"\
-	"layout(std140, binding=0) uniform ViewBounds\n"\
-	"{\n"\
-	"\tfloat bounds_x;\n"\
-	"\tfloat bounds_y;\n"\
-	"\tfloat bounds_w;\n"\
-	"\tfloat bounds_h;\n"\
-	"};\n"\
-	"\n"\
-	"layout(location = 0) in vec2 position;\n"\
-	"\n"\
-	"void main()\n"\
-	"{\n"\
-	"\tvec2 transformed_position;\n"\
-	"\ttransformed_position.x = (position.x - bounds_x) / bounds_w;\n"\
-	"\ttransformed_position.y = (position.y - bounds_y) / bounds_h;\n"\
-	"\t// Transform to clip coordinates (-1,1, -1,1).\n"\
-	"\tgl_Position.x = (transformed_position.x*2) - 1;\n"\
-	"\tgl_Position.y = 1 - (transformed_position.y*2);\n"\
-	"\tgl_Position.z = 0.0;\n"\
-	"\tgl_Position.w = 1.0;\n"\
-	"}\n"
-
-#define RECT_FRAG \
-	"#version 140\n"\
-	"\n"\
-	"out vec4 output_colour;\n"\
-	"\n"\
-	"uniform vec4 colour;\n"\
-	"\n"\
-	"void main()\n"\
-	"{\n"\
-	"\toutput_colour = colour;\n"\
-	"}\n"
-
-#define RECT_OUTLINE_GEOM \
-	"#version 150\n"\
-	"\n"\
-	"layout(lines) in;\n"\
-	"layout(line_strip, max_vertices = 5) out;\n"\
-	"\n"\
-	"void main()\n"\
-	"{\n"\
-	"\tgl_Position = gl_in[0].gl_Position;\n"\
-	"\tEmitVertex();\n"\
-	"\tgl_Position = vec4(gl_in[0].gl_Position.x, gl_in[1].gl_Position.y, 0.0, 1.0);\n"\
-	"\tEmitVertex();\n"\
-	"\tgl_Position = gl_in[1].gl_Position;\n"\
-	"\tEmitVertex();\n"\
-	"\tgl_Position = vec4(gl_in[1].gl_Position.x, gl_in[0].gl_Position.y, 0.0, 1.0);\n"\
-	"\tEmitVertex();\n"\
-	"\tgl_Position = gl_in[0].gl_Position;\n"\
-	"\tEmitVertex();\n"\
-	"\tEndPrimitive();\n"\
-	"}\n"
-
-#define RECT_FILLED_GEOM \
-	"#version 150\n"\
-	"\n"\
-	"layout(lines) in;\n"\
-	"layout(triangle_strip, max_vertices = 4) out;\n"\
-	"\n"\
-	"void main()\n"\
-	"{\n"\
-	"\tgl_Position = gl_in[0].gl_Position;\n"\
-	"\tEmitVertex();\n"\
-	"\tgl_Position = vec4(gl_in[0].gl_Position.x, gl_in[1].gl_Position.y, 0.0, 1.0);\n"\
-	"\tEmitVertex();\n"\
-	"\tgl_Position = vec4(gl_in[1].gl_Position.x, gl_in[0].gl_Position.y, 0.0, 1.0);\n"\
-	"\tEmitVertex();\n"\
-	"\tgl_Position = gl_in[1].gl_Position;\n"\
-	"\tEmitVertex();\n"\
-	"\tEndPrimitive();\n"\
-	"}\n"
-
-#define CIRCLE_FILLED_GEOM \
-	"#version 150\n"\
-	"\n"\
-	"layout(lines) in;\n"\
-	"layout(triangle_strip, max_vertices = 4) out;\n"\
-	"out vec2 objcoords;\n"\
-	"\n"\
-	"void main()\n"\
-	"{\n"\
-	"\tgl_Position = gl_in[0].gl_Position;\n"\
-	"\tobjcoords = vec2(-1.0, -1.0);\n"\
-	"\tEmitVertex();\n"\
-	"\tgl_Position = vec4(gl_in[0].gl_Position.x, gl_in[1].gl_Position.y, 0.0, 1.0);\n"\
-	"\tobjcoords = vec2(-1.0, 1.0);\n"\
-	"\tEmitVertex();\n"\
-	"\tgl_Position = vec4(gl_in[1].gl_Position.x, gl_in[0].gl_Position.y, 0.0, 1.0);\n"\
-	"\tobjcoords = vec2(1.0, -1.0);\n"\
-	"\tEmitVertex();\n"\
-	"\tgl_Position = gl_in[1].gl_Position;\n"\
-	"\tobjcoords = vec2(1.0, 1.0);\n"\
-	"\tEmitVertex();\n"\
-	"\tEndPrimitive();\n"\
-	"}\n"
-
-#define CIRCLE_FRAG \
-	"#version 140\n"\
-	"\n"\
-	"in vec2 objcoords;\n"\
-	"out vec4 output_colour;\n"\
-	"\n"\
-	"uniform vec4 colour;\n"\
-	"\n"\
-	"void main()\n"\
-	"{\n"\
-	"\tif ((objcoords.x)*(objcoords.x) + (objcoords.y)*(objcoords.y) > 1.0)\n"\
-	"\t{\n"\
-	"\t\tdiscard;\n"\
-	"\t}\n"\
-	"\toutput_colour = colour;\n"\
-	"}\n"
+#define RECT_VERT "shaders/rect_vert.glsl"
+#define RECT_FRAG "shaders/rect_frag.glsl"
+#define RECT_OUTLINE_GEOM "shaders/rect_outline_geom.glsl"
+#define RECT_FILLED_GEOM "shaders/rect_filled_geom.glsl"
+#define CIRCLE_FILLED_GEOM "shaders/circle_filled_geom.glsl"
+#define CIRCLE_FRAG "shaders/circle_frag.glsl"
 
 void View::Translate(Real x, Real y)
 {
@@ -327,23 +214,18 @@ void View::UpdateObjBoundsVBO()
 void View::PrepareRender()
 {
 	// TODO: Error check here.
-	m_rect_outline_shader.AttachGeometryProgram(RECT_OUTLINE_GEOM);
-	m_rect_outline_shader.AttachVertexProgram(RECT_VERT);
-	m_rect_outline_shader.AttachFragmentProgram(RECT_FRAG);
+
+	m_rect_outline_shader.AttachShaderPrograms(RECT_OUTLINE_GEOM, RECT_VERT, RECT_FRAG);
 	m_rect_outline_shader.Link();
 	m_rect_outline_shader.Use();
 	glUniform4f(m_rect_outline_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
 
-	m_rect_filled_shader.AttachGeometryProgram(RECT_FILLED_GEOM);
-	m_rect_filled_shader.AttachVertexProgram(RECT_VERT);
-	m_rect_filled_shader.AttachFragmentProgram(RECT_FRAG);
+	m_rect_filled_shader.AttachShaderPrograms(RECT_FILLED_GEOM, RECT_VERT, RECT_FRAG);
 	m_rect_filled_shader.Link();
 	m_rect_filled_shader.Use();
 	glUniform4f(m_rect_filled_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);
 
-	m_circle_filled_shader.AttachGeometryProgram(CIRCLE_FILLED_GEOM);
-	m_circle_filled_shader.AttachVertexProgram(RECT_VERT);
-	m_circle_filled_shader.AttachFragmentProgram(CIRCLE_FRAG);
+	m_circle_filled_shader.AttachShaderPrograms(CIRCLE_FILLED_GEOM, RECT_VERT, CIRCLE_FRAG);
 	m_circle_filled_shader.Link();
 	m_circle_filled_shader.Use();
 	glUniform4f(m_circle_filled_shader.GetUniformLocation("colour"), m_colour.r, m_colour.g, m_colour.b, m_colour.a);

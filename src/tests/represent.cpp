@@ -242,14 +242,14 @@ int main(int argc, char ** argv)
 	printf("# Convert custom floats to a Real\n");
 	printf("# a\thex(a)\tReal(a)\tdelta(last2)\n");
 
-	typedef uint16_t Bits;
+	typedef uint8_t Bits;
 	typedef pair<Bits, Real> Pear;
-	const uint8_t E = 5;
-	const uint8_t P = 10;
+	const uint8_t E = 3;
+	const uint8_t P = 4;
 	
 	list<Pear> space;
-	Bits a0 = 0x0000;
-	for (Bits a = a0; a < 0xFFFF; ++a)
+	Bits a0 = 0x00;
+	for (Bits a = a0; a < 0xFF; ++a)
 	{
 		Real x = BitsToReal<E,P>(&a);
 		Bits b = 0; BitsFromReal<E,P>(x, &b);

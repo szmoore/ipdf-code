@@ -8,7 +8,7 @@
 #include <unordered_map> // hashtable
 #include <map>
 #include "screen.h"
-#include <algorithm>
+
 #include "pointstobitmap.h"
 
 using namespace std;
