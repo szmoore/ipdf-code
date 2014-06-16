@@ -11,6 +11,7 @@
 
 namespace IPDF
 {
+	class Screen;
 	/**
 	 * The View class manages a rectangular view into the document.
 	 * It is responsible for coordinate transforms and rendering the document.
@@ -19,7 +20,7 @@ namespace IPDF
 	class View
 	{
 		public:
-			View(Document & document, const Rect & bounds = Rect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f));
+			View(Document & document, Screen & screen, const Rect & bounds = Rect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f));
 			virtual ~View();
 
 			void Render(int width = 0, int height = 0);
@@ -35,6 +36,7 @@ namespace IPDF
 			const bool UsingGPURendering() const { return m_use_gpu_rendering; } // whether GPU shaders are used or CPU rendering
 			void ToggleGPUTransform() { m_use_gpu_transform = (!m_use_gpu_transform); m_bounds_dirty = true; m_buffer_dirty = true; }
 			void ToggleGPURendering() { m_use_gpu_rendering = (!m_use_gpu_rendering); m_bounds_dirty = true; m_buffer_dirty = true; }
+
 		
 		private:
 			struct GPUObjBounds
@@ -52,6 +54,7 @@ namespace IPDF
 			bool m_buffer_dirty; // the object bounds have changed (also occurs when changing view, but only when not using GPU transforms)
 			bool m_render_dirty; // the document has changed (occurs when document first loaded)
 			Document & m_document;
+			Screen & m_screen;
 			FrameBuffer m_cached_display;
 			Rect m_bounds;
 			Colour m_colour;
@@ -64,7 +67,7 @@ namespace IPDF
 			// ObjectRenderers to be initialised in constructor
 			// Trust me it will be easier to generalise things this way. Even though there are pointers.
 			std::vector<ObjectRenderer*> m_object_renderers; 
-			
+			uint8_t * m_cpu_rendering_pixels; // pixels to be used for CPU rendering
 	};
 }
 

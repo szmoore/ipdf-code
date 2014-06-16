@@ -4,6 +4,9 @@
  */
 
 #include "objectrenderer.h"
+#include "view.h"
+
+using namespace std;
 
 namespace IPDF
 {
@@ -34,9 +37,22 @@ void ObjectRenderer::RenderUsingGPU()
 }
 
 /**
+ * Helper structuretransforms coordinates to pixels
+ */
+
+ObjectRenderer::CPURenderBounds::CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target)
+{
+	Rect view_bounds = view.TransformToViewCoords(bounds);
+	x = view_bounds.x * target.w;
+	y = view_bounds.y * target.h;
+	w = view_bounds.w * target.w;
+	h = view_bounds.h * target.h;
+}
+
+/**
  * Default implementation for rendering using CPU
  */
-void ObjectRenderer::RenderUsingCPU()
+void ObjectRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
 {
 	Error("Cannot render objects of type %d on CPU", m_type);
 }
@@ -93,6 +109,123 @@ void ObjectRenderer::FinaliseBuffers()
 	m_buffer_builder = NULL;
 	
 	// Nothing is necessary for CPU rendering
+}
+
+
+/**
+ * Rectangle (filled)
+ */
+void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
+{
+	for (unsigned i = 0; i < m_indexes.size(); ++i)
+	{
+		CPURenderBounds bounds(objects.bounds[m_indexes[i]], view, target);
+		for (int x = max(0, bounds.x); x < min(bounds.x+bounds.w, target.w); ++x)
+		{
+			for (int y = max(0, bounds.y); y < min(bounds.y+bounds.h, target.h); ++y)
+			{
+				int index = (x+target.w*y)*4;
+				target.pixels[index+0] = 0;
+				target.pixels[index+1] = 0;
+				target.pixels[index+2] = 0;
+				target.pixels[index+3] = 255;
+			}
+		}
+	}
+}
+
+/**
+ * Rectangle (outine)
+ */
+void RectOutlineRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
+{
+	for (unsigned i = 0; i < m_indexes.size(); ++i)
+	{
+		CPURenderBounds bounds(objects.bounds[m_indexes[i]], view, target);
+		for (int x = max(0, bounds.x); x < min(bounds.x+bounds.w, target.w); ++x)
+		{
+			int top = (x+target.w*max(0, bounds.y))*4;
+			int bottom = (x+target.w*min(bounds.y+bounds.h, target.h))*4;
+			for (int j = 0; j < 3; ++j)
+			{
+				target.pixels[top+j] = 0;
+				target.pixels[bottom+j] = 0;
+			}
+			target.pixels[top+3] = 255;
+			target.pixels[bottom+3] = 255;
+		}
+
+		for (int y = max(0, bounds.y); y < min(bounds.y+bounds.h, target.h); ++y)
+		{
+			int left = (max(0, bounds.x)+target.w*y)*4;
+			int right = (min(bounds.x+bounds.w, target.w)+target.w*y)*4;
+			for (int j = 0; j < 3; ++j)
+			{
+				target.pixels[left+j] = 0;
+				target.pixels[right+j] = 0;
+			}
+			target.pixels[left+3] = 255;
+			target.pixels[right+3] = 255;
+			
+		}
+	}
+}
+
+/**
+ * Circle (filled)
+ */
+void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
+{
+	for (unsigned i = 0; i < m_indexes.size(); ++i)
+	{
+		CPURenderBounds bounds(objects.bounds[m_indexes[i]], view, target);
+		int centre_x = bounds.x + bounds.w / 2;
+		int centre_y = bounds.y + bounds.h / 2;
+		
+		Debug("Centre is %d, %d", centre_x, centre_y);
+		Debug("Bounds are %d,%d,%d,%d", bounds.x, bounds.y, bounds.w, bounds.h);
+		Debug("Windos is %d,%d", target.w, target.h);
+		for (int x = max(0, bounds.x); x < min(bounds.x+bounds.w, target.w); ++x)
+		{
+			for (int y = max(0, bounds.y); y < min(bounds.y + bounds.h, target.h); ++y)
+			{
+				double dx = 2.0*(double)(x - centre_x)/(double)(bounds.w);
+				double dy = 2.0*(double)(y - centre_y)/(double)(bounds.h);
+				int index = (x+target.w*y)*4;
+				
+				if (dx*dx + dy*dy <= 1.0)
+				{
+					target.pixels[index+0] = 0;
+					target.pixels[index+1] = 0;
+					target.pixels[index+2] = 0;
+					target.pixels[index+3] = 255;
+
+				}
+			}
+		}
+	}
+}
+
+
+/**
+ * For debug, save pixels to bitmap
+ */
+void ObjectRenderer::SaveBMP(const CPURenderTarget & target, const char * filename)
+{
+	SDL_Surface * surf = SDL_CreateRGBSurfaceFrom(target.pixels, target.w, target.h, 8*4, target.w*4,
+	#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+		0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
+	#else
+		0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
+	#endif //SDL_BYTEORDER	
+	);	
+	if (surf == NULL)
+		Fatal("SDL_CreateRGBSurfaceFrom(pixels...) failed - %s", SDL_GetError());
+	if (SDL_SaveBMP(surf, filename) != 0)
+		Fatal("SDL_SaveBMP failed - %s", SDL_GetError());
+
+	// Cleanup
+	SDL_FreeSurface(surf);
 }
 
 }

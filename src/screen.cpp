@@ -216,7 +216,7 @@ double Screen::GetLastFrameTimeGPU() const
 	return frame_time_ns/1000000000.0;
 }
 
-void Screen::RenderPixels(int x, int y, int w, int h, void *pixels) const
+void Screen::RenderPixels(int x, int y, int w, int h, uint8_t *pixels) const
 {
 	GLenum texture_format = GL_RGBA;
 

@@ -3,6 +3,9 @@
  * @brief Definition of ObjectRenderer class
  */
 
+#ifndef _OBJECT_RENDERER_H
+#define _OBJECT_RENDERER_H
+
 #include "ipdf.h"
 #include "graphicsbuffer.h"
 #include "shaderprogram.h"
@@ -10,6 +13,7 @@
 
 namespace IPDF
 {
+	class View;
 	/**
  	 * Abstract Base class representing how a particular type of object will be rendered
  	 * Includes GPU rendering and CPU rendering
@@ -36,12 +40,28 @@ namespace IPDF
 			 * Use the CPU to render the objects - "make a bitmap and convert it to a texture" approach
 			 * This way is definitely slower, but gives us more control over the number representations than a GPU
 			 */
-			virtual void RenderUsingCPU() = 0;
+
+			struct CPURenderTarget
+			{
+				uint8_t * pixels;
+				int w;
+				int h;
+			};
+			struct CPURenderBounds
+			{
+				int x; int y; int w; int h;
+				CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target);
+			};
+
+			static void SaveBMP(const CPURenderTarget & target, const char * filename);
+
+
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target) = 0;
 			
 			
 			
 			const ObjectType m_type; /** Type of objects **/
-		private:
+		protected:
 			friend class View; //View is a friendly fellow in the world of IPDF
 			void PrepareBuffers(unsigned max_size);
 			void FinaliseBuffers();
@@ -60,7 +80,7 @@ namespace IPDF
 		public:
 			RectFilledRenderer() : ObjectRenderer(RECT_FILLED, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl","shaders/rect_filled_geom.glsl") {}
 			virtual ~RectFilledRenderer() {}
-			virtual void RenderUsingCPU() {ObjectRenderer::RenderUsingCPU();} //TODO: Implement
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
 	};
 	/** Renderer for outlined rectangles **/
 	class RectOutlineRenderer : public ObjectRenderer
@@ -68,7 +88,7 @@ namespace IPDF
 		public:
 			RectOutlineRenderer() : ObjectRenderer(RECT_OUTLINE, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
 			virtual ~RectOutlineRenderer() {}
-			virtual void RenderUsingCPU() {ObjectRenderer::RenderUsingCPU();} //TODO: Implement
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
 	};
 	/** Renderer for filled circles **/
 	class CircleFilledRenderer : public ObjectRenderer
@@ -76,6 +96,8 @@ namespace IPDF
 		public:
 			CircleFilledRenderer() : ObjectRenderer(CIRCLE_FILLED, "shaders/rect_vert.glsl", "shaders/circle_frag.glsl", "shaders/circle_filled_geom.glsl") {}
 			virtual ~CircleFilledRenderer() {}
-			virtual void RenderUsingCPU() {ObjectRenderer::RenderUsingCPU();} //TODO: Implement
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
 	};
 }
+
+#endif //_OBJECT_RENDERER_H

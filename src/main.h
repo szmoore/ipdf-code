@@ -11,8 +11,9 @@ using namespace IPDF;
 
 inline void OverlayBMP(Document & doc, const char * input, const char * output, const Rect & bounds = Rect(0,0,1,1), const Colour & c = Colour(0.f,0.f,0.f,1.f))
 {
-	View view(doc, bounds, c);
+
 	Screen scr;
+	View view(doc, scr, bounds, c);
 	if (input != NULL)
 		scr.RenderBMP(input);
 	view.Render();
@@ -25,19 +26,26 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 {
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
 	Screen scr;
-	View view(doc,bounds, c);
+	View view(doc,scr, bounds, c);
 	scr.DebugFontInit("DejaVuSansMono.ttf");
 	scr.SetMouseHandler([&](int x, int y, int buttons, int wheel) // [?] wtf
 	{
 		static bool oldButtonDown = false;
 		static int oldx, oldy;
-		if (buttons > 1 && !oldButtonDown)
+		if (buttons == 3 && !oldButtonDown)
 		{
 			oldButtonDown = true;
 			view.ToggleGPUTransform();
 			oldx = x;
 			oldy = y;
 			return;
+		}
+		if (buttons == 2 && !oldButtonDown)
+		{
+			oldButtonDown = true;
+			view.ToggleGPURendering();
+			oldx = x;
+			oldy = y;
 		}
 		if (buttons && !oldButtonDown)
 		{

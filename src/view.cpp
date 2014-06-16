@@ -1,6 +1,6 @@
 #include "view.h"
 #include "bufferbuilder.h"
-
+#include "screen.h"
 #include "gl_core44.h"
 
 using namespace IPDF;
@@ -13,10 +13,10 @@ using namespace std;
  * @param bounds - Initial bounds of the View
  * @param colour - Colour to use for rendering this view. TODO: Make sure this actually works, or just remove it
  */
-View::View(Document & document, const Rect & bounds, const Colour & colour)
+View::View(Document & document, Screen & screen, const Rect & bounds, const Colour & colour)
 	: m_use_gpu_transform(USE_GPU_TRANSFORM), m_use_gpu_rendering(USE_GPU_RENDERING), m_bounds_dirty(true), m_buffer_dirty(true), 
-		m_render_dirty(true), m_document(document), m_cached_display(), m_bounds(bounds), m_colour(colour), m_bounds_ubo(), 
-		m_objbounds_vbo(), m_object_renderers(NUMBER_OF_OBJECT_TYPES)
+		m_render_dirty(true), m_document(document), m_screen(screen), m_cached_display(), m_bounds(bounds), m_colour(colour), m_bounds_ubo(), 
+		m_objbounds_vbo(), m_object_renderers(NUMBER_OF_OBJECT_TYPES), m_cpu_rendering_pixels(NULL)
 {
 	Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
 
@@ -41,9 +41,10 @@ View::~View()
 {
 	for (unsigned i = 0; i < m_object_renderers.size(); ++i)
 	{
-		//delete m_object_renderers[i];
+		delete m_object_renderers[i];
 	}
 	m_object_renderers.clear();
+	delete [] m_cpu_rendering_pixels;
 }
 
 /**
@@ -118,7 +119,9 @@ Rect View::TransformToViewCoords(const Rect& inp) const
 void View::Render(int width, int height)
 {
 	// View dimensions have changed (ie: Window was resized)
-	if (width != m_cached_display.GetWidth() || height != m_cached_display.GetHeight())
+	int prev_width = m_cached_display.GetWidth();
+	int prev_height = m_cached_display.GetHeight();
+	if (width != prev_width || height != prev_height)
 	{
 		m_cached_display.Create(width, height);
 		m_bounds_dirty = true;
@@ -133,8 +136,6 @@ void View::Render(int width, int height)
 	}
 
 	// Bind FrameBuffer for rendering, and clear it
-	m_cached_display.Bind(); //NOTE: This is redundant; Clear already calls Bind
-	m_cached_display.Clear();
 
 
 	if (m_render_dirty) // document has changed
@@ -154,6 +155,9 @@ void View::Render(int width, int height)
 		m_bounds_ubo.Upload(sizeof(float)*4, glbounds);
 	}
 	m_bounds_dirty = false;
+
+	m_cached_display.Bind(); //NOTE: This is redundant; Clear already calls Bind
+	m_cached_display.Clear();
 
 
 	// Render using GPU
@@ -182,10 +186,25 @@ void View::Render(int width, int height)
 	}
 	else // Rasterise on CPU then blit texture to GPU
 	{
+		// Dynamically resize CPU rendering target pixels if needed
+		if (m_cpu_rendering_pixels == NULL || width*height > prev_width*prev_height)
+		{
+			delete [] m_cpu_rendering_pixels;
+			m_cpu_rendering_pixels = new uint8_t[width*height*4];
+			if (m_cpu_rendering_pixels == NULL)
+				Fatal("Could not allocate %d*%d*4 = %d bytes for cpu rendered pixels", width, height, width*height*4);
+		}
+		// Clear CPU rendering pixels
+		for (int i = 0; i < width*height*4; ++i)
+			m_cpu_rendering_pixels[i] = 255;
+
 		for (unsigned i = 0; i < m_object_renderers.size(); ++i)
 		{
-			m_object_renderers[i]->RenderUsingCPU();
+			m_object_renderers[i]->RenderUsingCPU(m_document.m_objects, *this, {m_cpu_rendering_pixels, width, height});
 		}
+		m_screen.RenderPixels(0,0,width, height, m_cpu_rendering_pixels); //TODO: Make this work :(
+		// Debug for great victory (do something similar for GPU and compare?)
+		ObjectRenderer::SaveBMP({m_cpu_rendering_pixels, width, height}, "cpu_rendering_last_frame.bmp");
 	}
 	m_cached_display.UnBind(); // resets render target to the screen
 	m_cached_display.Blit(); // blit FrameBuffer to screen

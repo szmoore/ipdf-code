@@ -81,6 +81,7 @@ int main(int argc, char ** argv)
 	}
 	else 
 	{
+		
 		for(int x = 0; x < 8; ++x)
 		{
 			for (int y = 0; y < 8; ++y)
@@ -88,6 +89,8 @@ int main(int argc, char ** argv)
 				doc.Add(static_cast<IPDF::ObjectType>((x^y)%3), Rect(0.2+x-4.0,0.2+y-4.0,0.6,0.6));
 			}
 		}
+		
+		//doc.Add(IPDF::CIRCLE_FILLED, Rect(0.2,0.2,0.6,0.6));
 		
 	}
 	Rect bounds(b[0],b[1],b[2],b[3]);
