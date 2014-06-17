@@ -44,12 +44,12 @@ namespace IPDF
 			struct CPURenderTarget
 			{
 				uint8_t * pixels;
-				int w;
-				int h;
+				int64_t w;
+				int64_t h;
 			};
 			struct CPURenderBounds
 			{
-				int x; int y; int w; int h;
+				int64_t x; int64_t y; int64_t w; int64_t h;
 				CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target);
 			};
 

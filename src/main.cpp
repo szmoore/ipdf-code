@@ -90,7 +90,7 @@ int main(int argc, char ** argv)
 			}
 		}
 		
-		//doc.Add(IPDF::CIRCLE_FILLED, Rect(0.2,0.2,0.6,0.6));
+		//doc.Add(IPDF::RECT_OUTLINE, Rect(0.4,0.4,0.6,0.6));
 		
 	}
 	Rect bounds(b[0],b[1],b[2],b[3]);

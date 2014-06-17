@@ -43,10 +43,11 @@ void ObjectRenderer::RenderUsingGPU()
 ObjectRenderer::CPURenderBounds::CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target)
 {
 	Rect view_bounds = view.TransformToViewCoords(bounds);
-	x = view_bounds.x * target.w;
-	y = view_bounds.y * target.h;
-	w = view_bounds.w * target.w;
-	h = view_bounds.h * target.h;
+	x = view_bounds.x * Real(target.w);
+	y = view_bounds.y * Real(target.h);
+	w = view_bounds.w * Real(target.w);
+	h = view_bounds.h * Real(target.h);
+	Debug("CPURenderBounds %s -> %s -> {%li,%li,%li,%li}", bounds.Str().c_str(), view_bounds.Str().c_str(), x, y, w, h);
 }
 
 /**
@@ -120,9 +121,9 @@ void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & vi
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
 		CPURenderBounds bounds(objects.bounds[m_indexes[i]], view, target);
-		for (int x = max(0, bounds.x); x < min(bounds.x+bounds.w, target.w); ++x)
+		for (int64_t x = max(0L, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
 		{
-			for (int y = max(0, bounds.y); y < min(bounds.y+bounds.h, target.h); ++y)
+			for (int64_t y = max(0L, bounds.y); y <= min(bounds.y+bounds.h, target.h-1); ++y)
 			{
 				int index = (x+target.w*y)*4;
 				target.pixels[index+0] = 0;
@@ -142,31 +143,41 @@ void RectOutlineRenderer::RenderUsingCPU(const Objects & objects, const View & v
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
 		CPURenderBounds bounds(objects.bounds[m_indexes[i]], view, target);
-		for (int x = max(0, bounds.x); x < min(bounds.x+bounds.w, target.w); ++x)
+		for (int64_t x = max(0L, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
 		{
-			int top = (x+target.w*max(0, bounds.y))*4;
-			int bottom = (x+target.w*min(bounds.y+bounds.h, target.h))*4;
-			for (int j = 0; j < 3; ++j)
+			int64_t top = (x+target.w*bounds.y)*4;
+			int64_t bottom = (x+target.w*(bounds.y+bounds.h))*4;
+
+			if (top >= 0L && top <4*target.w*target.h)
 			{
-				target.pixels[top+j] = 0;
-				target.pixels[bottom+j] = 0;
+				for (int j = 0; j < 3; ++j)
+					target.pixels[top+j] = 0;
+				target.pixels[top+3] = 255;
 			}
-			target.pixels[top+3] = 255;
-			target.pixels[bottom+3] = 255;
+			if (bottom >= 0L && bottom <4*target.w*target.h)
+			{
+				for (int j = 0; j < 3; ++j)
+					target.pixels[bottom+j] = 0;
+				target.pixels[bottom+3] = 255;
+			}
 		}
 
-		for (int y = max(0, bounds.y); y < min(bounds.y+bounds.h, target.h); ++y)
+		for (int64_t y = max(0L, bounds.y); y <= min(bounds.y+bounds.h, target.h-1); ++y)
 		{
-			int left = (max(0, bounds.x)+target.w*y)*4;
-			int right = (min(bounds.x+bounds.w, target.w)+target.w*y)*4;
-			for (int j = 0; j < 3; ++j)
+			int64_t left = (bounds.x >= 0L && bounds.x < target.w) ? (bounds.x + target.w*y)*4 : -1L;
+			int64_t right = (bounds.x+bounds.w >= 0L && bounds.x+bounds.w < target.w) ? (bounds.x+bounds.w + target.w*y)*4 : -1L;
+			if (left >= 0L && left <4*target.w*target.h)
 			{
-				target.pixels[left+j] = 0;
-				target.pixels[right+j] = 0;
+				for (int j = 0; j < 3; ++j)
+					target.pixels[left+j] = 0;
+				target.pixels[left+3] = 255;
 			}
-			target.pixels[left+3] = 255;
-			target.pixels[right+3] = 255;
-			
+			if (right >= 0L && right <4*target.w*target.h)
+			{
+				for (int j = 0; j < 3; ++j)
+					target.pixels[right+j] = 0;
+				target.pixels[right+3] = 255;
+			}
 		}
 	}
 }
@@ -179,19 +190,19 @@ void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & 
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
 		CPURenderBounds bounds(objects.bounds[m_indexes[i]], view, target);
-		int centre_x = bounds.x + bounds.w / 2;
-		int centre_y = bounds.y + bounds.h / 2;
+		int64_t centre_x = bounds.x + bounds.w / 2;
+		int64_t centre_y = bounds.y + bounds.h / 2;
 		
 		Debug("Centre is %d, %d", centre_x, centre_y);
 		Debug("Bounds are %d,%d,%d,%d", bounds.x, bounds.y, bounds.w, bounds.h);
 		Debug("Windos is %d,%d", target.w, target.h);
-		for (int x = max(0, bounds.x); x < min(bounds.x+bounds.w, target.w); ++x)
+		for (int64_t x = max(0L, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
 		{
-			for (int y = max(0, bounds.y); y < min(bounds.y + bounds.h, target.h); ++y)
+			for (int64_t y = max(0L, bounds.y); y <= min(bounds.y + bounds.h, target.h-1); ++y)
 			{
 				double dx = 2.0*(double)(x - centre_x)/(double)(bounds.w);
 				double dy = 2.0*(double)(y - centre_y)/(double)(bounds.h);
-				int index = (x+target.w*y)*4;
+				int64_t index = (x+target.w*y)*4;
 				
 				if (dx*dx + dy*dy <= 1.0)
 				{
