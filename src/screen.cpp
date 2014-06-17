@@ -76,7 +76,13 @@ Screen::Screen()
 	GLint texture_uniform_location = m_texture_prog.GetUniformLocation("tex");
 	glUniform1i(texture_uniform_location, 0);
 
-	m_colour_uniform_location = m_texture_prog.GetUniformLocation("colour");
+	m_font_prog.InitialiseShaders(BASICTEX_VERT, "shaders/fonttex_frag.glsl");
+	m_font_prog.Use();
+
+	// We always want to use the texture bound to texture unit 0.
+	GLint font_texture_uniform_location = m_font_prog.GetUniformLocation("tex");
+	glUniform1i(font_texture_uniform_location, 0);
+	m_colour_uniform_location = m_font_prog.GetUniformLocation("colour");
 
 	m_viewport_ubo.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
 	m_viewport_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
@@ -228,8 +234,8 @@ void Screen::RenderPixels(int x, int y, int w, int h, uint8_t *pixels) const
 	GLfloat quad[] = { 
 		0, 0, (float)x, (float)y,
 		1, 0, (float)(x+w), (float)y,
-		1, 1, (float)(x+w), (float)(y+h),
-		0, 1, (float)x, (float)(y+h)
+		0, 1, (float)x, (float)(y+h),
+		1, 1, (float)(x+w), (float)(y+h)
 	};
 	quad_vertex_buffer.Upload(sizeof(GLfloat) * 16, quad);
 	quad_vertex_buffer.Bind();
@@ -246,15 +252,15 @@ void Screen::RenderPixels(int x, int y, int w, int h, uint8_t *pixels) const
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, 4, w, h, 0, texture_format, GL_UNSIGNED_BYTE, pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, texture_format, GL_UNSIGNED_BYTE, pixels);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), 0);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(0);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 }
 
@@ -408,7 +414,7 @@ void Screen::DebugFontFlush()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glBindTexture(GL_TEXTURE_2D, m_debug_font_atlas);
 
-	m_texture_prog.Use();
+	m_font_prog.Use();
 	m_viewport_ubo.Bind();
 	m_debug_font_vertices.Bind();
 	m_debug_font_indices.Bind();

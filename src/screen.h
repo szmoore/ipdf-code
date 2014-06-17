@@ -84,6 +84,7 @@ namespace IPDF
 		SDL_Window *m_window;
 		SDL_GLContext m_gl_context;
 		ShaderProgram m_texture_prog;
+		ShaderProgram m_font_prog;
 		GLint m_colour_uniform_location;
 		GraphicsBuffer m_viewport_ubo;
 		stbtt_bakedchar m_debug_font_rects[96];

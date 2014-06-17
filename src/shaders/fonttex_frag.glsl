@@ -9,6 +9,7 @@ uniform vec4 colour;
 
 void main()
 {
-	output_colour = texture(tex, fp_tex_coord) * colour;
+	output_colour = colour;
+	output_colour.a = texture(tex, fp_tex_coord).r;
 }
 

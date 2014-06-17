@@ -22,9 +22,9 @@ namespace IPDF
 	 */
 	typedef enum 
 	{
-		RECT_FILLED = 0,
+		CIRCLE_FILLED = 0, 
+		RECT_FILLED,
 		RECT_OUTLINE,
-		CIRCLE_FILLED, 
 		NUMBER_OF_OBJECT_TYPES
 	} ObjectType;
 
