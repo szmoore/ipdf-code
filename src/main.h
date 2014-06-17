@@ -74,13 +74,47 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 	}
 	);
 
+	double total_cpu_time = 0;
+	double total_gpu_time = 0;
+	double total_real_time = 0;
+	struct timespec real_clock_start;
+	struct timespec real_clock_now;
+	struct timespec real_clock_prev;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &real_clock_start);
+	real_clock_now = real_clock_start;
+	double frames = 0;
+	double data_rate = 1; // period between data output to stdout (if <= 0 there will be no output)
+	uint64_t data_points = 0;
+	setbuf(stdout, NULL);
 	while (scr.PumpEvents())
 	{
+		real_clock_prev = real_clock_now;
+		++frames;
 		scr.Clear();
+		//view.ForceBoundsDirty();
+		//view.ForceBufferDirty();
+		//view.ForceRenderDirty();
+
 		view.Render(scr.ViewportWidth(), scr.ViewportHeight());
-		scr.DebugFontPrintF("[CPU] Render took %lf ms (%lf FPS)\n", (scr.GetLastFrameTimeCPU())* 1000.0, 1.0/scr.GetLastFrameTimeCPU());
-		scr.DebugFontPrintF("[GPU] Render took %lf ms (%lf FPS)\n", (scr.GetLastFrameTimeGPU())* 1000.0, 1.0/scr.GetLastFrameTimeGPU());
+
+		double cpu_frame = scr.GetLastFrameTimeCPU();
+		double gpu_frame = scr.GetLastFrameTimeGPU();
+		clock_gettime(CLOCK_MONOTONIC_RAW, &real_clock_now);
+		double real_frame = (real_clock_now.tv_sec - real_clock_prev.tv_sec) + 1e-9*(real_clock_now.tv_nsec - real_clock_prev.tv_nsec);
+
+
+		total_real_time += real_frame; total_cpu_time += cpu_frame; total_gpu_time += gpu_frame;
+		if (data_rate > 0 && total_real_time > data_rate*(data_points+1)) 
+		{
+			printf("%lu\t%f\t%f\t%f\t%f\t%f\t%f\n", (uint64_t)frames, total_real_time, total_cpu_time, total_gpu_time, real_frame, cpu_frame, gpu_frame);
+			data_points++;
+		}
+		scr.DebugFontPrintF("Rendered frame %lu\n", (uint64_t)frames);
+		scr.DebugFontPrintF("[CPU] Render took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", cpu_frame*1e3, 1.0/cpu_frame, total_cpu_time,frames/total_cpu_time);
+		scr.DebugFontPrintF("[GPU] Render took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", gpu_frame*1e3, 1.0/gpu_frame, total_gpu_time, frames/total_gpu_time);
+		scr.DebugFontPrintF("[REALTIME] Render+Present+Cruft took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", real_frame*1e3, 1.0/real_frame, total_real_time,frames/total_real_time);
 		scr.DebugFontPrintF("View bounds: %s\n", view.GetBounds().Str().c_str());
+
 		if (view.UsingGPUTransform())
 		{
 			scr.DebugFontPrint("Doing coordinate transform on the GPU.\n");

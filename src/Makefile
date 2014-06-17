@@ -39,6 +39,17 @@ single : $(BIN)
 double : DEF = -DREAL=1
 double : $(BIN)
 
+demo : $(BIN) ../tools/stream_plot.py
+	mkdir -p ../data/
+	$(RM) ../data/performance.dat
+	./ipdf | tee ../data/performance.dat | ../tools/stream_plot.py 2>/dev/null
+
+movie : $(BIN) ../tools/stream_plot.py
+	mkdir -p ../data/
+	$(RM) ../data/performance.dat
+	$(RM) ../data/movie.ogv
+	./ipdf | tee ../data/performance.dat | ../tools/stream_plot.py 2>/dev/null & recordmydesktop --fps 10 --on-the-fly-encoding -o ../data/movie.ogv
+
 # The tests will compile with the default REAL definition
 # To change that you can run as `make DEFS="REAL=X" tests/<target>` where X is your chosen type
 # But remember to make clean first.
@@ -73,7 +84,6 @@ clean :
 	$(RM) tests/*.test
 	$(RM) tests/*.out
 	$(RM) tests/*.err
-	
 
 clean_full: clean
 	$(RM) *.*~

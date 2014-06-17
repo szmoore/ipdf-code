@@ -47,7 +47,7 @@ ObjectRenderer::CPURenderBounds::CPURenderBounds(const Rect & bounds, const View
 	y = view_bounds.y * Real(target.h);
 	w = view_bounds.w * Real(target.w);
 	h = view_bounds.h * Real(target.h);
-	Debug("CPURenderBounds %s -> %s -> {%li,%li,%li,%li}", bounds.Str().c_str(), view_bounds.Str().c_str(), x, y, w, h);
+	//Debug("CPURenderBounds %s -> %s -> {%li,%li,%li,%li}", bounds.Str().c_str(), view_bounds.Str().c_str(), x, y, w, h);
 }
 
 /**
@@ -72,6 +72,7 @@ void ObjectRenderer::PrepareBuffers(unsigned max_objects)
 	m_indexes.reserve(max_objects); //TODO: Can probably make this smaller? Or leave it out? Do we care?
 
 	// Initialise and resize the ibo (for GPU rendering)
+	m_ibo.Invalidate();
 	m_ibo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
 	m_ibo.SetType(GraphicsBuffer::BufferTypeIndex);
 	m_ibo.Resize(max_objects * 2 * sizeof(uint32_t));
@@ -193,9 +194,9 @@ void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & 
 		int64_t centre_x = bounds.x + bounds.w / 2;
 		int64_t centre_y = bounds.y + bounds.h / 2;
 		
-		Debug("Centre is %d, %d", centre_x, centre_y);
-		Debug("Bounds are %d,%d,%d,%d", bounds.x, bounds.y, bounds.w, bounds.h);
-		Debug("Windos is %d,%d", target.w, target.h);
+		//Debug("Centre is %d, %d", centre_x, centre_y);
+		//Debug("Bounds are %d,%d,%d,%d", bounds.x, bounds.y, bounds.w, bounds.h);
+		//Debug("Windos is %d,%d", target.w, target.h);
 		for (int64_t x = max(0L, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
 		{
 			for (int64_t y = max(0L, bounds.y); y <= min(bounds.y + bounds.h, target.h-1); ++y)

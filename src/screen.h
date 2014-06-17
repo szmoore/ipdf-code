@@ -62,6 +62,7 @@ namespace IPDF
 		void RenderPixels(int x, int y, int w, int h, uint8_t * pixels) const;
 
 
+
 		// Returns the CPU time (in seconds) it took to render the last completed frame.
 		double GetLastFrameTimeCPU() const { return m_last_frame_time / SDL_GetPerformanceFrequency(); }
 		// Returns the GPU time (in seconds) it took to render the last completed frame.

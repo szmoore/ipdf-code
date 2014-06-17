@@ -212,7 +212,6 @@ void View::Render(int width, int height)
 
 void View::UpdateObjBoundsVBO()
 {
-	Debug("Called");
 	m_objbounds_vbo.Invalidate();
 	m_objbounds_vbo.SetType(GraphicsBuffer::BufferTypeVertex);
 	if (m_use_gpu_transform)
@@ -258,6 +257,7 @@ void View::UpdateObjBoundsVBO()
 void View::PrepareRender()
 {
 	// Prepare bounds vbo
+	m_bounds_ubo.Invalidate();
 	m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
 	m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
 	

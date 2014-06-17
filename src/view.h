@@ -37,7 +37,12 @@ namespace IPDF
 			void ToggleGPUTransform() { m_use_gpu_transform = (!m_use_gpu_transform); m_bounds_dirty = true; m_buffer_dirty = true; }
 			void ToggleGPURendering() { m_use_gpu_rendering = (!m_use_gpu_rendering); m_bounds_dirty = true; m_buffer_dirty = true; }
 
-		
+
+			void ForceBoundsDirty() {m_bounds_dirty = true;}		
+			void ForceBufferDirty() {m_buffer_dirty = true;}		
+			void ForceRenderDirty() {m_render_dirty = true;}
+
+
 		private:
 			struct GPUObjBounds
 			{
