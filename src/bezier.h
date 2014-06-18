@@ -9,7 +9,7 @@ namespace IPDF
 	extern int BinomialCoeff(int n, int k);
 	extern Real Bernstein(int k, int n, const Real & u);
 
-	/** A _cubic_ bezier. I really want to make them an arbitrary size but that might upset David. **/
+	/** A _quadratic_ bezier. **/
 	struct Bezier
 	{
 		Real x0; Real y0;
