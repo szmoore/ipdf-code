@@ -13,7 +13,7 @@ namespace IPDF
 
 /**
  * ObjectRenderer constructor
- * Note the ShaderProgram constructor which compiles the shaders for GPU rendering (if they exist)
+ * Note we cannot compile the shaders in the constructor because the Screen class needs to initialise GL and it has a ShaderProgram member
  */
 ObjectRenderer::ObjectRenderer(const ObjectType & type, 
 		const char * vert_glsl_file, const char * frag_glsl_file, const char * geom_glsl_file)
@@ -36,19 +36,6 @@ void ObjectRenderer::RenderUsingGPU()
 	glDrawElements(GL_LINES, m_indexes.size()*2, GL_UNSIGNED_INT, 0);
 }
 
-/**
- * Helper structuretransforms coordinates to pixels
- */
-
-ObjectRenderer::CPURenderBounds::CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target)
-{
-	Rect view_bounds = view.TransformToViewCoords(bounds);
-	x = view_bounds.x * Real(target.w);
-	y = view_bounds.y * Real(target.h);
-	w = view_bounds.w * Real(target.w);
-	h = view_bounds.h * Real(target.h);
-	//Debug("CPURenderBounds %s -> %s -> {%li,%li,%li,%li}", bounds.Str().c_str(), view_bounds.Str().c_str(), x, y, w, h);
-}
 
 /**
  * Default implementation for rendering using CPU
@@ -56,6 +43,7 @@ ObjectRenderer::CPURenderBounds::CPURenderBounds(const Rect & bounds, const View
 void ObjectRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
 {
 	Error("Cannot render objects of type %d on CPU", m_type);
+	//TODO: Render a rect or something instead?
 }
 
 /**
@@ -121,7 +109,7 @@ void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & vi
 {
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
-		CPURenderBounds bounds(objects.bounds[m_indexes[i]], view, target);
+		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		for (int64_t x = max(0L, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
 		{
 			for (int64_t y = max(0L, bounds.y); y <= min(bounds.y+bounds.h, target.h-1); ++y)
@@ -141,45 +129,24 @@ void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & vi
  */
 void RectOutlineRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
 {
+	//Debug("Render %u outlined rectangles on CPU", m_indexes.size());
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
-		CPURenderBounds bounds(objects.bounds[m_indexes[i]], view, target);
-		for (int64_t x = max(0L, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
-		{
-			int64_t top = (x+target.w*bounds.y)*4;
-			int64_t bottom = (x+target.w*(bounds.y+bounds.h))*4;
+		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
+		
+		// Using bresenham's lines now mainly because I want to see if they work
+		// top
+		ObjectRenderer::RenderLineOnCPU(bounds.x, bounds.y, bounds.x+bounds.w, bounds.y, target);
+		// bottom
+		ObjectRenderer::RenderLineOnCPU(bounds.x, bounds.y+bounds.h, bounds.x+bounds.w, bounds.y+bounds.h, target);
+		// left
+		ObjectRenderer::RenderLineOnCPU(bounds.x, bounds.y, bounds.x, bounds.y+bounds.h, target);
+		// right
+		ObjectRenderer::RenderLineOnCPU(bounds.x+bounds.w, bounds.y, bounds.x+bounds.w, bounds.y+bounds.h, target);
 
-			if (top >= 0L && top <4*target.w*target.h)
-			{
-				for (int j = 0; j < 3; ++j)
-					target.pixels[top+j] = 0;
-				target.pixels[top+3] = 255;
-			}
-			if (bottom >= 0L && bottom <4*target.w*target.h)
-			{
-				for (int j = 0; j < 3; ++j)
-					target.pixels[bottom+j] = 0;
-				target.pixels[bottom+3] = 255;
-			}
-		}
-
-		for (int64_t y = max(0L, bounds.y); y <= min(bounds.y+bounds.h, target.h-1); ++y)
-		{
-			int64_t left = (bounds.x >= 0L && bounds.x < target.w) ? (bounds.x + target.w*y)*4 : -1L;
-			int64_t right = (bounds.x+bounds.w >= 0L && bounds.x+bounds.w < target.w) ? (bounds.x+bounds.w + target.w*y)*4 : -1L;
-			if (left >= 0L && left <4*target.w*target.h)
-			{
-				for (int j = 0; j < 3; ++j)
-					target.pixels[left+j] = 0;
-				target.pixels[left+3] = 255;
-			}
-			if (right >= 0L && right <4*target.w*target.h)
-			{
-				for (int j = 0; j < 3; ++j)
-					target.pixels[right+j] = 0;
-				target.pixels[right+3] = 255;
-			}
-		}
+		// Diagonal for testing (from bottom left to top right)
+		//ObjectRenderer::RenderLineOnCPU(bounds.x,bounds.y+bounds.h, bounds.x+bounds.w, bounds.y,target, C_BLUE);
+		//ObjectRenderer::RenderLineOnCPU(bounds.x+bounds.w, bounds.y+bounds.h, bounds.x, bounds.y, target,C_GREEN);
 	}
 }
 
@@ -190,7 +157,7 @@ void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & 
 {
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
-		CPURenderBounds bounds(objects.bounds[m_indexes[i]], view, target);
+		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		int64_t centre_x = bounds.x + bounds.w / 2;
 		int64_t centre_y = bounds.y + bounds.h / 2;
 		
@@ -218,6 +185,71 @@ void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & 
 	}
 }
 
+Rect ObjectRenderer::CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target)
+{
+	Rect result = view.TransformToViewCoords(bounds);
+	result.x *= Real(target.w);
+	result.y *= Real(target.h);
+	result.w *= Real(target.w);
+	result.h *= Real(target.h);
+	return result;
+}
+	
+
+/**
+ * Bezier curve
+ * Not sure how to apply De'Casteljau, will just use a bunch of Bresnham lines for now.
+ */
+void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
+{
+	//Warn("Rendering Beziers on CPU. Things may explode.");
+	for (unsigned i = 0; i < m_indexes.size(); ++i)
+	{
+		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
+		PixelBounds pix_bounds(bounds);
+
+
+		Bezier control(objects.beziers[objects.data_indices[m_indexes[i]]], bounds);
+		//Debug("%s -> %s via %s", objects.beziers[objects.data_indices[m_indexes[i]]].Str().c_str(), control.Str().c_str(), bounds.Str().c_str());
+		// Draw a rectangle around the bezier for debugging the coord transforms
+		//ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target);
+		//ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target);
+		//ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target);
+		//ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target);
+	
+		// Draw lines between the control points for debugging
+		//ObjectRenderer::RenderLineOnCPU((int64_t)control.x0, (int64_t)control.y0, (int64_t)control.x1, (int64_t)control.y1,target);
+		//ObjectRenderer::RenderLineOnCPU((int64_t)control.x1, (int64_t)control.y1, (int64_t)control.x2, (int64_t)control.y2,target);
+										
+
+		
+		Real x[2]; Real y[2];
+		control.Evaluate(x[0], y[0], Real(0));
+		for (unsigned j = 1; j <= 100; ++j)
+		{
+			control.Evaluate(x[j % 2],y[j % 2], Real(0.01)*j);			
+			ObjectRenderer::RenderLineOnCPU((int64_t)x[0],(int64_t)y[0], (int64_t)x[1],(int64_t)y[1], target);
+		}
+		
+		/*
+		Real u(0);
+		while (u < Real(1))
+		{
+			u += Real(1e-6);
+			Real x; Real y; control.Evaluate(x,y,u);
+			int64_t index = ((int64_t)x + (int64_t)y*target.w)*4;
+			if (index >= 0 && index < 4*(target.w*target.h))
+			{
+				target.pixels[index+0] = 0;
+				target.pixels[index+1] = 0;
+				target.pixels[index+2] = 0;
+				target.pixels[index+3] = 255;
+			}	
+		}
+		*/
+		
+	}
+}
 
 /**
  * For debug, save pixels to bitmap
@@ -238,6 +270,83 @@ void ObjectRenderer::SaveBMP(const CPURenderTarget & target, const char * filena
 
 	// Cleanup
 	SDL_FreeSurface(surf);
+}
+
+/**
+ * Bresenham's lines
+ */
+void ObjectRenderer::RenderLineOnCPU(int64_t x0, int64_t y0, int64_t x1, int64_t y1, const CPURenderTarget & target, const Colour & colour, bool transpose)
+{
+	int64_t dx = x1 - x0;
+	int64_t dy = y1 - y0;
+	bool neg_m = (dy*dx < 0);
+	dy = abs(dy);
+	dx = abs(dx);
+
+	// If positive slope > 1, just swap x and y
+	if (dy > dx)
+	{
+		RenderLineOnCPU(y0,x0,y1,x1,target,colour,!transpose);
+		return;
+	}
+
+	int64_t two_dy = 2*dy;
+	int64_t p = two_dy - dx;
+	int64_t two_dxdy = 2*(dy-dx);
+	int64_t x; int64_t y; int64_t x_end;
+	int64_t width = (transpose ? target.h : target.w);
+	int64_t height = (transpose ? target.w : target.h);
+
+	uint8_t rgba[4];
+	rgba[0] = 255*colour.r;
+	rgba[1] = 255*colour.g;
+	rgba[2] = 255*colour.b;
+	rgba[3] = 255*colour.a;
+
+	if (x0 > x1)
+	{
+		x = x1;
+		y = y1;
+		x_end = x0;
+	}
+	else
+	{
+		x = x0;
+		y = y0;
+		x_end = x1;
+	}
+
+	if (x < 0)
+	{
+		if (x_end < 0) return;
+		y = (neg_m ? y - (dy*-x)/dx : y + (dy*-x)/dx);
+		x = 0;
+	}
+	
+	if (x_end > width)
+	{
+		if (x > width) return;
+		x_end = width-1;
+	}
+
+	// TODO: Avoid extra inner conditionals
+	do
+	{
+		if (x >= 0 && x < width && y >= 0 && y < height)
+		{
+			int64_t index = (transpose ? (y + x*target.w)*4 : (x + y*target.w)*4);
+			for (int i = 0; i < 4; ++i)
+				target.pixels[index+i] = rgba[i];
+		}
+		
+		if (p < 0)
+			p += two_dy;
+		else
+		{
+			if (neg_m) --y; else ++y;
+			p += two_dxdy;
+		}
+	} while (++x < x_end);
 }
 
 }

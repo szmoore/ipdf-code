@@ -83,7 +83,7 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 	clock_gettime(CLOCK_MONOTONIC_RAW, &real_clock_start);
 	real_clock_now = real_clock_start;
 	double frames = 0;
-	double data_rate = 1; // period between data output to stdout (if <= 0 there will be no output)
+	double data_rate = -1; // period between data output to stdout (if <= 0 there will be no output)
 	uint64_t data_points = 0;
 	setbuf(stdout, NULL);
 	while (scr.PumpEvents())

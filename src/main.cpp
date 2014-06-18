@@ -81,16 +81,21 @@ int main(int argc, char ** argv)
 	}
 	else 
 	{
+		doc.AddBezierData(Bezier(0,0,0,1,1,0));
+		doc.AddBezierData(Bezier(0,0,1,0,0,1));
+		doc.AddBezierData(Bezier(0,0,1,1,1,0));
+		doc.AddBezierData(Bezier(0,1,1,0,0,1));
+		
+		
 		
 		for(int x = 0; x < 8; ++x)
 		{
 			for (int y = 0; y < 8; ++y)
 			{
-				doc.Add(static_cast<IPDF::ObjectType>((x^y)%3), Rect(0.2+x-4.0,0.2+y-4.0,0.6,0.6));
+				//doc.Add(static_cast<IPDF::ObjectType>((x^y)%3), Rect(0.2+x-4.0,0.2+y-4.0,0.6,0.6));
+				doc.Add(BEZIER, Rect(0.2+x-4.0, 0.2+y-4.0, 0.6,0.6), (x^y)%3);
 			}
 		}
-		
-		//doc.Add(IPDF::RECT_OUTLINE, Rect(0.4,0.4,0.6,0.6));
 		
 	}
 	Rect bounds(b[0],b[1],b[2],b[3]);

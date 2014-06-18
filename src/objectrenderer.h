@@ -19,8 +19,8 @@ namespace IPDF
  	 * Includes GPU rendering and CPU rendering
 	 * For GPU rendering, pass GLSL shader source files to constructor in the constructor of a base class
 	 *	To leave unimplemented, just pass NULL filename strings
-	 * For CPU rendering, implement RenderUsingCPU in the base class
-	 *  To leave unimplemented, just call ObjectRenderer::RenderUsingCPU in the base class
+	 * For CPU rendering, implement RenderUsingCPU in the derived class
+	 *  To leave unimplemented, just call ObjectRenderer::RenderUsingCPU in the derived class
  	 * The View class uses ObjectRenderer's; see view.h
 	 */
 	class ObjectRenderer
@@ -34,7 +34,7 @@ namespace IPDF
 			 * Use the GPU to render the objects - GLSL shader approach
 			 * This way is definitely faster, but subject to the GPU's limitations on precision
  			 */
-			void RenderUsingGPU();
+			virtual void RenderUsingGPU();
 
 			/** 
 			 * Use the CPU to render the objects - "make a bitmap and convert it to a texture" approach
@@ -47,11 +47,14 @@ namespace IPDF
 				int64_t w;
 				int64_t h;
 			};
-			struct CPURenderBounds
+			struct PixelBounds
 			{
 				int64_t x; int64_t y; int64_t w; int64_t h;
-				CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target);
+				PixelBounds(const Rect & bounds) : x(bounds.x), y(bounds.y), w(bounds.w), h(bounds.h) {}
 			};
+
+			static Rect CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target);
+
 
 			static void SaveBMP(const CPURenderTarget & target, const char * filename);
 
@@ -66,7 +69,9 @@ namespace IPDF
 			void PrepareBuffers(unsigned max_size);
 			void FinaliseBuffers();
 			void AddObjectToBuffers(unsigned index);			
-
+		
+			/** Helper for CPU rendering that will render a line using Bresenham's algorithm. Do not use the transpose argument. **/
+			static void RenderLineOnCPU(int64_t x0, int64_t y0, int64_t x1, int64_t y1, const CPURenderTarget & target, const Colour & colour = Colour(0,0,0,1), bool transpose = false);
 
 			ShaderProgram m_shader_program; /** GLSL shaders for GPU **/
 			GraphicsBuffer m_ibo; /** Index Buffer Object for GPU rendering **/
@@ -96,6 +101,20 @@ namespace IPDF
 		public:
 			CircleFilledRenderer() : ObjectRenderer(CIRCLE_FILLED, "shaders/rect_vert.glsl", "shaders/circle_frag.glsl", "shaders/circle_filled_geom.glsl") {}
 			virtual ~CircleFilledRenderer() {}
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
+	};
+
+	/** Renderer for bezier curves **/
+	class BezierRenderer : public ObjectRenderer
+	{
+		public:
+			BezierRenderer() : ObjectRenderer(BEZIER, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
+			virtual ~BezierRenderer() {}
+			virtual void RenderUsingGPU() 
+			{
+				Error("Cannot render beziers on the GPU; they will appear as outlined rectangles.");	
+				ObjectRenderer::RenderUsingGPU();
+			}
 			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
 	};
 }

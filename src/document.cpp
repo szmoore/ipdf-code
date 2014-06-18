@@ -1,9 +1,11 @@
 #include "document.h"
-
+#include "bezier.h"
 #include <cstdio>
 
 using namespace IPDF;
 using namespace std;
+
+//TODO: Make this work for variable sized Reals
 
 // Loads an std::vector<T> of size num_elements from a file.
 template<typename T>
@@ -68,6 +70,14 @@ void Document::Save(const string & filename)
 	WriteChunkHeader(file, CT_OBJBOUNDS, m_objects.bounds.size() * sizeof(Rect));
 	SaveStructVector<Rect>(file, m_objects.bounds);
 
+	Debug("Object data indices...");
+	WriteChunkHeader(file, CT_OBJINDICES, m_objects.data_indices.size() * sizeof(unsigned));
+	SaveStructVector<unsigned>(file, m_objects.data_indices);
+	
+	Debug("Bezier data...");
+	WriteChunkHeader(file, CT_OBJBEZIERS, m_objects.beziers.size() * sizeof(uint8_t));
+	SaveStructVector<Bezier>(file, m_objects.beziers);
+
 	int err = fclose(file);
 	if (err != 0)
 		Fatal("Failed to close file \"%s\" - %s", filename.c_str(), strerror(err));
@@ -111,17 +121,33 @@ void Document::Load(const string & filename)
 			Debug("Object bounds...");
 			LoadStructVector<Rect>(file, chunk_size/sizeof(Rect), m_objects.bounds);
 			break;
+		case CT_OBJINDICES:
+			Debug("Object data indices...");
+			LoadStructVector<unsigned>(file, chunk_size/sizeof(unsigned), m_objects.data_indices);
+			break;
+		case CT_OBJBEZIERS:
+			Debug("Bezier data...");
+			LoadStructVector<Bezier>(file, chunk_size/sizeof(Bezier), m_objects.beziers);
+			break;
 		}
 	}
 	Debug("Successfully loaded %u objects from \"%s\"", ObjectCount(), filename.c_str());
 }
 
-void Document::Add(ObjectType type, const Rect & bounds)
+void Document::Add(ObjectType type, const Rect & bounds, unsigned data_index)
 {
 	m_objects.types.push_back(type);
 	m_objects.bounds.push_back(bounds);
-	m_count++;
+	m_objects.data_indices.push_back(data_index);
+	++m_count; // Why can't we just use the size of types or something?
 }
+
+unsigned Document::AddBezierData(const Bezier & bezier)
+{
+	m_objects.beziers.push_back(bezier);
+	return m_objects.beziers.size()-1;
+}
+
 
 void Document::DebugDumpObjects()
 {
@@ -134,5 +160,8 @@ void Document::DebugDumpObjects()
 
 bool Document::operator==(const Document & equ) const
 {
-	return (ObjectCount() == equ.ObjectCount() && memcmp(m_objects.bounds.data(), equ.m_objects.bounds.data(), ObjectCount() * sizeof(Rect)) == 0);
+	return (ObjectCount() == equ.ObjectCount() 
+		&& memcmp(m_objects.bounds.data(), equ.m_objects.bounds.data(), ObjectCount() * sizeof(Rect)) == 0
+		&& memcmp(m_objects.data_indices.data(), equ.m_objects.data_indices.data(), ObjectCount() * sizeof(unsigned)) == 0
+		&& memcmp(m_objects.beziers.data(), equ.m_objects.beziers.data(), m_objects.beziers.size() * sizeof(Bezier)) == 0);
 }

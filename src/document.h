@@ -13,7 +13,6 @@ namespace IPDF
 
 			void Load(const std::string & filename = "");
 			void Save(const std::string & filename);
-			void Add(ObjectType type, const Rect & bounds);
 			void DebugDumpObjects();
 
 			unsigned ObjectCount() const {return m_count;}
@@ -22,10 +21,15 @@ namespace IPDF
 			bool operator==(const Document & equ) const;
 			bool operator!=(const Document & equ) const {return !(this->operator==(equ));}
 
+			void Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
+			unsigned AddBezierData(const Bezier & bezier);
+
 		private:
 			friend class View;
 			Objects m_objects;
 			unsigned m_count;
+			
+
 	};
 }
 

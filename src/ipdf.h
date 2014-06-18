@@ -3,10 +3,13 @@
 
 #include "common.h"
 #include "real.h"
+#include "bezier.h"
+#include "rect.h"
 
 #define C_RED Colour(1,0,0,1)
 #define C_GREEN Colour(0,1,0,1)
 #define C_BLUE Colour(0,0,1,1)
+#define C_BLACK Colour(0,0,0,1);
 
 namespace IPDF
 {
@@ -25,6 +28,7 @@ namespace IPDF
 		CIRCLE_FILLED = 0, 
 		RECT_FILLED,
 		RECT_OUTLINE,
+		BEZIER,
 		NUMBER_OF_OBJECT_TYPES
 	} ObjectType;
 
@@ -33,22 +37,15 @@ namespace IPDF
 		CT_NUMOBJS,
 		CT_OBJTYPES,
 		CT_OBJBOUNDS,
+		CT_OBJINDICES,
+		CT_OBJBEZIERS
+		//CT_OBJGROUPS
 	};
 
-	struct Rect
-	{
-		Real x; Real y; Real w; Real h;
-		Rect() = default; // Needed so we can fread/fwrite this struct
-		Rect(Real _x, Real _y, Real _w, Real _h) : x(_x), y(_y), w(_w), h(_h) {}
-		std::string Str() const
-		{
-			std::stringstream s;
-			// float conversion needed because it is fucking impossible to get ostreams working with template classes
-			s << "{" << Float(x) << ", " << Float(y) << ", " << Float(w) << ", " << Float(h) << "}";
-			return s.str();
-		}
-	};
 
+
+	
+	
 	struct Colour
 	{
 		float r; float g; float b; float a;
@@ -56,10 +53,23 @@ namespace IPDF
 		Colour(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
 	};
 
+	struct ObjectData
+	{
+		Colour colour;
+		
+	};
+
 	struct Objects
 	{
-		std::vector<ObjectType> types;		
-		std::vector<Rect> bounds;
+		/** Used by all objects **/
+		std::vector<ObjectType> types; // types of objects
+		std::vector<Rect> bounds; // rectangle bounds of objects
+		
+		/** Used by BEZIER to identify data position in relevant vector **/
+		std::vector<unsigned> data_indices;
+
+		/** Used by BEZIER only **/
+		std::vector<Bezier> beziers; // bezier curves - look up by data_indices
 	};
 
 	class View;

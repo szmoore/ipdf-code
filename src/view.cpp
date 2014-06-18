@@ -21,10 +21,11 @@ View::View(Document & document, Screen & screen, const Rect & bounds, const Colo
 	Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
 
 	// Create ObjectRenderers - new's match delete's in View::~View
-	// Ok, look, this may seem disgusting, but go look at View::PrepareRender before you murder me
+	//TODO: Don't forget to put new renderers here or things will be segfaultastic
 	m_object_renderers[RECT_FILLED] = new RectFilledRenderer();
 	m_object_renderers[RECT_OUTLINE] = new RectOutlineRenderer();
 	m_object_renderers[CIRCLE_FILLED] = new CircleFilledRenderer();
+	m_object_renderers[BEZIER] = new BezierRenderer();
 
 	// To add rendering for a new type of object;
 	// 1. Add enum to ObjectType in ipdf.h
@@ -41,7 +42,7 @@ View::~View()
 {
 	for (unsigned i = 0; i < m_object_renderers.size(); ++i)
 	{
-		delete m_object_renderers[i];
+		delete m_object_renderers[i]; // delete's match new's in constructor
 	}
 	m_object_renderers.clear();
 	delete [] m_cpu_rendering_pixels;
@@ -256,6 +257,7 @@ void View::UpdateObjBoundsVBO()
  */
 void View::PrepareRender()
 {
+	Debug("Recreate buffers with %u objects", m_document.ObjectCount());
 	// Prepare bounds vbo
 	m_bounds_ubo.Invalidate();
 	m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
@@ -278,6 +280,8 @@ void View::PrepareRender()
 		ObjectType type = m_document.m_objects.types[id];
 		m_object_renderers.at(type)->AddObjectToBuffers(id); // Use at() in case the document is corrupt TODO: Better error handling?
 		// (Also, Wow I just actually used std::vector::at())
+		// (Also, I just managed to make it throw an exception because I'm a moron)
+		Debug("Object of type %d", type);
 	}
 
 	// Finish the buffers
