@@ -20,6 +20,7 @@ namespace IPDF
 			BufferTypePixelPack,		// Pixel Pack buffer
 			BufferTypePixelUnpack,
 			BufferTypeUniform,		// Uniform/Constant buffer
+			BufferTypeTexture,		// I was hoping to avoid this one.
 			BufferTypeDrawIndirect,
 		};
 		
@@ -54,6 +55,12 @@ namespace IPDF
 		const size_t GetSize() const { return m_buffer_size; }
 
 		void Invalidate();
+
+		// WARNING: The buffer handle can change for (almost) no reason.
+		// If you do _anything_ to the buffer, you'll need to call this
+		// again to see if we've recreated it in a vain attempt to outsmart
+		// the driver.
+		GLuint GetHandle() const { return m_buffer_handle; }
 		
 		void Bind() const;
 	private:

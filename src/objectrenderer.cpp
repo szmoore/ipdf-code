@@ -251,6 +251,49 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 	}
 }
 
+void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
+{
+	m_bezier_coeffs.SetType(GraphicsBuffer::BufferTypeTexture);
+	m_bezier_coeffs.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
+	m_bezier_coeffs.Resize(objects.beziers.size()*sizeof(GPUBezierCoeffs));
+	BufferBuilder<GPUBezierCoeffs> builder(m_bezier_coeffs.Map(false, true, true), m_bezier_coeffs.GetSize());
+
+	for (auto bez : objects.beziers)
+	{
+		GPUBezierCoeffs coeffs = {
+			(float)bez.x0, (float)bez.y0,
+			(float)bez.x1 - (float)bez.x0, (float)bez.y1 - (float)bez.y0,
+			(float)bez.x2 - (float)bez.x0, (float)bez.y2 - (float)bez.y0
+			};
+		builder.Add(coeffs);
+	}
+	m_bezier_coeffs.UnMap();
+	glGenTextures(1, &m_bezier_buffer_texture);
+	glBindTexture(GL_TEXTURE_BUFFER, m_bezier_buffer_texture);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, m_bezier_coeffs.GetHandle());
+
+	m_bezier_ids.SetType(GraphicsBuffer::BufferTypeTexture);
+	m_bezier_ids.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
+	m_bezier_ids.Upload(objects.data_indices.size() * sizeof(uint32_t), &objects.data_indices[0]);
+	
+	glGenTextures(1, &m_bezier_id_buffer_texture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_BUFFER, m_bezier_id_buffer_texture);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_R32I, m_bezier_ids.GetHandle());
+	glActiveTexture(GL_TEXTURE0);
+}
+
+void BezierRenderer::RenderUsingGPU()
+{
+	if (!m_shader_program.Valid())
+		Warn("Shader is invalid (objects are of type %d)", m_type);
+	m_shader_program.Use();
+	glUniform1i(m_shader_program.GetUniformLocation("bezier_buffer_texture"), 0);
+	glUniform1i(m_shader_program.GetUniformLocation("bezier_id_buffer_texture"), 1);
+	m_ibo.Bind();
+	glDrawElements(GL_LINES, m_indexes.size()*2, GL_UNSIGNED_INT, 0);
+}
+
 /**
  * For debug, save pixels to bitmap
  */

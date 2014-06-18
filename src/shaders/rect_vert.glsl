@@ -12,6 +12,8 @@ layout(std140, binding=0) uniform ViewBounds
 
 layout(location = 0) in vec2 position;
 
+out int objectid;
+
 void main()
 {
 	vec2 transformed_position;
@@ -22,4 +24,6 @@ void main()
 	gl_Position.y = 1 - (transformed_position.y*2);
 	gl_Position.z = 0.0;
 	gl_Position.w = 1.0;
+
+	objectid = gl_VertexID / 2;
 }

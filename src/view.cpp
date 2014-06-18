@@ -288,6 +288,7 @@ void View::PrepareRender()
 	for (unsigned i = 0; i < m_object_renderers.size(); ++i)
 	{
 		m_object_renderers[i]->FinaliseBuffers();
-	}	
+	}
+	dynamic_cast<BezierRenderer*>(m_object_renderers[BEZIER])->PrepareBezierGPUBuffer(m_document.m_objects);
 	m_render_dirty = false;
 }

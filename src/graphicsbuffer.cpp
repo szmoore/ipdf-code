@@ -56,6 +56,8 @@ static GLenum BufferTypeToGLType(GraphicsBuffer::BufferType buffer_type)
 		return GL_PIXEL_UNPACK_BUFFER;
 	case GraphicsBuffer::BufferTypeUniform:
 		return GL_UNIFORM_BUFFER;
+	case GraphicsBuffer::BufferTypeTexture:
+		return GL_TEXTURE_BUFFER;
 	case GraphicsBuffer::BufferTypeDrawIndirect:
 		return GL_DRAW_INDIRECT_BUFFER;
 	default:

@@ -108,14 +108,24 @@ namespace IPDF
 	class BezierRenderer : public ObjectRenderer
 	{
 		public:
-			BezierRenderer() : ObjectRenderer(BEZIER, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
+			BezierRenderer() : ObjectRenderer(BEZIER, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/bezier_texbuf_geom.glsl") {}
 			virtual ~BezierRenderer() {}
-			virtual void RenderUsingGPU() 
-			{
-				Error("Cannot render beziers on the GPU; they will appear as outlined rectangles.");	
-				ObjectRenderer::RenderUsingGPU();
-			}
+			virtual void RenderUsingGPU(); 
 			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
+			void PrepareBezierGPUBuffer(const Objects & objects);
+		private:
+			GraphicsBuffer m_bezier_coeffs;
+			GraphicsBuffer m_bezier_ids;
+			struct GPUBezierCoeffs
+			{
+				float x0, y0;
+				float x1, y1;
+				float x2, y2;
+			};
+
+			GLuint m_bezier_buffer_texture;
+			GLuint m_bezier_id_buffer_texture;
+
 	};
 }
 
