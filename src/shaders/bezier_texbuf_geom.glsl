@@ -4,7 +4,7 @@ uniform samplerBuffer bezier_buffer_texture;
 uniform isamplerBuffer bezier_id_buffer_texture; 
 
 layout(lines) in;
-layout(line_strip, max_vertices = 100) out;
+layout(line_strip, max_vertices = 101) out;
 
 in int objectid[];
 
