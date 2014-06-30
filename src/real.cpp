@@ -7,7 +7,8 @@ namespace IPDF
 		"single",
 		"double",
 		"long double",
-		"single [fast2sum]"
+		"single [fast2sum]", //TODO REMOVE DOESN'T DO ANYTHING USEFUL
+		"Rational<int64_t>"
 	};
 
 }

@@ -57,7 +57,11 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 		}
 		if (buttons)
 		{
-			view.Translate(Real(oldx-x)/Real(scr.ViewportWidth()), Real(oldy-y)/Real(scr.ViewportHeight()));
+			#if REAL == REAL_RATIONAL
+				view.Translate(Real(oldx, scr.ViewportWidth()) -Real(x,scr.ViewportWidth()), Real(oldy, scr.ViewportHeight()) - Real(y,scr.ViewportHeight()));
+			#else			
+				view.Translate(Real(oldx-x)/Real(scr.ViewportWidth()), Real(oldy-y)/Real(scr.ViewportHeight()));
+			#endif
 		}
 		else
 		{
@@ -69,7 +73,12 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 		
 		if (wheel)
 		{
-			view.ScaleAroundPoint(Real(x)/Real(scr.ViewportWidth()),Real(y)/Real(scr.ViewportHeight()), expf(-wheel/20.f));
+			#if REAL == REAL_RATIONAL
+				view.ScaleAroundPoint(Real(x,scr.ViewportWidth()), Real(y,scr.ViewportHeight()), Real(100-5*wheel, 100));
+			#else
+				view.ScaleAroundPoint(Real(x)/Real(scr.ViewportWidth()),Real(y)/Real(scr.ViewportHeight()), Real(expf(-wheel/20.f)));
+			#endif
+		
 		}
 	}
 	);
@@ -83,7 +92,7 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 	clock_gettime(CLOCK_MONOTONIC_RAW, &real_clock_start);
 	real_clock_now = real_clock_start;
 	double frames = 0;
-	double data_rate = -1; // period between data output to stdout (if <= 0 there will be no output)
+	double data_rate = 1; // period between data output to stdout (if <= 0 there will be no output)
 	uint64_t data_points = 0;
 	setbuf(stdout, NULL);
 	while (scr.PumpEvents())
@@ -114,6 +123,7 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 		scr.DebugFontPrintF("[GPU] Render took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", gpu_frame*1e3, 1.0/gpu_frame, total_gpu_time, frames/total_gpu_time);
 		scr.DebugFontPrintF("[REALTIME] Render+Present+Cruft took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", real_frame*1e3, 1.0/real_frame, total_real_time,frames/total_real_time);
 		scr.DebugFontPrintF("View bounds: %s\n", view.GetBounds().Str().c_str());
+		scr.DebugFontPrintF("type of Real == %s\n", g_real_name[REAL]);
 
 		if (view.UsingGPUTransform())
 		{

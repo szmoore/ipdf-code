@@ -228,7 +228,7 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 		for (unsigned j = 1; j <= 100; ++j)
 		{
 			control.Evaluate(x[j % 2],y[j % 2], Real(0.01)*j);			
-			ObjectRenderer::RenderLineOnCPU((int64_t)x[0],(int64_t)y[0], (int64_t)x[1],(int64_t)y[1], target);
+			ObjectRenderer::RenderLineOnCPU((int64_t)Double(x[0]),(int64_t)Double(y[0]), (int64_t)Double(x[1]),(int64_t)Double(y[1]), target);
 		}
 		
 		/*
@@ -261,9 +261,9 @@ void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
 	for (auto bez : objects.beziers)
 	{
 		GPUBezierCoeffs coeffs = {
-			(float)bez.x0, (float)bez.y0,
-			(float)bez.x1 - (float)bez.x0, (float)bez.y1 - (float)bez.y0,
-			(float)bez.x2 - (float)bez.x0, (float)bez.y2 - (float)bez.y0
+			Float(bez.x0), Float(bez.y0),
+			Float(bez.x1 - bez.x0), Float(bez.y1 - bez.y0),
+			Float(bez.x2 - bez.x0), Float(bez.y2 - bez.y0)
 			};
 		builder.Add(coeffs);
 	}

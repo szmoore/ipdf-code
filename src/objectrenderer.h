@@ -50,7 +50,7 @@ namespace IPDF
 			struct PixelBounds
 			{
 				int64_t x; int64_t y; int64_t w; int64_t h;
-				PixelBounds(const Rect & bounds) : x(bounds.x), y(bounds.y), w(bounds.w), h(bounds.h) {}
+				PixelBounds(const Rect & bounds) : x(Double(bounds.x)), y(Double(bounds.y)), w(Double(bounds.w)), h(Double(bounds.h)) {}
 			};
 
 			static Rect CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target);

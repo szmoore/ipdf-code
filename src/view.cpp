@@ -88,7 +88,7 @@ void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 	m_bounds.y = y - top;
 	m_bounds.w *= scale_amount;
 	m_bounds.h *= scale_amount;
-	Debug("View Bounds => %s", m_bounds.Str().c_str());
+	//Debug("Scale at {%s, %s} by %s View Bounds => %s", x.Str().c_str(), y.Str().c_str(), scale_amount.Str().c_str(), m_bounds.Str().c_str());
 	if (!m_use_gpu_transform)
 		m_buffer_dirty = true;
 	m_bounds_dirty = true;

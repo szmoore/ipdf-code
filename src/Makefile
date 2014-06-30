@@ -69,7 +69,7 @@ $(BIN) : $(LINKOBJ) ../obj/$(MAIN)
 
 -include $(DEPS)
 
-../obj/%.o : %.cpp
+../obj/%.o : %.cpp main.h
 	@mkdir -p $(dir $@)
 	$(CXX) $(CFLAGS) $(DEF) -c -MMD -o $@ $<
 
