@@ -8,11 +8,16 @@ layout(std140, binding=0) uniform ViewBounds
 	float bounds_y;
 	float bounds_w;
 	float bounds_h;
+	float pixel_x;
+	float pixel_y;
+	float pixel_w;
+	float pixel_h;
 };
 
 layout(location = 0) in vec2 position;
 
 out int objectid;
+out vec2 pixsize;
 
 void main()
 {
@@ -24,6 +29,6 @@ void main()
 	gl_Position.y = 1 - (transformed_position.y*2);
 	gl_Position.z = 0.0;
 	gl_Position.w = 1.0;
-
+	pixsize = vec2(pixel_w/bounds_w, 100*pixel_h/bounds_h);
 	objectid = gl_VertexID / 2;
 }

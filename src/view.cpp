@@ -147,13 +147,15 @@ void View::Render(int width, int height)
 
 	if (m_use_gpu_transform)
 	{
-		GLfloat glbounds[] = {static_cast<GLfloat>(Float(m_bounds.x)), static_cast<GLfloat>(Float(m_bounds.y)), static_cast<GLfloat>(Float(m_bounds.w)), static_cast<GLfloat>(Float(m_bounds.h))};
-		m_bounds_ubo.Upload(sizeof(float)*4, glbounds);
+		GLfloat glbounds[] = {static_cast<GLfloat>(Float(m_bounds.x)), static_cast<GLfloat>(Float(m_bounds.y)), static_cast<GLfloat>(Float(m_bounds.w)), static_cast<GLfloat>(Float(m_bounds.h)),
+					0.0, 0.0, 640.0, 480.0};
+		m_bounds_ubo.Upload(sizeof(float)*8, glbounds);
 	}
 	else
 	{
-		GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f};
-		m_bounds_ubo.Upload(sizeof(float)*4, glbounds);
+		GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f,
+					0.0f, 0.0f, 640.0f, 480.0f};
+		m_bounds_ubo.Upload(sizeof(float)*8, glbounds);
 	}
 	m_bounds_dirty = false;
 
