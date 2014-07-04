@@ -16,23 +16,9 @@ add_digits:
 		jz end_loop # We are done
 		
 		# Move to next element in the first array
-		inc %rdi
-		inc %rdi
-		inc %rdi
-		inc %rdi
-		inc %rdi
-		inc %rdi
-		inc %rdi
-		inc %rdi
+		leaq 8(,%rdi,1), %rdi
 		# Move to next element in the second array
-		inc %rsi
-		inc %rsi
-		inc %rsi
-		inc %rsi
-		inc %rsi
-		inc %rsi
-		inc %rsi
-		inc %rsi
+		leaq 8(,%rsi,1), %rsi
 		jmp loop # Repeat
 	end_loop:
 		movq $0, %rax
