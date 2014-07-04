@@ -51,7 +51,7 @@ template <class T = int64_t>
 struct Rational
 {
 	/** Construct from a double.**/
-	Rational(double d = 0) : P(d*1e6), Q(1e6) // Possibly the worst thing ever...
+	Rational(double d=0) : P(d*1e6), Q(1e6) // Possibly the worst thing ever...
 	{
 		Simplify();
 		CheckAccuracy(d, "Construct from double");
@@ -74,7 +74,11 @@ struct Rational
 			P = (P < 0) ? -P : P;
 			Q = -Q;
 		}
-
+		if (P == 0)
+		{
+			Q = 1;
+			return;
+		}
 		T g = gcd(llabs(P),llabs(Q));
 		P /= g;
 		Q /= g;
@@ -93,9 +97,6 @@ struct Rational
 	bool operator>=(const Rational & r) const {return *this == r || *this > r;}
 	bool operator!=(const Rational & r) const {return !(*this == r);}
 
-
-
-	/*
 	Rational operator+(const Rational & r) const 
 	{
 		Rational result = (r.P == 0) ? Rational(P,Q) : Rational(P*r.Q + r.P*Q, Q*r.Q);
@@ -108,7 +109,6 @@ struct Rational
 		result.CheckAccuracy(ToDouble() - r.ToDouble(),"-");
 		return result;
 	}
-	*/
 	Rational operator*(const Rational & r) const 
 	{
 		Rational result(P * r.P, Q * r.Q);
@@ -128,8 +128,9 @@ struct Rational
 		return result;
 	}	
 
-	Rational operator+(const Rational & r) const {return Rational(ToDouble()+r.ToDouble());}
-	Rational operator-(const Rational & r) const {return Rational(ToDouble()-r.ToDouble());}
+	/** To cheat, use these **/
+	//Rational operator+(const Rational & r) const {return Rational(ToDouble()+r.ToDouble());}
+	//Rational operator-(const Rational & r) const {return Rational(ToDouble()-r.ToDouble());}
 	//Rational operator*(const Rational & r) const {return Rational(ToDouble()*r.ToDouble());}
 	//Rational operator/(const Rational & r) const {return Rational(ToDouble()/r.ToDouble());}
 

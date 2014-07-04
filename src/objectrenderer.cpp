@@ -13,7 +13,9 @@ namespace IPDF
 
 /**
  * ObjectRenderer constructor
- * Note we cannot compile the shaders in the constructor because the Screen class needs to initialise GL and it has a ShaderProgram member
+ * Note we cannot compile the shaders in the ShaderProgram constructor
+ *  because the Screen class needs to initialise GL first and it has a
+ * 	ShaderProgram member
  */
 ObjectRenderer::ObjectRenderer(const ObjectType & type, 
 		const char * vert_glsl_file, const char * frag_glsl_file, const char * geom_glsl_file)
@@ -225,9 +227,12 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 		
 		Real x[2]; Real y[2];
 		control.Evaluate(x[0], y[0], Real(0));
-		for (unsigned j = 1; j <= 100; ++j)
+		int64_t blen = max(2L, min(100L, pix_bounds.w));
+		Real invblen(1); invblen /= blen;
+		Debug("Using %li lines, inverse %f", blen, Double(invblen));
+		for (int64_t j = 1; j <= blen; ++j)
 		{
-			control.Evaluate(x[j % 2],y[j % 2], Real(0.01)*j);			
+			control.Evaluate(x[j % 2],y[j % 2], invblen*j);
 			ObjectRenderer::RenderLineOnCPU((int64_t)Double(x[0]),(int64_t)Double(y[0]), (int64_t)Double(x[1]),(int64_t)Double(y[1]), target);
 		}
 		
