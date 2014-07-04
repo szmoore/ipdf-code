@@ -12,8 +12,7 @@
 namespace IPDF
 {
 
-/** Greatest Common Divisor - Euclid's algorithm **/
-
+/* Recursive version  of GCD
 template <class T>
 T gcd(const T & a, const T & b)
 {
@@ -24,12 +23,12 @@ T gcd(const T & a, const T & b)
 	if (a > b) return gcd(a-b,b);
 	return gcd(a, b-a);
 }
+*/
 
-/*
+/** Greatest Common Divisor of p and q **/
 template <class T>
 T gcd(const T & p, const T & q)
 {
-	Debug("p/q = %
 	T g(1);
 	T big(p);
 	T small(q);
@@ -47,15 +46,15 @@ T gcd(const T & p, const T & q)
 	}
 	return small;
 }	 
-*/
+
 template <class T = int64_t>
 struct Rational
 {
 	/** Construct from a double.**/
-	Rational(double d = 0) : P(d*1e3), Q(1e3) // Possibly the worst thing ever...
+	Rational(double d = 0) : P(d*1e6), Q(1e6) // Possibly the worst thing ever...
 	{
 		Simplify();
-		//CheckAccuracy(d, "Construct from double");
+		CheckAccuracy(d, "Construct from double");
 	}
 
 	Rational(const T & _P, const T & _Q) : P(_P), Q(_Q)
@@ -121,8 +120,8 @@ struct Rational
 	}
 	Rational operator/(const Rational & r) const 
 	{
-		Rational result = (r.P == 0) ? Rational(P,Q) : Rational(P*r.Q + r.P*Q, Q*r.Q);
-		if (!result.CheckAccuracy(ToDouble() / r.ToDouble(),"*"))
+		Rational result(P * r.Q, Q*r.P);
+		if (!result.CheckAccuracy(ToDouble() / r.ToDouble(),"/"))
 		{
 			Debug("This is %s (%f) and r is %s (%f)", Str().c_str(), ToDouble(), r.Str().c_str(), r.ToDouble());
 		}
@@ -141,7 +140,7 @@ struct Rational
 	Rational & operator/=(const Rational & r) {this->operator=(*this/r); return *this;}
 
 	double ToDouble() const {return (double)(P) / (double)(Q);}
-	bool CheckAccuracy(double d, const char * msg, double threshold = 1e-6) const
+	bool CheckAccuracy(double d, const char * msg, double threshold = 1e-3) const
 	{
 		double result = fabs(ToDouble() - d) / d;
 		if (result > threshold)

@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <unistd.h>
 #include <stdarg.h>
+#include <execinfo.h>
 
 #ifdef LOG_SYSLOG
 
@@ -138,4 +139,14 @@ void FatalEx(const char * funct, const char * file, int line, ...)
 	exit(EXIT_FAILURE);
 }
 
+
+/**
+ * Print a backtrace
+ */
+void Backtrace(int size)
+{
+	void * buffer[100];
+	int actual_size = backtrace(buffer, size);
+	backtrace_symbols_fd(buffer, actual_size, fileno(stderr));
+}
 

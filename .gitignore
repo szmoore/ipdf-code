@@ -7,3 +7,8 @@
 *.err
 *.vcd
 *.bmp
+*.data
+*.geany
+*.dat
+bin/ipdf
+data/*
