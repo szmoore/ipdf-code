@@ -71,7 +71,7 @@ struct Rational
 	{
 		if (Q < 0) 
 		{
-			P = (P < 0) ? -P : P;
+			P = -P;
 			Q = -Q;
 		}
 		if (P == 0)
