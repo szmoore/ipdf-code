@@ -1,3 +1,12 @@
+/**
+ * @file arbint.cpp
+ * @brief Arbitrary sized integer definitions
+ * @see arbint.h
+ * @see add_digits_asm.s
+ * @see sub_digits_asm.s
+ * @see mul_digits_asm.s
+ */
+
 #include "arbint.h"
 #include <algorithm>
 #include <cstring>
@@ -15,7 +24,7 @@ namespace IPDF
 
 Arbint::Arbint(digit_t i) : m_digits(1), m_sign(i < 0)
 {
-	m_digits[0] = i;
+	m_digits[0] = llabs(i);
 }
 
 Arbint::Arbint(unsigned n, digit_t d0, ...) : m_digits(n), m_sign(false)
@@ -31,10 +40,14 @@ Arbint::Arbint(unsigned n, digit_t d0, ...) : m_digits(n), m_sign(false)
 	va_end(ap);
 }
 
-Arbint::Arbint(const Arbint & cpy) : m_digits(cpy.m_digits.size()), m_sign(cpy.m_sign)
+Arbint::Arbint(const Arbint & cpy) : m_digits(cpy.m_digits), m_sign(cpy.m_sign)
 {
-	memcpy(m_digits.data(), cpy.m_digits.data(), 
-		sizeof(digit_t)*m_digits.size());
+	
+}
+
+Arbint::Arbint(const vector<digit_t> & digits) : m_digits(digits), m_sign(false)
+{
+	
 }
 
 Arbint & Arbint::operator=(const Arbint & cpy)
@@ -64,6 +77,47 @@ unsigned Arbint::Shrink()
 	unsigned result = m_digits.size() - i;
 	m_digits.resize(i);
 	return result;
+}
+
+Arbint & Arbint::operator*=(const Arbint & mul)
+{
+	vector<digit_t> new_digits(m_digits.size(), 0L);
+	new_digits.reserve(new_digits.size()+mul.m_digits.size());
+	for (unsigned i = 0; i < mul.m_digits.size(); ++i)
+	{
+		vector<digit_t> step(m_digits.size()+i, 0L);
+		memcpy(step.data()+i, m_digits.data(), sizeof(digit_t)*m_digits.size());
+		
+		digit_t overflow = mul_digits((digit_t*)step.data()+i, mul.m_digits[i], m_digits.size());
+		if (overflow != 0L)
+		{
+			step.push_back(overflow);
+		}
+		new_digits.resize(max(new_digits.size(), step.size()), 0L);
+		digit_t carry = add_digits((digit_t*)new_digits.data(), step.data(), step.size());
+		if (carry != 0L)
+		{
+			new_digits.push_back(carry);
+		}
+	}
+	
+	m_digits.swap(new_digits);
+	m_sign = !(m_sign == mul.m_sign);
+	return *this;
+}
+
+void Arbint::Division(const Arbint & div, Arbint & result, Arbint & remainder) const
+{
+	//TODO: Optimise?
+	remainder = *this;
+	result = 0L;
+	while ((remainder -= div) > 0L)
+	{
+		//Debug("Remainder %c%s", remainder.SignChar(), remainder.DigitStr().c_str());
+		//Debug("Result %c%s + 1", result.SignChar(), result.DigitStr().c_str());
+		result += 1;
+	}
+	remainder += div;
 }
 
 Arbint & Arbint::operator+=(const Arbint & add)
@@ -130,7 +184,6 @@ Arbint & Arbint::SubBasic(const Arbint & sub)
 			m_digits[i] = -m_digits[i];
 	}
 	return *this;
-	return *this;
 }
 
 
@@ -153,6 +206,15 @@ string Arbint::Str(const string & base) const
 	return s;
 }
 
+bool Arbint::IsZero() const
+{
+	for (unsigned i = m_digits.size()-1; i > 0; --i)
+	{
+		if (m_digits[i] != 0L) return false;
+	}
+	return (m_digits[0] == 0L);
+}
+
 bool Arbint::operator==(const Arbint & equ) const
 {
 	if (m_sign != equ.m_sign) return false;
@@ -164,7 +226,7 @@ bool Arbint::operator==(const Arbint & equ) const
 		larger = this;
 	}
 	
-	if (memcmp(m_digits.data(), equ.m_digits.data(), min_size) != 0)
+	if (memcmp(m_digits.data(), equ.m_digits.data(), sizeof(digit_t)*min_size) != 0)
 		return false;
 	
 	for (unsigned i = min_size; i < larger->m_digits.size(); ++i)
@@ -175,10 +237,17 @@ bool Arbint::operator==(const Arbint & equ) const
 	return true;
 }
 
+bool Arbint::operator<(const Arbint & less) const
+{
+	Arbint cpy(*this);
+	cpy -= less;
+	return (cpy.m_sign && !cpy.IsZero());
+}
+
 string Arbint::DigitStr() const
 {
 	stringstream ss("");
-	//ss << std::hex << std::setfill('0');
+	ss << std::hex << std::setfill('0');
 	for (unsigned i = 0; i < m_digits.size(); ++i)
 	{
 		if (i != 0) ss << ',';
