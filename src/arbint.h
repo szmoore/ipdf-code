@@ -25,7 +25,8 @@ namespace IPDF
 			
 			digit_t AsDigit() const 
 			{
-				return (m_sign) ? -m_digits[0] : m_digits[0];
+				digit_t digit = (m_digits.size() == 1) ? m_digits[0] : 0xFFFFFFFFFFFFFFFF;
+				return (m_sign) ? -digit : digit;
 			}
 			
 			inline bool Sign() const {return m_sign;}
@@ -108,6 +109,10 @@ namespace IPDF
 			}
 			
 			bool IsZero() const;
+			
+			//inline operator double() const {return double(AsDigit());}
+			inline operator digit_t() const {return AsDigit();}
+			//inline operator int() const {return int(AsDigit());}
 			
 			unsigned Shrink();
 		private:		

@@ -37,9 +37,9 @@ T gcd(const T & p, const T & q)
 		big = q;
 		small = p;
 	}
-	if (small == 0)
+	if (small == T(0))
 		return g;
-	while ((g = big % small) > 0)
+	while ((g = big % small) > T(0))
 	{
 		big = small;
 		small = g;
@@ -69,17 +69,17 @@ struct Rational
 
 	void Simplify()
 	{
-		if (Q < 0) 
+		if (Q < T(0)) 
 		{
 			P = -P;
 			Q = -Q;
 		}
-		if (P == 0)
+		if (P == T(0))
 		{
-			Q = 1;
+			Q = T(1);
 			return;
 		}
-		T g = gcd(llabs(P),llabs(Q));
+		T g = gcd(T(llabs(P)),T(llabs(Q)));
 		P /= g;
 		Q /= g;
 	}
@@ -99,13 +99,13 @@ struct Rational
 
 	Rational operator+(const Rational & r) const 
 	{
-		Rational result = (r.P == 0) ? Rational(P,Q) : Rational(P*r.Q + r.P*Q, Q*r.Q);
+		Rational result = (r.P == T(0)) ? Rational(P,Q) : Rational(P*r.Q + r.P*Q, Q*r.Q);
 		result.CheckAccuracy(ToDouble() + r.ToDouble(),"+");
 		return result;
 	}
 	Rational operator-(const Rational & r) const 
 	{
-		Rational result = (r.P == 0) ? Rational(P,Q) : Rational(P*r.Q - r.P*Q, Q*r.Q);
+		Rational result = (r.P == T(0)) ? Rational(P,Q) : Rational(P*r.Q - r.P*Q, Q*r.Q);
 		result.CheckAccuracy(ToDouble() - r.ToDouble(),"-");
 		return result;
 	}
@@ -169,6 +169,7 @@ inline Rational<int64_t> pow(const Rational<int64_t> & a, const Rational<int64_t
 	int64_t Q = std::pow((double)a.Q, b.ToDouble());
 	return Rational<int64_t>(P, Q);
 }
+
 
 
 }

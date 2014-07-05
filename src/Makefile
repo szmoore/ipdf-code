@@ -30,7 +30,7 @@ RM = rm -f
 BIN = ../bin/ipdf
 
 
-all : DEF = -DREAL=4
+all : DEF = -DREAL=1
 all : $(BIN)
 
 single : DEF = -DREAL=0

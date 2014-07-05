@@ -9,6 +9,7 @@
 #define REAL_LONG_DOUBLE 2
 #define REAL_SINGLE_FAST2SUM 3 //TODO: Remove, is FITH
 #define REAL_RATIONAL 4
+#define REAL_RATIONAL_ARBINT 5
 
 #ifndef REAL
 	#error "REAL was not defined!"
@@ -20,6 +21,11 @@
 
 #if REAL == REAL_RATIONAL
 	#include "rational.h"
+#endif //REAL
+
+#if REAL == REAL_RATIONAL_ARBINT
+	#include "rational.h"
+	#include "arbint.h"
 #endif //REAL
 
 namespace IPDF
@@ -37,10 +43,20 @@ namespace IPDF
 	inline float Float(const Real & r) {return r.m_value;}
 	inline double Double(const Real & r) {return r.m_value;}
 #elif REAL == REAL_RATIONAL
-
+	
 	typedef Rational<int64_t> Real;
 	inline float Float(const Real & r) {return (float)r.ToDouble();}
 	inline double Double(const Real & r) {return r.ToDouble();}
+#elif REAL == REAL_RATIONAL_ARBINT
+	typedef Rational<Arbint> Real;
+	inline float Float(const Real & r) {return (float)r.ToDouble();}
+	inline double Double(const Real & r) {return r.ToDouble();}
+	inline Rational<Arbint> pow(const Rational<Arbint> & a, const Rational<Arbint> & b)
+	{
+		Arbint P(std::pow(static_cast<double>(a.P), b.ToDouble()));
+		Arbint Q(std::pow(static_cast<double>(a.Q), b.ToDouble()));
+		return Rational<Arbint>(P,Q);
+	}
 #else
 	#error "Type of Real unspecified."
 #endif //REAL

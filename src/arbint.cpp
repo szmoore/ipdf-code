@@ -111,7 +111,7 @@ void Arbint::Division(const Arbint & div, Arbint & result, Arbint & remainder) c
 	//TODO: Optimise?
 	remainder = *this;
 	result = 0L;
-	while ((remainder -= div) > 0L)
+	while ((remainder -= div) > Arbint(0L))
 	{
 		//Debug("Remainder %c%s", remainder.SignChar(), remainder.DigitStr().c_str());
 		//Debug("Result %c%s + 1", result.SignChar(), result.DigitStr().c_str());
