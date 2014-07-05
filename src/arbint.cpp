@@ -108,16 +108,32 @@ Arbint & Arbint::operator*=(const Arbint & mul)
 
 void Arbint::Division(const Arbint & div, Arbint & result, Arbint & remainder) const
 {
-	//TODO: Optimise?
-	remainder = *this;
-	result = 0L;
-	while ((remainder -= div) > Arbint(0L))
+	if (div == Arbint(1L))
 	{
-		//Debug("Remainder %c%s", remainder.SignChar(), remainder.DigitStr().c_str());
-		//Debug("Result %c%s + 1", result.SignChar(), result.DigitStr().c_str());
-		result += 1;
+		result = *this;
+		remainder = 0L;
+		return;
 	}
-	remainder += div;
+	if (div == *this)
+	{
+		result = 1L;
+		remainder = 0L;
+		return;
+	}
+
+
+	result = 0L;	
+	remainder = *this;
+	Arbint next_rem(remainder);
+	while ((next_rem -= div) >= Arbint(0L))
+	{
+		//Debug("%li - %li = %li", digit_t(remainder), digit_t(div), digit_t(next_rem));
+		//Debug("Sign is %d", next_rem.m_sign);
+		remainder = next_rem;
+		result += 1L;
+	}
+	
+	
 }
 
 Arbint & Arbint::operator+=(const Arbint & add)
@@ -217,7 +233,8 @@ bool Arbint::IsZero() const
 
 bool Arbint::operator==(const Arbint & equ) const
 {
-	if (m_sign != equ.m_sign) return false;
+	if (m_sign != equ.m_sign) 
+		return false;
 	unsigned min_size = m_digits.size();
 	const Arbint * larger = &equ;
 	if (m_digits.size() > equ.m_digits.size())

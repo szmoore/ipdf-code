@@ -16,9 +16,15 @@ namespace IPDF
 template <class T>
 T gcd(const T & a, const T & b)
 {
-	if (a == 1 || a == 0) return 1;
-	if (b == 0) return a;
-	if (b == a) return a;
+	Debug("Called on %li/%li", int64_t(a), int64_t(b));
+	if (a == T(1) || a == T(0)) return T(1);
+	if (b == T(0)) return a;
+	if (b == a) 
+	{
+		Debug("Equal!");
+		return a;
+	}
+	Debug("Not equal!");
 	
 	if (a > b) return gcd(a-b,b);
 	return gcd(a, b-a);
@@ -29,6 +35,8 @@ T gcd(const T & a, const T & b)
 template <class T>
 T gcd(const T & p, const T & q)
 {
+
+
 	T g(1);
 	T big(p);
 	T small(q);
@@ -41,11 +49,14 @@ T gcd(const T & p, const T & q)
 		return g;
 	while ((g = big % small) > T(0))
 	{
+		//Debug("big = %li, small = %li", int64_t(big), int64_t(small));
 		big = small;
 		small = g;
+		//Debug("Loop %u", ++count);
 	}
 	return small;
-}	 
+}	
+
 
 template <class T = int64_t>
 struct Rational
@@ -80,6 +91,7 @@ struct Rational
 			return;
 		}
 		T g = gcd(T(llabs(P)),T(llabs(Q)));
+		Debug("Got gcd!");
 		P /= g;
 		Q /= g;
 	}

@@ -101,7 +101,7 @@ namespace IPDF
 			
 			inline bool operator>=(const Arbint & leq) const 
 			{
-				return (this->operator==(leq) || this->operator<(leq));
+				return (this->operator==(leq) || this->operator>(leq));
 			}
 			inline bool operator>(const Arbint & grea) const
 			{

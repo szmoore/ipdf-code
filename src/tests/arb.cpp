@@ -49,6 +49,7 @@ int main(int argc, char ** argv)
 		assert((arb_a/arb_b).AsDigit() == a / b);
 		assert((arb_a%arb_b).AsDigit() == a % b);
 	}
-	printf("All tests successful!\n");
+	printf("All single digit tests successful!\n");
+	
 	return 0;
 }
