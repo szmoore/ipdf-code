@@ -9,9 +9,17 @@ using namespace IPDF;
 
 int main(int argc, char ** argv)
 {
-	Arbint a(100L);
-	Arbint b(200L);
+	int64_t test[] = {12L, 5L};
+	test[1] = 0xE000000000000000;
+	int64_t size = sizeof(test)/sizeof(int64_t);
 	
-	Arbint c(b-a);
-	printf("(%d), %s\n",c.Sign(), c.DigitStr().c_str());
+	int64_t mul = 2L;
+	
+	int64_t overflow = mul_digits(test, mul, size);
+	
+	for (int64_t i = 0; i < size; ++i)
+	{
+		printf("digit[%li] = %.16lx\n", i, test[i]);
+	}
+	printf("Overflow is %.16lx\n", overflow);
 }
