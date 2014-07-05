@@ -94,11 +94,11 @@ int main(int argc, char ** argv)
 			for (int y = 0; y < 8; ++y)
 			{
 				//doc.Add(static_cast<IPDF::ObjectType>((x^y)%3), Rect(0.2+x-4.0,0.2+y-4.0,0.6,0.6));
-				//doc.Add(BEZIER, Rect(0.2+x-4.0, 0.2+y-4.0, 0.6,0.6), (x^y)%3);
+				doc.Add(BEZIER, Rect(0.2+x-4.0, 0.2+y-4.0, 0.6,0.6), (x^y)%3);
 			}
 			
 			//doc.Add(RECT_OUTLINE, Rect(0.1,0.1,0.8,0.8), 0);
-			doc.Add(BEZIER, Rect(0,0,1,1), 0);
+			//doc.Add(BEZIER, Rect(0,0,1,1), 0);
 		}
 		
 	}
