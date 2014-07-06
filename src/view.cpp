@@ -32,6 +32,12 @@ View::View(Document & document, Screen & screen, const Rect & bounds, const Colo
 	// 2. Implement class inheriting from ObjectRenderer using that type in objectrenderer.h and objectrenderer.cpp
 	// 3. Add it here
 	// 4. Profit
+
+
+#ifndef QUADTREE_DISABLED
+	m_quadtree_max_depth = 1;
+	m_current_quadtree_node = document.GetQuadTree().root_id;
+#endif
 }
 
 /**

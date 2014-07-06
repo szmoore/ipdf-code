@@ -85,6 +85,16 @@ void Document::Save(const string & filename)
 	Debug("Successfully saved %u objects to \"%s\"", ObjectCount(), filename.c_str());
 }
 
+#ifndef QUADTREE_DISABLED
+
+void Document::GenBaseQuadtree()
+{
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 0, ObjectCount()});
+	m_quadtree.root_id = 0;
+}
+
+#endif
+
 void Document::Load(const string & filename)
 {
 	m_objects.bounds.clear();

@@ -73,6 +73,12 @@ namespace IPDF
 			// Trust me it will be easier to generalise things this way. Even though there are pointers.
 			std::vector<ObjectRenderer*> m_object_renderers; 
 			uint8_t * m_cpu_rendering_pixels; // pixels to be used for CPU rendering
+
+#ifndef QUADTREE_DISABLED
+			QuadTreeIndex m_current_quadtree_node;	// The highest node we will traverse.
+			int m_quadtree_max_depth;		// The maximum quadtree depth.
+
+#endif
 	};
 }
 

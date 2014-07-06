@@ -2,6 +2,7 @@
 #define _DOCUMENT_H
 
 #include "ipdf.h"
+#include "quadtree.h"
 
 namespace IPDF
 {
@@ -24,9 +25,17 @@ namespace IPDF
 			void Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
 			unsigned AddBezierData(const Bezier & bezier);
 
+#ifndef QUADTREE_DISABLED
+			inline const QuadTree& GetQuadTree() const { return m_quadtree; }
+#endif
+
 		private:
 			friend class View;
 			Objects m_objects;
+#ifndef QUADTREE_DISABLED
+			QuadTree m_quadtree;
+			void GenBaseQuadtree();
+#endif
 			unsigned m_count;
 			
 
