@@ -17,10 +17,20 @@
 #include <sstream>
 #include <cstdarg>
 
+#include "rational.h"
+
 using namespace std;
 
 namespace IPDF
 {
+	
+/** Absolute value hackery **/
+template <> Arbint Tabs(const Arbint & a)
+{
+	//Debug("Called");
+	return a.Abs();
+}
+
 
 Arbint::Arbint(int64_t i) : m_digits(1), m_sign(i < 0)
 {

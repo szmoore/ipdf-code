@@ -129,6 +129,8 @@ namespace IPDF
 			//inline operator int() const {return int(AsDigit());}
 			
 			unsigned Shrink();
+			
+			inline Arbint Abs() const {Arbint a(*this); a.m_sign = false; return a;}
 		private:		
 				
 			Arbint & AddBasic(const Arbint & add);
@@ -145,6 +147,8 @@ namespace IPDF
 			
 	};	
 
+
+
 extern "C"
 {
 	typedef uint64_t digit_t;
@@ -153,6 +157,8 @@ extern "C"
 	digit_t mul_digits(digit_t * dst, digit_t mul, digit_t size);
 	digit_t div_digits(digit_t * dst, digit_t div, digit_t size, digit_t * rem);
 }
+
+
 
 }
 #endif //_ARBINT_H

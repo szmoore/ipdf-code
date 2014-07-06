@@ -15,17 +15,14 @@ using namespace IPDF;
 
 int main(int argc, char ** argv)
 {
+
+	Rational<Arbint> a(1, 2);
+	Rational<Arbint> b(3, 9);
+	Rational<Arbint> c(b);
 	
-	Rect rect(0,0,1,1);
+	Rational<Arbint> d(c);
+	c *= a;
+	Debug("%s * %s = %s", d.Str().c_str(), a.Str().c_str(), c.Str().c_str());
 	return 0;
-	for (unsigned i = 0; i < TEST_CASES; ++i)
-	{
-		double d = (double)(rand()) / (double)(rand());
-		Rational<Arbint> r(d);
-		Debug("%f -> %s -> %s/%s", d, r.Str().c_str(), r.P.DigitStr().c_str(), r.Q.DigitStr().c_str());
-		
-		
-		
-	}
-	printf("Tests done");
+
 }

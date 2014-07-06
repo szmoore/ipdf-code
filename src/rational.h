@@ -8,9 +8,17 @@
 #include "common.h"
 #include <cmath>
 #include <cassert>
+#include "arbint.h"
 
 namespace IPDF
 {
+	
+template <class T> T Tabs(const T & a)
+{
+	return llabs(a);
+}
+
+
 
 /* Recursive version  of GCD
 template <class T>
@@ -65,7 +73,7 @@ struct Rational
 	Rational(double d=0) : P(d*1e6), Q(1e6) // Possibly the worst thing ever...
 	{
 		Simplify();
-		if (!CheckAccuracy(d, "Construct from double"))
+		//if (!CheckAccuracy(d, "Construct from double"))
 		{
 			//Fatal("Bwah bwah :(");
 		}
@@ -93,7 +101,7 @@ struct Rational
 			Q = T(1);
 			return;
 		}
-		T g = gcd(T(llabs(P)),T(llabs(Q)));
+		T g = gcd(Tabs(P), Tabs(Q));
 		//Debug("Got gcd!");
 		P /= g;
 		Q /= g;
@@ -115,10 +123,10 @@ struct Rational
 	Rational operator+(const Rational & r) const 
 	{
 		Rational result = (r.P == T(0)) ? Rational(P,Q) : Rational(P*r.Q + r.P*Q, Q*r.Q);
-		if (!result.CheckAccuracy(ToDouble() * r.ToDouble(),"+"))
-		{
-			Debug("This is %s (%f) and r is %s (%f)", Str().c_str(), ToDouble(), r.Str().c_str(), r.ToDouble());
-		}
+		//if (!result.CheckAccuracy(ToDouble() * r.ToDouble(),"+"))
+		//{
+		//	Debug("This is %s (%f) and r is %s (%f)", Str().c_str(), ToDouble(), r.Str().c_str(), r.ToDouble());
+		//}
 		return result;
 	}
 	Rational operator-(const Rational & r) const 
@@ -130,19 +138,19 @@ struct Rational
 	Rational operator*(const Rational & r) const 
 	{
 		Rational result(P * r.P, Q * r.Q);
-		if (!result.CheckAccuracy(ToDouble() * r.ToDouble(),"*"))
-		{
-			Debug("This is %s (%f) and r is %s (%f)", Str().c_str(), ToDouble(), r.Str().c_str(), r.ToDouble());
-		}
+		//if (!result.CheckAccuracy(ToDouble() * r.ToDouble(),"*"))
+		//{
+		//	Debug("This is %s (%f) and r is %s (%f)", Str().c_str(), ToDouble(), r.Str().c_str(), r.ToDouble());
+		//}
 		return result;
 	}
 	Rational operator/(const Rational & r) const 
 	{
 		Rational result(P * r.Q, Q*r.P);
-		if (!result.CheckAccuracy(ToDouble() / r.ToDouble(),"/"))
-		{
-			Debug("This is %s (%f) and r is %s (%f)", Str().c_str(), ToDouble(), r.Str().c_str(), r.ToDouble());
-		}
+		//if (!result.CheckAccuracy(ToDouble() / r.ToDouble(),"/"))
+		//{
+		//	Debug("This is %s (%f) and r is %s (%f)", Str().c_str(), ToDouble(), r.Str().c_str(), r.ToDouble());
+		//}
 		return result;
 	}	
 
@@ -189,6 +197,7 @@ inline Rational<int64_t> pow(const Rational<int64_t> & a, const Rational<int64_t
 	int64_t Q = std::pow((double)a.Q, b.ToDouble());
 	return Rational<int64_t>(P, Q);
 }
+
 
 
 
