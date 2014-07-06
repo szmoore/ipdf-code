@@ -206,7 +206,7 @@ void View::Render(int width, int height)
 
 		for (unsigned i = 0; i < m_object_renderers.size(); ++i)
 		{
-			m_object_renderers[i]->RenderUsingCPU(m_document.m_objects, *this, {m_cpu_rendering_pixels, width, height});
+			m_object_renderers[i]->RenderUsingCPU(m_document.m_objects, *this, {m_cpu_rendering_pixels, width, height}, first_obj, last_obj);
 		}
 		m_screen.RenderPixels(0,0,width, height, m_cpu_rendering_pixels); //TODO: Make this work :(
 		// Debug for great victory (do something similar for GPU and compare?)

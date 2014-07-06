@@ -59,7 +59,7 @@ namespace IPDF
 			static void SaveBMP(const CPURenderTarget & target, const char * filename);
 
 
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target) = 0;
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id) = 0;
 			
 			
 			
@@ -85,7 +85,7 @@ namespace IPDF
 		public:
 			RectFilledRenderer() : ObjectRenderer(RECT_FILLED, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl","shaders/rect_filled_geom.glsl") {}
 			virtual ~RectFilledRenderer() {}
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 	};
 	/** Renderer for outlined rectangles **/
 	class RectOutlineRenderer : public ObjectRenderer
@@ -93,7 +93,7 @@ namespace IPDF
 		public:
 			RectOutlineRenderer() : ObjectRenderer(RECT_OUTLINE, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
 			virtual ~RectOutlineRenderer() {}
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 	};
 	/** Renderer for filled circles **/
 	class CircleFilledRenderer : public ObjectRenderer
@@ -101,7 +101,7 @@ namespace IPDF
 		public:
 			CircleFilledRenderer() : ObjectRenderer(CIRCLE_FILLED, "shaders/rect_vert.glsl", "shaders/circle_frag.glsl", "shaders/circle_filled_geom.glsl") {}
 			virtual ~CircleFilledRenderer() {}
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 	};
 
 	/** Renderer for bezier curves **/
@@ -111,7 +111,7 @@ namespace IPDF
 			BezierRenderer() : ObjectRenderer(BEZIER, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/bezier_texbuf_geom.glsl") {}
 			virtual ~BezierRenderer() {}
 			virtual void RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id); 
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 			void PrepareBezierGPUBuffer(const Objects & objects);
 		private:
 			GraphicsBuffer m_bezier_coeffs;

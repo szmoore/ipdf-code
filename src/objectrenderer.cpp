@@ -45,7 +45,7 @@ void ObjectRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 /**
  * Default implementation for rendering using CPU
  */
-void ObjectRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
+void ObjectRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
 	Error("Cannot render objects of type %d on CPU", m_type);
 	//TODO: Render a rect or something instead?
@@ -110,10 +110,12 @@ void ObjectRenderer::FinaliseBuffers()
 /**
  * Rectangle (filled)
  */
-void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
+void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
+		if (m_indexes[i] < first_obj_id) continue;
+		if (m_indexes[i] > last_obj_id) continue;
 		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		for (int64_t x = max(0L, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
 		{
@@ -132,11 +134,13 @@ void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & vi
 /**
  * Rectangle (outine)
  */
-void RectOutlineRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
+void RectOutlineRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
 	//Debug("Render %u outlined rectangles on CPU", m_indexes.size());
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
+		if (m_indexes[i] < first_obj_id) continue;
+		if (m_indexes[i] > last_obj_id) continue;
 		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		
 		// Using bresenham's lines now mainly because I want to see if they work
@@ -158,10 +162,12 @@ void RectOutlineRenderer::RenderUsingCPU(const Objects & objects, const View & v
 /**
  * Circle (filled)
  */
-void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
+void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
+		if (m_indexes[i] < first_obj_id) continue;
+		if (m_indexes[i] > last_obj_id) continue;
 		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		int64_t centre_x = bounds.x + bounds.w / 2;
 		int64_t centre_y = bounds.y + bounds.h / 2;
@@ -205,11 +211,13 @@ Rect ObjectRenderer::CPURenderBounds(const Rect & bounds, const View & view, con
  * Bezier curve
  * Not sure how to apply De'Casteljau, will just use a bunch of Bresnham lines for now.
  */
-void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target)
+void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
 	//Warn("Rendering Beziers on CPU. Things may explode.");
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
+		if (m_indexes[i] < first_obj_id) continue;
+		if (m_indexes[i] > last_obj_id) continue;
 		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		PixelBounds pix_bounds(bounds);
 
