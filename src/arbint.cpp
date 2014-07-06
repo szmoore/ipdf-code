@@ -127,6 +127,7 @@ void Arbint::Division(const Arbint & div, Arbint & result, Arbint & remainder) c
 			result.BitSet(i);
 		}
 	}
+	result.m_sign = !(m_sign == div.m_sign);
 }
 
 Arbint & Arbint::operator+=(const Arbint & add)
@@ -265,7 +266,7 @@ Arbint & Arbint::operator>>=(unsigned amount)
 	
 	if (whole >= old_size)
 	{
-		m_digits.resize(1);
+		m_digits.resize(1,0L);
 		m_digits[0] = 0L;
 		return *this;
 	}

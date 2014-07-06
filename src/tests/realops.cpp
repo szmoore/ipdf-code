@@ -6,9 +6,13 @@ using namespace IPDF;
 
 #define TEST_CASES 100
 
-bool NotEqual(double a, double b, double threshold=1e-2)
+static double g_totalerror = 0;
+
+bool NotEqual(double a, double b, double threshold=1e-1)
 {
-	return (fabs(a-b) > threshold);
+	double error = (fabs(a-b) > threshold);
+	g_totalerror += error;
+	return (error > threshold);
 }
 
 int main(int argc, char ** argv)
@@ -117,5 +121,6 @@ int main(int argc, char ** argv)
 		}
 	}
 	Debug("Completed %u test cases with total of %u operations, %u failures", TEST_CASES, 12*TEST_CASES, failures);
+	Debug("Total accumulated difference between Real and Double operations was %f", g_totalerror);
 
 }

@@ -73,10 +73,6 @@ struct Rational
 	Rational(double d=0) : P(d*1e6), Q(1e6) // Possibly the worst thing ever...
 	{
 		Simplify();
-		//if (!CheckAccuracy(d, "Construct from double"))
-		{
-			//Fatal("Bwah bwah :(");
-		}
 	}
 
 	Rational(const T & _P, const T & _Q) : P(_P), Q(_Q)
