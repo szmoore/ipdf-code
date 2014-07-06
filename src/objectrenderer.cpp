@@ -29,13 +29,16 @@ ObjectRenderer::ObjectRenderer(const ObjectType & type,
 /**
  * Render using GPU
  */
-void ObjectRenderer::RenderUsingGPU()
+void ObjectRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 {
-	if (!m_shader_program.Valid())
-		Warn("Shader is invalid (objects are of type %d)", m_type);
+	unsigned first_index = 0;
+	while (m_indexes[first_index] < first_obj_id*2) first_index += 2;
+	unsigned last_index = first_index;
+	while (m_indexes[last_index] < last_obj_id*2) last_index += 2;
+
 	m_shader_program.Use();
 	m_ibo.Bind();
-	glDrawElements(GL_LINES, m_indexes.size()*2, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(first_index*sizeof(uint32_t)));
 }
 
 
@@ -288,15 +291,21 @@ void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
 	glActiveTexture(GL_TEXTURE0);
 }
 
-void BezierRenderer::RenderUsingGPU()
+void BezierRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 {
 	if (!m_shader_program.Valid())
 		Warn("Shader is invalid (objects are of type %d)", m_type);
+
+	unsigned first_index = 0;
+	while (m_indexes[first_index] < first_obj_id*2) first_index += 2;
+	unsigned last_index = first_index;
+	while (m_indexes[last_index] < last_obj_id*2) last_index += 2;
+
 	m_shader_program.Use();
 	glUniform1i(m_shader_program.GetUniformLocation("bezier_buffer_texture"), 0);
 	glUniform1i(m_shader_program.GetUniformLocation("bezier_id_buffer_texture"), 1);
 	m_ibo.Bind();
-	glDrawElements(GL_LINES, m_indexes.size()*2, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(first_index*sizeof(uint32_t)));
 }
 
 /**

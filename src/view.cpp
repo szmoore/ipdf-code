@@ -162,6 +162,9 @@ void View::Render(int width, int height)
 	m_cached_display.Bind(); //NOTE: This is redundant; Clear already calls Bind
 	m_cached_display.Clear();
 
+	// When we QuadTree, this will be magic.
+	int first_obj = 0;
+	int last_obj = m_document.ObjectCount();
 
 	// Render using GPU
 	if (m_use_gpu_rendering) 
@@ -178,7 +181,7 @@ void View::Render(int width, int height)
 	
 		for (unsigned i = 0; i < m_object_renderers.size(); ++i)
 		{
-			m_object_renderers[i]->RenderUsingGPU();
+			m_object_renderers[i]->RenderUsingGPU(first_obj, last_obj);
 		}
 		
 		glDisableVertexAttribArray(0);

@@ -34,7 +34,7 @@ namespace IPDF
 			 * Use the GPU to render the objects - GLSL shader approach
 			 * This way is definitely faster, but subject to the GPU's limitations on precision
  			 */
-			virtual void RenderUsingGPU();
+			virtual void RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id);
 
 			/** 
 			 * Use the CPU to render the objects - "make a bitmap and convert it to a texture" approach
@@ -110,7 +110,7 @@ namespace IPDF
 		public:
 			BezierRenderer() : ObjectRenderer(BEZIER, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/bezier_texbuf_geom.glsl") {}
 			virtual ~BezierRenderer() {}
-			virtual void RenderUsingGPU(); 
+			virtual void RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id); 
 			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target);
 			void PrepareBezierGPUBuffer(const Objects & objects);
 		private:
