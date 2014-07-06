@@ -22,7 +22,7 @@ using namespace std;
 namespace IPDF
 {
 
-Arbint::Arbint(digit_t i) : m_digits(1), m_sign(i < 0)
+Arbint::Arbint(int64_t i) : m_digits(1), m_sign(i < 0)
 {
 	m_digits[0] = llabs(i);
 }
@@ -31,7 +31,7 @@ Arbint::Arbint(unsigned n, digit_t d0, ...) : m_digits(n), m_sign(false)
 {
 	va_list ap;
 	va_start(ap, d0);
-	if (n > 1)
+	if (n >= 1)
 		m_digits[0] = d0;
 	for (unsigned i = 1; i < n; ++i)
 	{
@@ -108,32 +108,21 @@ Arbint & Arbint::operator*=(const Arbint & mul)
 
 void Arbint::Division(const Arbint & div, Arbint & result, Arbint & remainder) const
 {
-	if (div == Arbint(1L))
+	remainder = 0;
+	result = 0;
+	for (int i = 8*sizeof(digit_t)*m_digits.size(); i >= 0; --i)
 	{
-		result = *this;
-		remainder = 0L;
-		return;
+		remainder <<= 1;
+		if (GetBit(i))
+			remainder.BitSet(0);
+		else
+			remainder.BitClear(0);
+		if (remainder >= div)
+		{
+			remainder -= div;
+			result.BitSet(i);
+		}
 	}
-	if (div == *this)
-	{
-		result = 1L;
-		remainder = 0L;
-		return;
-	}
-
-
-	result = 0L;	
-	remainder = *this;
-	Arbint next_rem(remainder);
-	while ((next_rem -= div) >= Arbint(0L))
-	{
-		//Debug("%li - %li = %li", digit_t(remainder), digit_t(div), digit_t(next_rem));
-		//Debug("Sign is %d", next_rem.m_sign);
-		remainder = next_rem;
-		result += 1L;
-	}
-	
-	
 }
 
 Arbint & Arbint::operator+=(const Arbint & add)
@@ -206,18 +195,8 @@ Arbint & Arbint::SubBasic(const Arbint & sub)
 string Arbint::Str(const string & base) const
 {
 	string s("");
-	for (unsigned i = 0; i < m_digits.size(); ++i)
-	{
-		digit_t w = m_digits[i];
-		do
-		{
-			digit_t q = w % 10;
-			w /= 10;
-			s += ('0' + q);
-		}
-		while (w > 0);
-		if (i+1 < m_digits.size()) s += ",";	
-	}
+	Arbint cpy(*this);
+	
 	reverse(s.begin(), s.end());
 	return s;
 }
@@ -264,13 +243,115 @@ bool Arbint::operator<(const Arbint & less) const
 string Arbint::DigitStr() const
 {
 	stringstream ss("");
-	ss << std::hex << std::setfill('0');
+	//ss << std::hex << std::setfill('0');
 	for (unsigned i = 0; i < m_digits.size(); ++i)
 	{
 		if (i != 0) ss << ',';
-		ss << std::setw(2*sizeof(digit_t)) << static_cast<digit_t>(m_digits[i]);
+		//ss << std::setw(2*sizeof(digit_t)) << static_cast<digit_t>(m_digits[i]);
+		ss << static_cast<digit_t>(m_digits[i]);
 	}
 	return ss.str();
+}
+
+Arbint & Arbint::operator>>=(unsigned amount)
+{
+	// Shift by whole number of digits
+	unsigned whole = amount/(8*sizeof(digit_t));
+	unsigned old_size = m_digits.size();
+	
+	if (whole >= old_size)
+	{
+		m_digits.resize(1);
+		m_digits[0] = 0L;
+		return *this;
+	}
+	memmove(m_digits.data(), m_digits.data()+whole, sizeof(digit_t)*(old_size-whole));
+	m_digits.resize(old_size-whole, 0L);
+	
+	// Shift by partial amount
+	amount = amount %(8*sizeof(digit_t));
+	if (amount == 0)
+		return *this;
+	
+	digit_t underflow = 0L;
+	for (int i = (int)(m_digits.size()-1); i >= 0; --i)
+	{
+		unsigned shl = (8*sizeof(digit_t)-amount);
+		digit_t next_underflow = (m_digits[i] << shl);
+		//digit_t mask_upper = ~(0L >> amount);
+		m_digits[i] = (m_digits[i] >> amount);// & mask_upper;
+		m_digits[i] |= underflow;
+		underflow = next_underflow;
+	}
+	return *this;
+}
+
+Arbint & Arbint::operator<<=(unsigned amount)
+{
+	// Shift by whole number of digits
+	unsigned whole = amount/(8*sizeof(digit_t));
+	unsigned old_size = m_digits.size();
+	m_digits.resize(m_digits.size() + whole);
+	memmove(m_digits.data()+whole, m_digits.data(), sizeof(digit_t)*old_size);
+	memset(m_digits.data(), 0L, whole*sizeof(digit_t));
+	
+	
+	
+	// Partial shifting
+	amount = amount % (8*sizeof(digit_t));
+	if (amount == 0)
+		return *this;
+		
+	//Debug("Shift by %u from %u", amount, whole);
+	digit_t overflow = 0L;
+	for (unsigned i = whole; i < m_digits.size(); ++i)
+	{
+		//Debug("Digit is %.16lx", m_digits[i]);
+		unsigned shr = (8*sizeof(digit_t)-amount);
+		//Debug("shr is %u", shr);
+		digit_t next_overflow = (m_digits[i] >> shr);
+		//Debug("Next overflow %.16lx", next_overflow);
+		m_digits[i] <<= amount;
+		//Debug("Before overflow %.16lx", m_digits[i]);
+		m_digits[i] |= overflow;
+		overflow = next_overflow;
+	}
+	if (overflow != 0L)
+		m_digits.push_back(overflow);
+		
+	return *this;
+}
+
+bool Arbint::GetBit(unsigned i) const
+{
+	unsigned digit = i/(8*sizeof(digit_t));
+	if (digit > m_digits.size())
+		return false;
+		
+	i = i % (8*sizeof(digit_t));
+	
+	return (m_digits[digit] & (1L << i));
+	
+}
+
+void Arbint::BitClear(unsigned i)
+{
+	unsigned digit = i/(8*sizeof(digit_t));
+	if (digit > m_digits.size())
+		return;
+	i = i % (8*sizeof(digit_t));
+	m_digits[digit] &= ~(1L << i);	
+}
+
+void Arbint::BitSet(unsigned i)
+{
+	unsigned digit = i/(8*sizeof(digit_t));
+	if (digit > m_digits.size())
+	{
+		m_digits.resize(digit+1, 0L);
+	}
+	i = i % (8*sizeof(digit_t));
+	m_digits[digit] |= (1L << i);		
 }
 
 }

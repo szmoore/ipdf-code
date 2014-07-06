@@ -11,20 +11,19 @@
 using namespace std;
 using namespace IPDF;
 
+#include "rect.h"
+
 int main(int argc, char ** argv)
 {
+	
+	Rect rect(0,0,1,1);
+	return 0;
 	for (unsigned i = 0; i < TEST_CASES; ++i)
 	{
-		Debug("Cycle %u",i);
-		Arbint p1 = 1L;//rand();
-		Arbint q1 = 2L;//rand();
-		Arbint p2 = rand();
-		Arbint q2 = rand();
-		Debug("Construct rationals");
-		Rational<Arbint> a(p1, q1);
-		Debug("Constructed a %u\n",i);
-		Rational<Arbint> b(p2, q2);
-		Debug("Constructed b %u\n",i);
+		double d = (double)(rand()) / (double)(rand());
+		Rational<Arbint> r(d);
+		Debug("%f -> %s -> %s/%s", d, r.Str().c_str(), r.P.DigitStr().c_str(), r.Q.DigitStr().c_str());
+		
 		
 		
 	}

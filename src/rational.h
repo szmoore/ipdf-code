@@ -65,7 +65,10 @@ struct Rational
 	Rational(double d=0) : P(d*1e6), Q(1e6) // Possibly the worst thing ever...
 	{
 		Simplify();
-		CheckAccuracy(d, "Construct from double");
+		if (!CheckAccuracy(d, "Construct from double"))
+		{
+			//Fatal("Bwah bwah :(");
+		}
 	}
 
 	Rational(const T & _P, const T & _Q) : P(_P), Q(_Q)
@@ -91,7 +94,7 @@ struct Rational
 			return;
 		}
 		T g = gcd(T(llabs(P)),T(llabs(Q)));
-		Debug("Got gcd!");
+		//Debug("Got gcd!");
 		P /= g;
 		Q /= g;
 	}
@@ -112,7 +115,10 @@ struct Rational
 	Rational operator+(const Rational & r) const 
 	{
 		Rational result = (r.P == T(0)) ? Rational(P,Q) : Rational(P*r.Q + r.P*Q, Q*r.Q);
-		result.CheckAccuracy(ToDouble() + r.ToDouble(),"+");
+		if (!result.CheckAccuracy(ToDouble() * r.ToDouble(),"+"))
+		{
+			Debug("This is %s (%f) and r is %s (%f)", Str().c_str(), ToDouble(), r.Str().c_str(), r.ToDouble());
+		}
 		return result;
 	}
 	Rational operator-(const Rational & r) const 
@@ -155,10 +161,12 @@ struct Rational
 	double ToDouble() const {return (double)(P) / (double)(Q);}
 	bool CheckAccuracy(double d, const char * msg, double threshold = 1e-3) const
 	{
-		double result = fabs(ToDouble() - d) / d;
+		double result = fabs(ToDouble() - d);
+		if (d != 0e0) result /= d;
 		if (result > threshold)
 		{
 			Warn("(%s) : Rational %s (%f) is not close enough at representing %f (%f vs %f)", msg, Str().c_str(), ToDouble(), d, result, threshold);
+			Backtrace();
 			return false;
 		}
 		return true;
@@ -166,7 +174,7 @@ struct Rational
 	std::string Str() const
 	{
 		std::stringstream s;
-		s << (int64_t)P << "/" << (int64_t)Q;
+		s << int64_t(P) << "/" << int64_t(Q);
 		return s.str();
 	}
 	

@@ -14,18 +14,18 @@ namespace IPDF
 	class Arbint
 	{
 		public:
-			typedef int64_t digit_t;
+			typedef uint64_t digit_t;
 		
-			Arbint(digit_t i);
+			Arbint(int64_t i);
 			Arbint(const std::vector<digit_t> & digits);
 			Arbint(unsigned n, digit_t d0, ...);
 			Arbint(const std::string & str, const std::string & base="0123456789");
-			~Arbint() {}
+			virtual ~Arbint() {}
 			Arbint(const Arbint & cpy);
 			
-			digit_t AsDigit() const 
+			int64_t AsDigit() const 
 			{
-				digit_t digit = (m_digits.size() == 1) ? m_digits[0] : 0xFFFFFFFFFFFFFFFF;
+				int64_t digit = (m_digits.size() == 1) ? m_digits[0] : 0x7FFFFFFFFFFFFFFF;
 				return (m_sign) ? -digit : digit;
 			}
 			
@@ -44,6 +44,9 @@ namespace IPDF
 			Arbint & operator-=(const Arbint & sub);
 			Arbint & operator*=(const Arbint & mul);
 			void Division(const Arbint & div, Arbint & result, Arbint & modulo) const;
+			
+			Arbint & operator<<=(unsigned amount);
+			Arbint & operator>>=(unsigned amount);
 			
 			inline Arbint operator+(const Arbint & add) const 
 			{
@@ -107,11 +110,22 @@ namespace IPDF
 			{
 				return !(this->operator<=(grea));
 			}
-			
+			inline Arbint operator>>(unsigned amount) const
+			{
+				Arbint result(*this);
+				result >>= amount;
+				return result;
+			}
+			inline Arbint operator<<(unsigned amount) const
+			{
+				Arbint result(*this);
+				result <<= amount;
+				return result;
+			}
 			bool IsZero() const;
 			
 			//inline operator double() const {return double(AsDigit());}
-			inline operator digit_t() const {return AsDigit();}
+			inline operator int64_t() const {return AsDigit();}
 			//inline operator int() const {return int(AsDigit());}
 			
 			unsigned Shrink();
@@ -119,6 +133,11 @@ namespace IPDF
 				
 			Arbint & AddBasic(const Arbint & add);
 			Arbint & SubBasic(const Arbint & sub);
+			
+			bool GetBit(unsigned i) const;
+			void BitClear(unsigned i);
+			void BitSet(unsigned i);
+			
 	
 			std::vector<digit_t> m_digits;
 			bool m_sign;
@@ -128,10 +147,11 @@ namespace IPDF
 
 extern "C"
 {
-	typedef int64_t digit_t;
+	typedef uint64_t digit_t;
 	digit_t add_digits(digit_t * dst, digit_t * add, digit_t size);
 	digit_t sub_digits(digit_t * dst, digit_t * add, digit_t size);
 	digit_t mul_digits(digit_t * dst, digit_t mul, digit_t size);
+	digit_t div_digits(digit_t * dst, digit_t div, digit_t size, digit_t * rem);
 }
 
 }
