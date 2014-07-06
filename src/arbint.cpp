@@ -203,7 +203,10 @@ Arbint & Arbint::SubBasic(const Arbint & sub)
 	{
 		m_sign = !m_sign;
 		for (unsigned i = 0; i < m_digits.size(); ++i)
-			m_digits[i] = (~m_digits[i]) + 1;
+			m_digits[i] = (~m_digits[i]);
+		std::vector<digit_t> one_digits(m_digits.size(), 0L);
+		one_digits[0] = 1;
+		add_digits((digit_t*)m_digits.data(), (digit_t*)one_digits.data(), m_digits.size());
 	}
 	return *this;
 }
