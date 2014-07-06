@@ -85,6 +85,11 @@ void TestConstructFromDouble(unsigned cases)
 	}
 }
 
+void TestSubtraction()
+{
+	
+}
+
 int main(int argc, char ** argv)
 {
 	Debug("Shift testing...");

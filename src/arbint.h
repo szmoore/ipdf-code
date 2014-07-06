@@ -68,6 +68,13 @@ namespace IPDF
 				return a;
 			}
 			
+			inline Arbint operator-() const
+			{
+				Arbint a(*this);
+				a.m_sign = !a.m_sign;
+				return a;
+			}
+			
 			inline Arbint operator*(const Arbint & mul) const
 			{
 				Arbint a(*this);
@@ -99,6 +106,7 @@ namespace IPDF
 			
 			bool operator==(const Arbint & equ) const;
 			bool operator<(const Arbint & less) const;
+			
 
 			inline bool operator!=(const Arbint & equ) const 
 			{
@@ -130,11 +138,11 @@ namespace IPDF
 				return result;
 			}
 			bool IsZero() const;
-			
-			inline operator double() const 
+
+			inline operator double() const
 			{
 				double acc = 0;
-				for(int i = m_digits.size()-1; i >= 0; --i)
+				for (int i = m_digits.size()-1; i >= 0; --i)
 				{
 					acc += (double)m_digits[i];
 					acc *= (double)UINT64_MAX + 1.0;
@@ -152,6 +160,8 @@ namespace IPDF
 				
 			Arbint & AddBasic(const Arbint & add);
 			Arbint & SubBasic(const Arbint & sub);
+			
+			void GrowDigit(digit_t new_msd); // add a new most significant digit
 			
 			bool GetBit(unsigned i) const;
 			void BitClear(unsigned i);

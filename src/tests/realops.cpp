@@ -4,7 +4,7 @@
 using namespace std;
 using namespace IPDF;
 
-#define TEST_CASES 100
+#define TEST_CASES 1000
 
 static double g_totalerror = 0;
 
@@ -22,8 +22,9 @@ int main(int argc, char ** argv)
 	unsigned failures = 0;
 	for (unsigned i = 0; i < TEST_CASES; ++i)
 	{
-		double da = (double)(rand()%100 + 1) / (double)(rand()%100 + 1);
-		double db = (double)(rand()%100 + 1) / (double)(rand()%100 + 1);
+		Debug("Test %u of %u", i, TEST_CASES);
+		double da = (double)(rand() + 1) / (double)(rand() + 1);
+		double db = (double)(rand() + 1) / (double)(rand() + 1);
 		
 		if (rand() % 2 == 0)
 			da = -da;

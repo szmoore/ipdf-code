@@ -74,13 +74,29 @@ void Arbint::Zero()
 
 unsigned Arbint::Shrink()
 {
+	
 	if (m_digits.size() <= 1)
 		return 0;
-	unsigned i;
-	for (i = m_digits.size()-1; (i > 0 && m_digits[i] != 0L); --i);
-	unsigned result = m_digits.size() - i;
-	m_digits.resize(i);
-	return result;
+	
+	unsigned shrunk = 0;
+	while (m_digits.size() > 1 && m_digits[m_digits.size()-1] == 0L)
+	{
+		Debug("Shrink 1");
+		m_digits.pop_back();
+		shrunk++;
+	}
+	return shrunk;
+}
+
+void Arbint::GrowDigit(digit_t new_msd)
+{
+	static unsigned total_grows = 0;
+	m_digits.push_back(new_msd);
+	Warn("Arbint grows digit (%.16lx), this->m_digits.size() = %u, total grown = %u", new_msd, m_digits.size(), ++total_grows);
+	if (total_grows++ > 10000)
+	{
+		Fatal("Too many GrowDigit calls!");
+	}
 }
 
 Arbint & Arbint::operator*=(const Arbint & mul)
@@ -101,12 +117,14 @@ Arbint & Arbint::operator*=(const Arbint & mul)
 		digit_t carry = add_digits((digit_t*)new_digits.data(), step.data(), step.size());
 		if (carry != 0L)
 		{
-			new_digits.push_back(carry);
+			Debug("Add carry");
+			GrowDigit(carry);
 		}
 	}
 	
 	m_digits.swap(new_digits);
 	m_sign = !(m_sign == mul.m_sign);
+	Shrink();
 	return *this;
 }
 
@@ -119,13 +137,15 @@ void Arbint::Division(const Arbint & div, Arbint & result, Arbint & remainder) c
 		result = *this;
 		return;
 	}
+	/* may break things (even more that is)
 	else if (div.m_digits.size() == 1)
 	{
 		result.m_digits.resize(m_digits.size(), 0L);
 		remainder = Arbint(div_digits((digit_t*)&m_digits[0], div.m_digits[0], m_digits.size(), result.m_digits.data()));
 		result.m_sign = !(m_sign == div.m_sign);
 		return;
-	}
+	} */
+
 	for (int i = 8*sizeof(digit_t)*m_digits.size(); i >= 0; --i)
 	{
 		remainder <<= 1;
@@ -140,6 +160,7 @@ void Arbint::Division(const Arbint & div, Arbint & result, Arbint & remainder) c
 		}
 	}
 	result.m_sign = !(m_sign == div.m_sign);
+	result.Shrink();
 }
 
 Arbint & Arbint::operator+=(const Arbint & add)
@@ -162,6 +183,7 @@ Arbint & Arbint::operator+=(const Arbint & add)
 		// a + -b == a - b
 		SubBasic(add);
 	}
+	Shrink();
 	return *this;
 }
 
@@ -174,29 +196,45 @@ Arbint & Arbint::operator-=(const Arbint & sub)
 
 Arbint & Arbint::AddBasic(const Arbint & add)
 {
-	if (add.m_digits.size() >= m_digits.size())
+	while (m_digits.size() < add.m_digits.size())
 	{
-		m_digits.resize(add.m_digits.size()+1,0L);
+		
+		Debug("Size is %u, add's size is %u", m_digits.size(), add.m_digits.size());
+		GrowDigit(0L);
 	}
+	//m_digits.resize(add.m_digits.size()+1,0L);
 	
 	digit_t carry = add_digits((digit_t*)m_digits.data(), 
 			(digit_t*)add.m_digits.data(), add.m_digits.size());
 	if (carry != 0L)
-		m_digits[m_digits.size()-1] = carry;
-	else if (m_digits.back() == 0L)
-		m_digits.resize(m_digits.size()-1);
+	{
+		Debug("Grow carry %lu", carry);
+		GrowDigit(carry);
+	}
+	Shrink();
 	return *this;
 }
 
 Arbint & Arbint::SubBasic(const Arbint & sub)
 {
-	if (sub.m_digits.size() >= m_digits.size())
+	bool fith = false;
+	while (sub.m_digits.size() > m_digits.size())
 	{
-		m_digits.resize(sub.m_digits.size(),0L);
+		fith = true;
+		GrowDigit(0L);
 	}
+	if (fith)
+	{
+		Debug("START sub was %c%s, I am %c%s", SignChar(), sub.DigitStr().c_str(), SignChar(), DigitStr().c_str());
+	}
+	
 	digit_t borrow = sub_digits((digit_t*)m_digits.data(), 
 			(digit_t*)sub.m_digits.data(), sub.m_digits.size());
 		
+	if (fith)
+	{
+		Debug("SUB_DIGITS -> sub was %c%s, I am %c%s", SignChar(), sub.DigitStr().c_str(), SignChar(), DigitStr().c_str());
+	}
 		
 	//TODO: Write ASM to do this bit?
 	if (borrow != 0L)
@@ -204,9 +242,18 @@ Arbint & Arbint::SubBasic(const Arbint & sub)
 		m_sign = !m_sign;
 		for (unsigned i = 0; i < m_digits.size(); ++i)
 			m_digits[i] = (~m_digits[i]);
-		std::vector<digit_t> one_digits(m_digits.size(), 0L);
-		one_digits[0] = 1;
+		vector<digit_t> one_digits(m_digits.size(), 0L);
+		one_digits[0] = 1L;
 		add_digits((digit_t*)m_digits.data(), (digit_t*)one_digits.data(), m_digits.size());
+	}
+	if (fith)
+	{
+		Debug("END -> sub was %c%s, I am %c%s", sub.SignChar(), sub.DigitStr().c_str(), SignChar(), DigitStr().c_str());
+	}
+	Shrink();
+	if (fith)
+	{
+		Debug("SHRUNK -> sub was %c%s, I am %c%s", sub.SignChar(), sub.DigitStr().c_str(), SignChar(), DigitStr().c_str());
 	}
 	return *this;
 }
@@ -303,6 +350,7 @@ Arbint & Arbint::operator>>=(unsigned amount)
 		m_digits[i] |= underflow;
 		underflow = next_underflow;
 	}
+	Shrink();
 	return *this;
 }
 
@@ -311,7 +359,11 @@ Arbint & Arbint::operator<<=(unsigned amount)
 	// Shift by whole number of digits
 	unsigned whole = amount/(8*sizeof(digit_t));
 	unsigned old_size = m_digits.size();
-	m_digits.resize(m_digits.size() + whole);
+	for (unsigned i = 0; i < whole; ++i)
+	{
+		
+		GrowDigit(0L);//m_digits.resize(m_digits.size() + whole);
+	}
 	memmove(m_digits.data()+whole, m_digits.data(), sizeof(digit_t)*old_size);
 	memset(m_digits.data(), 0L, whole*sizeof(digit_t));
 	
@@ -338,7 +390,7 @@ Arbint & Arbint::operator<<=(unsigned amount)
 	}
 	if (overflow != 0L)
 		m_digits.push_back(overflow);
-		
+	Shrink();
 	return *this;
 }
 
@@ -366,10 +418,12 @@ void Arbint::BitClear(unsigned i)
 void Arbint::BitSet(unsigned i)
 {
 	unsigned digit = i/(8*sizeof(digit_t));
-	if (digit >= m_digits.size())
+	while (m_digits.size() < digit+1)
 	{
-		m_digits.resize(digit+1, 0L);
+		Debug("Grow BitSet Size %u, digit %u", m_digits.size(), digit);
+		GrowDigit(0L);
 	}
+		
 	i = i % (8*sizeof(digit_t));
 	m_digits[digit] |= (1L << i);		
 }

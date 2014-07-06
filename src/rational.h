@@ -17,7 +17,6 @@ template <class T> T Tabs(const T & a)
 {
 	return abs(a);
 }
-
 template <> Arbint Tabs(const Arbint & a);
 
 
@@ -103,7 +102,6 @@ struct Rational
 			P = Q = T(1);
 			return;
 		}
-		
 		T g = gcd(Tabs(P), Tabs(Q));
 		//Debug("Got gcd!");
 		P /= g;
@@ -135,7 +133,7 @@ struct Rational
 	Rational operator-(const Rational & r) const 
 	{
 		Rational result = (r.P == T(0)) ? Rational(P,Q) : Rational(P*r.Q - r.P*Q, Q*r.Q);
-		result.CheckAccuracy(ToDouble() - r.ToDouble(),"-");
+		//result.CheckAccuracy(ToDouble() - r.ToDouble(),"-");
 		return result;
 	}
 	Rational operator*(const Rational & r) const 
@@ -163,13 +161,17 @@ struct Rational
 	//Rational operator*(const Rational & r) const {return Rational(ToDouble()*r.ToDouble());}
 	//Rational operator/(const Rational & r) const {return Rational(ToDouble()/r.ToDouble());}
 
+	Rational operator-() const {Rational r(*this); r.P = -r.P;}
 	Rational & operator=(const Rational & r) {P = r.P; Q = r.Q; Simplify(); return *this;}
 	Rational & operator+=(const Rational & r) {this->operator=(*this+r); return *this;}
 	Rational & operator-=(const Rational & r) {this->operator=(*this-r); return *this;}
 	Rational & operator*=(const Rational & r) {this->operator=(*this*r); return *this;}
 	Rational & operator/=(const Rational & r) {this->operator=(*this/r); return *this;}
 
-	double ToDouble() const {return (double)(P) / (double)(Q);}
+	double ToDouble() const 
+	{
+		return (double)P/(double)Q;
+	}
 	bool CheckAccuracy(double d, const char * msg, double threshold = 1e-3) const
 	{
 		double result = fabs(ToDouble() - d);
