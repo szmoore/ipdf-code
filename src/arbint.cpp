@@ -52,20 +52,14 @@ Arbint::Arbint(const vector<digit_t> & digits) : m_digits(digits), m_sign(false)
 
 Arbint & Arbint::operator=(const Arbint & cpy)
 {
-	memmove(m_digits.data(), cpy.m_digits.data(), 
-		sizeof(digit_t)*min(m_digits.size(), cpy.m_digits.size()));
-	if (cpy.m_digits.size() > m_digits.size())
-	{
-		unsigned old_size = m_digits.size();
-		m_digits.resize(cpy.m_digits.size());
-		memset(m_digits.data()+old_size, 0, sizeof(digit_t)*m_digits.size()-old_size);
-	}
+	m_digits = cpy.m_digits;
+	m_sign = cpy.m_sign;
 	return *this;
 }
 
 void Arbint::Zero()
 {
-	memset(m_digits.data(), 0, sizeof(digit_t)*m_digits.size());
+	m_digits.resize(1, 0L);
 }
 
 unsigned Arbint::Shrink()
@@ -325,7 +319,7 @@ Arbint & Arbint::operator<<=(unsigned amount)
 bool Arbint::GetBit(unsigned i) const
 {
 	unsigned digit = i/(8*sizeof(digit_t));
-	if (digit > m_digits.size())
+	if (digit >= m_digits.size())
 		return false;
 		
 	i = i % (8*sizeof(digit_t));
@@ -337,7 +331,7 @@ bool Arbint::GetBit(unsigned i) const
 void Arbint::BitClear(unsigned i)
 {
 	unsigned digit = i/(8*sizeof(digit_t));
-	if (digit > m_digits.size())
+	if (digit >= m_digits.size())
 		return;
 	i = i % (8*sizeof(digit_t));
 	m_digits[digit] &= ~(1L << i);	
@@ -346,7 +340,7 @@ void Arbint::BitClear(unsigned i)
 void Arbint::BitSet(unsigned i)
 {
 	unsigned digit = i/(8*sizeof(digit_t));
-	if (digit > m_digits.size())
+	if (digit >= m_digits.size())
 	{
 		m_digits.resize(digit+1, 0L);
 	}
