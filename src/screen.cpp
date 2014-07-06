@@ -378,7 +378,7 @@ void Screen::DebugFontInit(const char *name, float font_size)
 	size_t font_file_size = ftell(font_file);
 	fseek(font_file, 0, SEEK_SET);
 	unsigned char *font_file_data = (unsigned char*)malloc(font_file_size);
-	fread(font_file_data, 1, font_file_size, font_file);
+	SDL_assert(fread(font_file_data, 1, font_file_size, font_file) == font_file_size);
 	fclose(font_file);
 	stbtt_BakeFontBitmap(font_file_data,0, font_size, font_atlas_data,1024,1024, 32,96, m_debug_font_rects);
 	free(font_file_data);
