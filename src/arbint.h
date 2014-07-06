@@ -23,7 +23,7 @@ namespace IPDF
 			virtual ~Arbint() {}
 			Arbint(const Arbint & cpy);
 			
-			int64_t AsDigit() const 
+			int64_t AsDigit() const
 			{
 				int64_t digit = (m_digits.size() == 1) ? m_digits[0] : 0x7FFFFFFFFFFFFFFF;
 				return (m_sign) ? -digit : digit;
@@ -58,6 +58,13 @@ namespace IPDF
 			{
 				Arbint a(*this);
 				a -= add;
+				return a;
+			}
+
+			inline Arbint operator-()
+			{
+				Arbint a(*this);
+				a.m_sign = !a.m_sign;
 				return a;
 			}
 			
@@ -124,7 +131,17 @@ namespace IPDF
 			}
 			bool IsZero() const;
 			
-			//inline operator double() const {return double(AsDigit());}
+			inline operator double() const 
+			{
+				double acc = 0;
+				for(int i = m_digits.size()-1; i >= 0; --i)
+				{
+					acc += (double)m_digits[i];
+					acc *= (double)UINT64_MAX + 1.0;
+				}
+				if (m_sign) acc *= -1;
+				return acc;
+			}
 			inline operator int64_t() const {return AsDigit();}
 			//inline operator int() const {return int(AsDigit());}
 			

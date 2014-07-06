@@ -15,9 +15,10 @@ namespace IPDF
 	
 template <class T> T Tabs(const T & a)
 {
-	return llabs(a);
+	return abs(a);
 }
 
+template <> Arbint Tabs(const Arbint & a);
 
 
 /* Recursive version  of GCD
@@ -97,6 +98,12 @@ struct Rational
 			Q = T(1);
 			return;
 		}
+		if (P == Q)
+		{
+			P = Q = T(1);
+			return;
+		}
+		
 		T g = gcd(Tabs(P), Tabs(Q));
 		//Debug("Got gcd!");
 		P /= g;
@@ -156,7 +163,7 @@ struct Rational
 	//Rational operator*(const Rational & r) const {return Rational(ToDouble()*r.ToDouble());}
 	//Rational operator/(const Rational & r) const {return Rational(ToDouble()/r.ToDouble());}
 
-	Rational & operator=(const Rational & r) {P = r.P; Q = r.Q; return *this;}
+	Rational & operator=(const Rational & r) {P = r.P; Q = r.Q; Simplify(); return *this;}
 	Rational & operator+=(const Rational & r) {this->operator=(*this+r); return *this;}
 	Rational & operator-=(const Rational & r) {this->operator=(*this-r); return *this;}
 	Rational & operator*=(const Rational & r) {this->operator=(*this*r); return *this;}

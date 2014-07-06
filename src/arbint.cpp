@@ -114,6 +114,11 @@ void Arbint::Division(const Arbint & div, Arbint & result, Arbint & remainder) c
 {
 	remainder = 0;
 	result = 0;
+	if (div.IsZero())
+	{
+		result = *this;
+		return;
+	}
 	for (int i = 8*sizeof(digit_t)*m_digits.size(); i >= 0; --i)
 	{
 		remainder <<= 1;
