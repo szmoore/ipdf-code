@@ -119,6 +119,13 @@ void Arbint::Division(const Arbint & div, Arbint & result, Arbint & remainder) c
 		result = *this;
 		return;
 	}
+	else if (div.m_digits.size() == 1)
+	{
+		result.m_digits.resize(m_digits.size(), 0L);
+		remainder = Arbint(div_digits((digit_t*)&m_digits[0], div.m_digits[0], m_digits.size(), result.m_digits.data()));
+		result.m_sign = !(m_sign == div.m_sign);
+		return;
+	}
 	for (int i = 8*sizeof(digit_t)*m_digits.size(); i >= 0; --i)
 	{
 		remainder <<= 1;
@@ -196,7 +203,7 @@ Arbint & Arbint::SubBasic(const Arbint & sub)
 	{
 		m_sign = !m_sign;
 		for (unsigned i = 0; i < m_digits.size(); ++i)
-			m_digits[i] = -m_digits[i];
+			m_digits[i] = (~m_digits[i]) + 1;
 	}
 	return *this;
 }
