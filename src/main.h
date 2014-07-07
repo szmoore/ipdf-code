@@ -74,7 +74,7 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 		if (wheel)
 		{
 			#if REAL == REAL_RATIONAL
-				view.ScaleAroundPoint(Real(x,scr.ViewportWidth()), Real(y,scr.ViewportHeight()), Real(100-5*wheel, 100));
+				view.ScaleAroundPoint(Real(x,scr.ViewportWidth()), Real(y,scr.ViewportHeight()), Real(20-wheel, 20));
 			#else
 				view.ScaleAroundPoint(Real(x)/Real(scr.ViewportWidth()),Real(y)/Real(scr.ViewportHeight()), Real(expf(-wheel/20.f)));
 			#endif
