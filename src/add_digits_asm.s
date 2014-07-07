@@ -9,6 +9,7 @@
 # Result in %rax is the final result in the carry flag
 # Exploits the fact that inc and dec do not affect the carry flag
 add_digits:
+	addq $0, %rax
 	loop:
 		movq (%rsi), %rax # Temporarily store digit from second array
 		adcq %rax, (%rdi) # Add digits in second and first array, store in first
