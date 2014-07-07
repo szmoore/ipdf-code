@@ -28,7 +28,7 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 	Screen scr;
 	View view(doc,scr, bounds, c);
 	scr.DebugFontInit("DejaVuSansMono.ttf");
-	scr.SetMouseHandler([&](int x, int y, int buttons, int wheel) // [?] wtf
+	scr.SetMouseHandler([&](int x, int y, int buttons, int wheel) // [?] seriously WTF
 	{
 		static bool oldButtonDown = false;
 		static int oldx, oldy;
