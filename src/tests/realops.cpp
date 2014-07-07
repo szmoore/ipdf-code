@@ -10,7 +10,7 @@ static double g_totalerror = 0;
 
 bool NotEqual(double a, double b, double threshold=1e-1)
 {
-	double error = (fabs(a-b) > threshold);
+	double error = fabs(a-b);
 	g_totalerror += error;
 	return (error > threshold);
 }
