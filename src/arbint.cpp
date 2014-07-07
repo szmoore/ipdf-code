@@ -271,7 +271,16 @@ string Arbint::Str(const string & base) const
 {
 	string s("");
 	Arbint cpy(*this);
-	
+	unsigned b = base.size();
+	while (cpy > Arbint(0L))
+	{
+		//Debug("cpy is %s", cpy.DigitStr().c_str());
+		unsigned c = (unsigned)(cpy % Arbint(b)).AsDigit();
+		s += base[c];
+		cpy /= Arbint(b);
+	}
+	if (m_sign)
+		s += '-';
 	reverse(s.begin(), s.end());
 	return s;
 }

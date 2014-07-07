@@ -11,5 +11,10 @@ namespace IPDF
 		"Rational<int64_t>", 
 		"Rational<Arbint>"
 	};
+	
+	template <> Gmpint Tabs(const Gmpint & a)
+	{
+		return a.Abs();
+	}
 
 }
