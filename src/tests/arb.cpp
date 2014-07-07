@@ -7,7 +7,7 @@
 using namespace std;
 using namespace IPDF;
 
-#define TEST_CASES 100
+#define TEST_CASES 10
 
 
 void TestShifting(unsigned cases)
@@ -87,11 +87,20 @@ void TestConstructFromDouble(unsigned cases)
 
 void TestSubtraction()
 {
-	
+	Arbint b(2u, 45L, 10L);
+	Arbint a(1u, 128L, 0L);
+	Arbint c(a - b);
+	Arbint test = -Arbint(2u, 18446744073709551533LU,9L);
+	Debug("%c%s - %c%s = %c%s", a.SignChar(), a.DigitStr().c_str(), b.SignChar(), b.DigitStr().c_str(), c.SignChar(), c.DigitStr().c_str());
+	if (c != test)
+	{
+		Fatal("Expected %c%s, got %c%s", test.SignChar(), test.DigitStr().c_str(), c.SignChar(), c.DigitStr().c_str());
+	}
 }
 
 int main(int argc, char ** argv)
 {
+	
 	Debug("Shift testing...");
 	TestShifting(TEST_CASES);
 	Debug("Left/Right shift testing succeeded");
@@ -104,5 +113,9 @@ int main(int argc, char ** argv)
 	Debug("Testing construct from double");
 	TestConstructFromDouble(TEST_CASES);
 	Debug("Construct from double successful");
+	
+	Debug("Testing subtractions");
+	TestSubtraction();
+	Debug("Testing subtractions successful");
 	return 0;
 }

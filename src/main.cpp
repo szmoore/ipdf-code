@@ -98,7 +98,7 @@ int main(int argc, char ** argv)
 			}
 		}
 		Debug("Make rect");
-		doc.Add(BEZIER, Rect(0.1,0.1,0.8,0.8), 0);
+		doc.Add(RECT_OUTLINE, Rect(0.1,0.1,0.8,0.8), 0);
 		Debug("Made rect");
 		
 	}
