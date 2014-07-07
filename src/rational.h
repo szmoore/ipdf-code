@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cassert>
 #include "arbint.h"
+#include "gmpint.h"
 
 namespace IPDF
 {
@@ -18,7 +19,7 @@ template <class T> T Tabs(const T & a)
 	return abs(a);
 }
 template <> Arbint Tabs(const Arbint & a);
-
+template <> Gmpint Tabs(const Gmpint & a);
 
 /* Recursive version  of GCD
 template <class T>

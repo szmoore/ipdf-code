@@ -26,9 +26,12 @@ int main(int argc, char ** argv)
 		{
 			arb_a *= b;
 			gmp_a *= b;
-			
-			Debug("Arbint - %s", arb_a.Str().c_str());
-			Debug("Gmpint - %s", gmp_a.Str().c_str());
+		}
+		
+		for (unsigned j = 0; j < 5; ++j)
+		{
+			arb_a /= b;
+			gmp_a /= b;
 		}
 		
 		

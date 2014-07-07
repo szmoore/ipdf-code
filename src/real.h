@@ -26,6 +26,7 @@
 #if REAL == REAL_RATIONAL_ARBINT
 	#include "rational.h"
 	#include "arbint.h"
+	#include "gmpint.h"
 #endif //REAL
 
 namespace IPDF
@@ -48,14 +49,16 @@ namespace IPDF
 	inline float Float(const Real & r) {return (float)r.ToDouble();}
 	inline double Double(const Real & r) {return r.ToDouble();}
 #elif REAL == REAL_RATIONAL_ARBINT
-	typedef Rational<Arbint> Real;
+	#define ARBINT Gmpint // Set to Gmpint or Arbint here
+	
+	typedef Rational<ARBINT> Real;
 	inline float Float(const Real & r) {return (float)r.ToDouble();}
 	inline double Double(const Real & r) {return r.ToDouble();}
-	inline Rational<Arbint> pow(const Rational<Arbint> & a, const Rational<Arbint> & b)
+	inline Rational<ARBINT> pow(const Rational<ARBINT> & a, const Rational<ARBINT> & b)
 	{
-		Arbint P(std::pow(static_cast<double>(a.P), b.ToDouble()));
-		Arbint Q(std::pow(static_cast<double>(a.Q), b.ToDouble()));
-		return Rational<Arbint>(P,Q);
+		ARBINT P(std::pow(static_cast<double>(a.P), b.ToDouble()));
+		ARBINT Q(std::pow(static_cast<double>(a.Q), b.ToDouble()));
+		return Rational<ARBINT>(P,Q);
 	}
 #else
 	#error "Type of Real unspecified."

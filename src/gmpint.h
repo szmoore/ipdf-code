@@ -18,9 +18,9 @@ class Gmpint
 		virtual ~Gmpint() {} //TODO: Do we need to delete m_op somehow?
 		
 		
-		operator int64_t() {return mpz_get_si(m_op);}
-		operator uint64_t() {return mpz_get_ui(m_op);}
-		operator double() {return mpz_get_d(m_op);}
+		operator int64_t() const {return mpz_get_si(m_op);}
+		operator uint64_t() const {return mpz_get_ui(m_op);}
+		operator double() const {return mpz_get_d(m_op);}
 		std::string Str(int base = 10) const
 		{
 			//TODO: Make less hacky, if we care.
@@ -40,8 +40,7 @@ class Gmpint
 		Gmpint operator-(const Gmpint & sub) const {Gmpint a(*this); a -= sub; return a;}
 		Gmpint operator*(const Gmpint & mul) const {Gmpint a(*this); a *= mul; return a;}
 		Gmpint operator/(const Gmpint & div) const {Gmpint a(*this); a /= div; return a;}
-		Gmpint operator%(const Gmpint & div) const 
-		{Gmpint a(*this); mpz_mod(a.m_op, a.m_op, div.m_op); return a;}
+		Gmpint operator%(const Gmpint & div) const {Gmpint a(*this); mpz_mod(a.m_op, a.m_op, div.m_op); return a;}
 		Gmpint operator-() const {return (Gmpint(0L)-*this);}
  		
 		
