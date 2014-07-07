@@ -57,7 +57,7 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 		}
 		if (buttons)
 		{
-			#if REAL == REAL_RATIONAL
+			#if REAL >= REAL_RATIONAL
 				view.Translate(Real(oldx, scr.ViewportWidth()) -Real(x,scr.ViewportWidth()), Real(oldy, scr.ViewportHeight()) - Real(y,scr.ViewportHeight()));
 			#else			
 				view.Translate(Real(oldx-x)/Real(scr.ViewportWidth()), Real(oldy-y)/Real(scr.ViewportHeight()));
@@ -73,7 +73,7 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 		
 		if (wheel)
 		{
-			#if REAL == REAL_RATIONAL
+			#if REAL >= REAL_RATIONAL
 				view.ScaleAroundPoint(Real(x,scr.ViewportWidth()), Real(y,scr.ViewportHeight()), Real(20-wheel, 20));
 			#else
 				view.ScaleAroundPoint(Real(x)/Real(scr.ViewportWidth()),Real(y)/Real(scr.ViewportHeight()), Real(expf(-wheel/20.f)));
