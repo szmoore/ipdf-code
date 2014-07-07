@@ -22,7 +22,7 @@ int main(int argc, char ** argv)
 	unsigned failures = 0;
 	for (unsigned i = 0; i < TEST_CASES; ++i)
 	{
-		Debug("Test %u of %u", i, TEST_CASES);
+		//Debug("Test %u of %u", i, TEST_CASES);
 		double da = (double)(rand() + 1) / (double)(rand() + 1);
 		double db = (double)(rand() + 1) / (double)(rand() + 1);
 		

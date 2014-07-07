@@ -203,19 +203,28 @@ Arbint & Arbint::operator-=(const Arbint & sub)
 
 Arbint & Arbint::AddBasic(const Arbint & add)
 {
+	// Add any leading zeros to this number
 	while (m_digits.size() < add.m_digits.size())
 	{
-		
-		Debug("Size is %u, add's size is %u", m_digits.size(), add.m_digits.size());
 		GrowDigit(0L);
 	}
 	//m_digits.resize(add.m_digits.size()+1,0L);
 	
 	digit_t carry = add_digits((digit_t*)m_digits.data(), 
 			(digit_t*)add.m_digits.data(), add.m_digits.size());
+			
+	// This number had more digits but there is a carry left over
+	if (carry != 0L && m_digits.size() > add.m_digits.size())
+	{
+		vector<digit_t> carry_digits(m_digits.size() - add.m_digits.size(), 0L);
+		carry_digits[0] = carry;
+		carry = add_digits((digit_t*)m_digits.data()+add.m_digits.size(), 
+			(digit_t*)carry_digits.data(), m_digits.size()-add.m_digits.size());
+	}
+	
+	// There is still a carry left over
 	if (carry != 0L)
 	{
-		Debug("Grow carry %lu", carry);
 		GrowDigit(carry);
 	}
 	Shrink();
@@ -224,51 +233,36 @@ Arbint & Arbint::AddBasic(const Arbint & add)
 
 Arbint & Arbint::SubBasic(const Arbint & sub)
 {
-	bool fith = false;
+	// Add leading zeros
 	while (sub.m_digits.size() > m_digits.size())
 	{
-		fith = false;
 		GrowDigit(0L);
 	}
-	if (fith)
-	{
-		Debug("START sub was %c%s, I am %c%s", SignChar(), sub.DigitStr().c_str(), SignChar(), DigitStr().c_str());
-	}
 	
+	// Do subtraction on digits
 	digit_t borrow = sub_digits((digit_t*)m_digits.data(), 
 			(digit_t*)sub.m_digits.data(), sub.m_digits.size());
-		
-	if (fith)
+
+	// This number had more digits but there is a borrow left over	
+	if (borrow != 0L && m_digits.size() > sub.m_digits.size())
 	{
-		Debug("SUB_DIGITS -> sub was %c%s, I am %c%s, borrow is %lu", SignChar(), sub.DigitStr().c_str(), SignChar(), DigitStr().c_str(), borrow);
+		vector<digit_t> borrow_digits(m_digits.size()-sub.m_digits.size(), 0L);
+		borrow_digits[0] = borrow;
+		borrow = sub_digits((digit_t*)m_digits.data()+sub.m_digits.size(), 
+			(digit_t*)borrow_digits.data(), m_digits.size()-sub.m_digits.size());
 	}
-		
-	//TODO: Write ASM to do this bit?
+	
+	// borrow is still set => number is negative
 	if (borrow != 0L)
 	{
-		if (sub.m_digits.size() < m_digits.size())
-		{
-			m_digits[m_digits.size()-1] -= borrow;
-		}
-		else
-		{
-			m_sign = !m_sign;
-			for (unsigned i = 0; i < m_digits.size(); ++i)
-				m_digits[i] = (~m_digits[i]);
-			vector<digit_t> one_digits(m_digits.size(), 0L);
-			one_digits[0] = 1L;
-			add_digits((digit_t*)m_digits.data(), (digit_t*)one_digits.data(), m_digits.size());
-		}
-	}
-	if (fith)
-	{
-		Debug("END -> sub was %c%s, I am %c%s", sub.SignChar(), sub.DigitStr().c_str(), SignChar(), DigitStr().c_str());
+		m_sign = !m_sign;
+		for (unsigned i = 0; i < m_digits.size(); ++i)
+			m_digits[i] = (~m_digits[i]);
+		vector<digit_t> one_digits(m_digits.size(), 0L);
+		one_digits[0] = 1L;
+		add_digits((digit_t*)m_digits.data(), (digit_t*)one_digits.data(), m_digits.size());
 	}
 	Shrink();
-	if (fith)
-	{
-		Debug("SHRUNK -> sub was %c%s, I am %c%s", sub.SignChar(), sub.DigitStr().c_str(), SignChar(), DigitStr().c_str());
-	}
 	return *this;
 }
 
