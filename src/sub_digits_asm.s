@@ -9,6 +9,7 @@
 # Result in %rax is the final result in the carry flag
 # Exploits the fact that inc and dec do not affect the carry flag
 sub_digits:
+	subq $0, %rax		# Reset the carry/borrow flag
 	loop:
 		movq (%rsi), %rax # Temporarily store digit from second array
 		sbbq %rax, (%rdi) # Subtract digits in second and first array, store in first
