@@ -142,6 +142,12 @@ void Document::Load(const string & filename)
 		}
 	}
 	Debug("Successfully loaded %u objects from \"%s\"", ObjectCount(), filename.c_str());
+#ifndef QUADTREE_DISABLED
+	if (m_quadtree.root_id == QUADTREE_EMPTY)
+	{
+		GenBaseQuadtree();
+	}
+#endif
 }
 
 void Document::Add(ObjectType type, const Rect & bounds, unsigned data_index)

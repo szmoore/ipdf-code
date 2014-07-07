@@ -42,6 +42,7 @@ namespace IPDF
 
 	struct QuadTree
 	{
+		QuadTree() : root_id(QUADTREE_EMPTY) {}
 		QuadTreeIndex root_id;
 		std::vector<QuadTreeNode> nodes;
 	};

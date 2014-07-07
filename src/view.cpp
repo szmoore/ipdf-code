@@ -125,6 +125,28 @@ Rect View::TransformToViewCoords(const Rect& inp) const
  */
 void View::Render(int width, int height)
 {
+#ifdef QUADTREE_DISABLED
+	RenderRange(width, height, 0, m_document.ObjectCount());
+#else
+	RenderQuadtreeNode(width, height, m_current_quadtree_node, m_quadtree_max_depth);
+#endif
+}
+
+#ifndef QUADTREE_DISABLED
+void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int remaining_depth)
+{
+	if (node == QUADTREE_EMPTY) return;
+	if (!remaining_depth) return;
+	RenderRange(width, height, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
+	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].top_left, remaining_depth-1);
+	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].top_right, remaining_depth-1);
+	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].bottom_left, remaining_depth-1);
+	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].bottom_right, remaining_depth-1);
+}
+#endif
+
+void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_obj)
+{
 	// View dimensions have changed (ie: Window was resized)
 	int prev_width = m_cached_display.GetWidth();
 	int prev_height = m_cached_display.GetHeight();
@@ -167,10 +189,6 @@ void View::Render(int width, int height)
 
 	m_cached_display.Bind(); //NOTE: This is redundant; Clear already calls Bind
 	m_cached_display.Clear();
-
-	// When we QuadTree, this will be magic.
-	int first_obj = 0;
-	int last_obj = m_document.ObjectCount();
 
 	// Render using GPU
 	if (m_use_gpu_rendering) 

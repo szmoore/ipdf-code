@@ -53,6 +53,8 @@ namespace IPDF
 			void PrepareRender(); // call when m_render_dirty is true
 			void UpdateObjBoundsVBO(); // call when m_buffer_dirty is true
 
+			void RenderRange(int width, int height, unsigned first_obj, unsigned last_obj);
+
 			bool m_use_gpu_transform;
 			bool m_use_gpu_rendering;
 			bool m_bounds_dirty; // the view bounds has changed (occurs when changing view)
@@ -77,6 +79,7 @@ namespace IPDF
 #ifndef QUADTREE_DISABLED
 			QuadTreeIndex m_current_quadtree_node;	// The highest node we will traverse.
 			int m_quadtree_max_depth;		// The maximum quadtree depth.
+			void RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int remaining_depth);
 
 #endif
 	};

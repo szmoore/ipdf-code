@@ -26,7 +26,7 @@ namespace IPDF
 			unsigned AddBezierData(const Bezier & bezier);
 
 #ifndef QUADTREE_DISABLED
-			inline const QuadTree& GetQuadTree() const { return m_quadtree; }
+			inline const QuadTree& GetQuadTree() { if (m_quadtree.root_id == QUADTREE_EMPTY) { GenBaseQuadtree(); } return m_quadtree; }
 #endif
 
 		private:
