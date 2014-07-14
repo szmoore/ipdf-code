@@ -6,6 +6,7 @@
 
 
 #include "common.h"
+#include "ipdf.h"
 
 namespace IPDF
 {
@@ -46,6 +47,9 @@ namespace IPDF
 		QuadTreeIndex root_id;
 		std::vector<QuadTreeNode> nodes;
 	};
+
+	Rect TransformToQuadChild(const Rect& src, QuadTreeNodeChildren child_type);
+	Rect TransformFromQuadChild(const Rect& src, QuadTreeNodeChildren child_type);
 }
 
 #else

@@ -135,13 +135,20 @@ void View::Render(int width, int height)
 #ifndef QUADTREE_DISABLED
 void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int remaining_depth)
 {
+	Rect old_bounds = m_bounds;
 	if (node == QUADTREE_EMPTY) return;
 	if (!remaining_depth) return;
 	RenderRange(width, height, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
+
+	m_bounds = TransformToQuadChild(old_bounds, QTC_TOP_LEFT);
 	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].top_left, remaining_depth-1);
+	m_bounds = TransformToQuadChild(old_bounds, QTC_TOP_RIGHT);
 	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].top_right, remaining_depth-1);
+	m_bounds = TransformToQuadChild(old_bounds, QTC_BOTTOM_LEFT);
 	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].bottom_left, remaining_depth-1);
+	m_bounds = TransformToQuadChild(old_bounds, QTC_BOTTOM_RIGHT);
 	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].bottom_right, remaining_depth-1);
+	m_bounds = old_bounds;
 }
 #endif
 
