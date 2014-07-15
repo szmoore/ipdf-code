@@ -35,7 +35,7 @@ View::View(Document & document, Screen & screen, const Rect & bounds, const Colo
 
 
 #ifndef QUADTREE_DISABLED
-	m_quadtree_max_depth = 1;
+	m_quadtree_max_depth = 2;
 	m_current_quadtree_node = document.GetQuadTree().root_id;
 #endif
 }
@@ -125,35 +125,6 @@ Rect View::TransformToViewCoords(const Rect& inp) const
  */
 void View::Render(int width, int height)
 {
-#ifdef QUADTREE_DISABLED
-	RenderRange(width, height, 0, m_document.ObjectCount());
-#else
-	RenderQuadtreeNode(width, height, m_current_quadtree_node, m_quadtree_max_depth);
-#endif
-}
-
-#ifndef QUADTREE_DISABLED
-void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int remaining_depth)
-{
-	Rect old_bounds = m_bounds;
-	if (node == QUADTREE_EMPTY) return;
-	if (!remaining_depth) return;
-	RenderRange(width, height, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
-
-	m_bounds = TransformToQuadChild(old_bounds, QTC_TOP_LEFT);
-	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].top_left, remaining_depth-1);
-	m_bounds = TransformToQuadChild(old_bounds, QTC_TOP_RIGHT);
-	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].top_right, remaining_depth-1);
-	m_bounds = TransformToQuadChild(old_bounds, QTC_BOTTOM_LEFT);
-	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].bottom_left, remaining_depth-1);
-	m_bounds = TransformToQuadChild(old_bounds, QTC_BOTTOM_RIGHT);
-	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].bottom_right, remaining_depth-1);
-	m_bounds = old_bounds;
-}
-#endif
-
-void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_obj)
-{
 	// View dimensions have changed (ie: Window was resized)
 	int prev_width = m_cached_display.GetWidth();
 	int prev_height = m_cached_display.GetHeight();
@@ -170,9 +141,67 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 		m_cached_display.Blit();
 		return;
 	}
+	m_cached_display.Bind(); //NOTE: This is redundant; Clear already calls Bind
+	m_cached_display.Clear();
 
-	// Bind FrameBuffer for rendering, and clear it
 
+	if (!m_use_gpu_rendering)
+	{
+		// Dynamically resize CPU rendering target pixels if needed
+		if (m_cpu_rendering_pixels == NULL || width*height > prev_width*prev_height)
+		{
+			delete [] m_cpu_rendering_pixels;
+			m_cpu_rendering_pixels = new uint8_t[width*height*4];
+			if (m_cpu_rendering_pixels == NULL)
+				Fatal("Could not allocate %d*%d*4 = %d bytes for cpu rendered pixels", width, height, width*height*4);
+		}
+		// Clear CPU rendering pixels
+		for (int i = 0; i < width*height*4; ++i)
+			m_cpu_rendering_pixels[i] = 255;
+	}
+#ifdef QUADTREE_DISABLED
+	RenderRange(width, height, 0, m_document.ObjectCount());
+#else
+	RenderQuadtreeNode(width, height, m_current_quadtree_node, m_quadtree_max_depth);
+#endif
+	if (!m_use_gpu_rendering)
+	{
+		m_screen.RenderPixels(0,0,width, height, m_cpu_rendering_pixels); //TODO: Make this work :(
+		// Debug for great victory (do something similar for GPU and compare?)
+		ObjectRenderer::SaveBMP({m_cpu_rendering_pixels, width, height}, "cpu_rendering_last_frame.bmp");
+	}
+	m_cached_display.UnBind(); // resets render target to the screen
+	m_cached_display.Blit(); // blit FrameBuffer to screen
+}
+
+#ifndef QUADTREE_DISABLED
+void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int remaining_depth)
+{
+	Rect old_bounds = m_bounds;
+	if (node == QUADTREE_EMPTY) return;
+	if (!remaining_depth) return;
+	Debug("Rendering QT node %d, (objs: %d -- %d)\n", node, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
+	RenderRange(width, height, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
+
+	m_bounds = TransformToQuadChild(old_bounds, QTC_TOP_LEFT);
+	m_bounds_dirty = true;
+	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].top_left, remaining_depth-1);
+	m_bounds = TransformToQuadChild(old_bounds, QTC_TOP_RIGHT);
+	m_bounds_dirty = true;
+	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].top_right, remaining_depth-1);
+	m_bounds = TransformToQuadChild(old_bounds, QTC_BOTTOM_LEFT);
+	m_bounds_dirty = true;
+	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].bottom_left, remaining_depth-1);
+	m_bounds = TransformToQuadChild(old_bounds, QTC_BOTTOM_RIGHT);
+	m_bounds_dirty = true;
+	RenderQuadtreeNode(width, height, m_document.GetQuadTree().nodes[node].bottom_right, remaining_depth-1);
+	m_bounds = old_bounds;
+	m_bounds_dirty = true;
+}
+#endif
+
+void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_obj)
+{
 
 	if (m_render_dirty) // document has changed
 		PrepareRender();
@@ -194,8 +223,6 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 	}
 	m_bounds_dirty = false;
 
-	m_cached_display.Bind(); //NOTE: This is redundant; Clear already calls Bind
-	m_cached_display.Clear();
 
 	// Render using GPU
 	if (m_use_gpu_rendering) 
@@ -223,28 +250,12 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 	}
 	else // Rasterise on CPU then blit texture to GPU
 	{
-		// Dynamically resize CPU rendering target pixels if needed
-		if (m_cpu_rendering_pixels == NULL || width*height > prev_width*prev_height)
-		{
-			delete [] m_cpu_rendering_pixels;
-			m_cpu_rendering_pixels = new uint8_t[width*height*4];
-			if (m_cpu_rendering_pixels == NULL)
-				Fatal("Could not allocate %d*%d*4 = %d bytes for cpu rendered pixels", width, height, width*height*4);
-		}
-		// Clear CPU rendering pixels
-		for (int i = 0; i < width*height*4; ++i)
-			m_cpu_rendering_pixels[i] = 255;
 
 		for (unsigned i = 0; i < m_object_renderers.size(); ++i)
 		{
 			m_object_renderers[i]->RenderUsingCPU(m_document.m_objects, *this, {m_cpu_rendering_pixels, width, height}, first_obj, last_obj);
 		}
-		m_screen.RenderPixels(0,0,width, height, m_cpu_rendering_pixels); //TODO: Make this work :(
-		// Debug for great victory (do something similar for GPU and compare?)
-		ObjectRenderer::SaveBMP({m_cpu_rendering_pixels, width, height}, "cpu_rendering_last_frame.bmp");
 	}
-	m_cached_display.UnBind(); // resets render target to the screen
-	m_cached_display.Blit(); // blit FrameBuffer to screen
 }
 
 void View::UpdateObjBoundsVBO()

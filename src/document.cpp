@@ -89,7 +89,8 @@ void Document::Save(const string & filename)
 
 void Document::GenBaseQuadtree()
 {
-	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 0, ObjectCount()});
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, 1, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 0, 1});
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 1, ObjectCount()});
 	m_quadtree.root_id = 0;
 }
 
