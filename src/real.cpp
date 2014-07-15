@@ -12,9 +12,11 @@ namespace IPDF
 		"Rational<Arbint>"
 	};
 	
+#if REAL == REAL_RATIONAL_ARBINT
 	template <> Gmpint Tabs(const Gmpint & a)
 	{
 		return a.Abs();
 	}
+#endif
 
 }
