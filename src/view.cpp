@@ -172,6 +172,7 @@ void View::Render(int width, int height)
 	}
 	m_cached_display.UnBind(); // resets render target to the screen
 	m_cached_display.Blit(); // blit FrameBuffer to screen
+	m_buffer_dirty = false;
 }
 
 #ifndef QUADTREE_DISABLED
@@ -206,8 +207,8 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 	if (m_render_dirty) // document has changed
 		PrepareRender();
 
-	if (m_buffer_dirty || (m_bounds_dirty && !m_use_gpu_transform)) // object bounds have changed
-		UpdateObjBoundsVBO();
+	if (m_buffer_dirty) // object bounds have changed
+		UpdateObjBoundsVBO(first_obj, last_obj);
 
 	if (m_use_gpu_transform)
 	{
@@ -258,9 +259,9 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 	}
 }
 
-void View::UpdateObjBoundsVBO()
+void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 {
-	m_objbounds_vbo.Invalidate();
+	//m_objbounds_vbo.Invalidate();
 	m_objbounds_vbo.SetType(GraphicsBuffer::BufferTypeVertex);
 	if (m_use_gpu_transform)
 	{
@@ -272,9 +273,9 @@ void View::UpdateObjBoundsVBO()
 	}
 	m_objbounds_vbo.Resize(m_document.ObjectCount()*sizeof(GPUObjBounds));
 
-	BufferBuilder<GPUObjBounds> obj_bounds_builder(m_objbounds_vbo.Map(false, true, true), m_objbounds_vbo.GetSize());
+	BufferBuilder<GPUObjBounds> obj_bounds_builder(m_objbounds_vbo.MapRange(first_obj*sizeof(GPUObjBounds), (last_obj-first_obj)*sizeof(GPUObjBounds), false, true, true), m_objbounds_vbo.GetSize());
 
-	for (unsigned id = 0; id < m_document.ObjectCount(); ++id)
+	for (unsigned id = first_obj; id < last_obj; ++id)
 	{
 		Rect obj_bounds;
 		if (m_use_gpu_transform)
@@ -295,7 +296,6 @@ void View::UpdateObjBoundsVBO()
 
 	}
 	m_objbounds_vbo.UnMap();
-	m_buffer_dirty = false;
 }
 /**
  * Prepare the document for rendering

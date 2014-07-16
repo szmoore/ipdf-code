@@ -51,7 +51,7 @@ namespace IPDF
 			};
 
 			void PrepareRender(); // call when m_render_dirty is true
-			void UpdateObjBoundsVBO(); // call when m_buffer_dirty is true
+			void UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj); // call when m_buffer_dirty is true
 
 			void RenderRange(int width, int height, unsigned first_obj, unsigned last_obj);
 
