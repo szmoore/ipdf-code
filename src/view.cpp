@@ -206,7 +206,7 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 	if (m_render_dirty) // document has changed
 		PrepareRender();
 
-	if (m_buffer_dirty) // object bounds have changed
+	if (m_buffer_dirty || (m_bounds_dirty && !m_use_gpu_transform)) // object bounds have changed
 		UpdateObjBoundsVBO();
 
 	if (m_use_gpu_transform)

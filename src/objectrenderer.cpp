@@ -115,7 +115,7 @@ void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & vi
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
 		if (m_indexes[i] < first_obj_id) continue;
-		if (m_indexes[i] > last_obj_id) continue;
+		if (m_indexes[i] >= last_obj_id) continue;
 		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		for (int64_t x = max(0L, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
 		{
@@ -140,7 +140,7 @@ void RectOutlineRenderer::RenderUsingCPU(const Objects & objects, const View & v
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
 		if (m_indexes[i] < first_obj_id) continue;
-		if (m_indexes[i] > last_obj_id) continue;
+		if (m_indexes[i] >= last_obj_id) continue;
 		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		
 		// Using bresenham's lines now mainly because I want to see if they work
@@ -167,7 +167,7 @@ void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & 
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
 		if (m_indexes[i] < first_obj_id) continue;
-		if (m_indexes[i] > last_obj_id) continue;
+		if (m_indexes[i] >= last_obj_id) continue;
 		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		int64_t centre_x = bounds.x + bounds.w / 2;
 		int64_t centre_y = bounds.y + bounds.h / 2;
@@ -217,7 +217,7 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
 		if (m_indexes[i] < first_obj_id) continue;
-		if (m_indexes[i] > last_obj_id) continue;
+		if (m_indexes[i] >= last_obj_id) continue;
 		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		PixelBounds pix_bounds(bounds);
 
