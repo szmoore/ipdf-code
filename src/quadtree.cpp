@@ -39,6 +39,17 @@ Rect TransformFromQuadChild(const Rect& src, QuadTreeNodeChildren child_type)
 	return dst;
 }
 
+bool ContainedInQuadChild(const Rect& src, QuadTreeNodeChildren child_type)
+{
+	Rect std = {0,0,1,1};
+	Rect dst = TransformFromQuadChild(std, child_type);
+	if (src.x + src.w < dst.x) return false;
+	if (src.y + src.h < dst.y) return false;
+	if (src.x > dst.x + dst.w) return false;
+	if (src.y > dst.y + dst.h) return false;
+	return true;
+}
+
 }
 
 #endif

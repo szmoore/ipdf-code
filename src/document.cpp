@@ -94,6 +94,42 @@ void Document::GenBaseQuadtree()
 	m_quadtree.root_id = 0;
 }
 
+QuadTreeIndex Document::GenQuadNode(QuadTreeIndex parent, QuadTreeNodeChildren type)
+{
+	QuadTreeIndex new_index = m_quadtree.nodes.size();
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, parent, type, 0, 0});
+
+	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();
+	for (unsigned i = m_quadtree.nodes[parent].object_begin; i < m_quadtree.nodes[parent].object_end; ++i)
+	{
+		if (ContainedInQuadChild(m_objects.bounds[i], type))
+		{
+			m_objects.bounds.push_back(TransformToQuadChild(m_objects.bounds[i], type));
+			m_objects.types.push_back(m_objects.types[i]);
+			m_objects.data_indices.push_back(m_objects.data_indices[i]);
+		}
+	}
+	m_quadtree.nodes[new_index].object_end = m_objects.bounds.size();
+	switch (type)
+	{
+		case QTC_TOP_LEFT:
+			m_quadtree.nodes[parent].top_left = new_index;
+			break;
+		case QTC_TOP_RIGHT:
+			m_quadtree.nodes[parent].top_right = new_index;
+			break;
+		case QTC_BOTTOM_LEFT:
+			m_quadtree.nodes[parent].bottom_left = new_index;
+			break;
+		case QTC_BOTTOM_RIGHT:
+			m_quadtree.nodes[parent].bottom_right = new_index;
+			break;
+		default:
+			Fatal("Tried to add a QuadTree child of invalid type!");
+	}
+	return new_index;
+}
+
 #endif
 
 void Document::Load(const string & filename)
