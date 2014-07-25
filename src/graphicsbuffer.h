@@ -21,7 +21,7 @@ namespace IPDF
 			BufferTypePixelUnpack,
 			BufferTypeUniform,		// Uniform/Constant buffer
 			BufferTypeTexture,		// I was hoping to avoid this one.
-			BufferTypeDrawIndirect,
+			BufferTypeDrawIndirect
 		};
 		
 		enum BufferUsage
@@ -64,7 +64,7 @@ namespace IPDF
 		
 		void Bind() const;
 	private:
-		bool RecreateBuffer(const void *data = nullptr);
+		bool RecreateBuffer(const void *data = NULL);
 		GLuint m_buffer_handle;
 		BufferType m_buffer_type;
 		BufferUsage m_buffer_usage;

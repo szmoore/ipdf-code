@@ -2630,7 +2630,7 @@ extern void (CODEGEN_FUNCPTR *_ptrc_glClearTexSubImage)(GLuint, GLint, GLint, GL
 enum ogl_LoadStatus
 {
 	ogl_LOAD_FAILED = 0,
-	ogl_LOAD_SUCCEEDED = 1,
+	ogl_LOAD_SUCCEEDED = 1
 };
 
 int ogl_LoadFunctions();

@@ -47,10 +47,10 @@ bool ShaderProgram::InitialiseShaders(const char * vertex_file, const char * fra
 ShaderProgram::~ShaderProgram()
 {
 	m_valid = false;
-	for(auto shader : m_shaders)
+	for(auto shader = m_shaders.begin(); shader != m_shaders.end(); ++shader)
 	{
-		glDetachShader(m_program, shader.obj);
-		glDeleteShader(shader.obj);
+		glDetachShader(m_program, shader->obj);
+		glDeleteShader(shader->obj);
 	}
 
 	if (m_program)
@@ -121,7 +121,7 @@ bool ShaderProgram::AttachShader(const char * src_file, GLenum type)
 	{
 		char info_log[2048];
 
-		glGetShaderInfoLog(shader_obj, 2048, nullptr, info_log);
+		glGetShaderInfoLog(shader_obj, 2048, NULL, info_log);
 		Error("Shader compile error (file \"%s\"): %s (type %d)", src_file, info_log, type);
 		return false;
 	}

@@ -22,66 +22,69 @@ inline void OverlayBMP(Document & doc, const char * input, const char * output, 
 	scr.Present();
 }
 
+// It is the only way.
+void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
+{
+	static bool oldButtonDown = false;
+	static int oldx, oldy;
+	if (buttons == 3 && !oldButtonDown)
+	{
+		oldButtonDown = true;
+		view->ToggleGPUTransform();
+		oldx = x;
+		oldy = y;
+		return;
+	}
+	if (buttons == 2 && !oldButtonDown)
+	{
+		oldButtonDown = true;
+		view->ToggleGPURendering();
+		oldx = x;
+		oldy = y;
+	}
+	if (buttons && !oldButtonDown)
+	{
+		// We're beginning a drag.
+		oldButtonDown = true;
+		oldx = x;
+		oldy = y;
+		scr->SetMouseCursor(Screen::CursorMove);
+	}
+	if (buttons)
+	{
+		#if REAL >= REAL_RATIONAL
+			view->Translate(Real(oldx, scr->ViewportWidth()) -Real(x,scr->ViewportWidth()), Real(oldy, scr->ViewportHeight()) - Real(y,scr->ViewportHeight()));
+		#else			
+			view->Translate(Real(oldx-x)/Real(scr->ViewportWidth()), Real(oldy-y)/Real(scr->ViewportHeight()));
+		#endif
+	}
+	else
+	{
+		oldButtonDown = false;
+		scr->SetMouseCursor(Screen::CursorArrow);
+	}
+	oldx = x;
+	oldy = y;
+		
+	if (wheel)
+	{
+		#if REAL >= REAL_RATIONAL
+			view->ScaleAroundPoint(Real(x,scr->ViewportWidth()), Real(y,scr->ViewportHeight()), Real(20-wheel, 20));
+		#else
+			view->ScaleAroundPoint(Real(x)/Real(scr->ViewportWidth()),Real(y)/Real(scr->ViewportHeight()), Real(expf(-wheel/20.f)));
+		#endif
+	
+	}
+}
+
+
 inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const Colour & c = Colour(0.f,0.f,0.f,1.f))
 {
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
 	Screen scr;
 	View view(doc,scr, bounds, c);
 	scr.DebugFontInit("DejaVuSansMono.ttf");
-	scr.SetMouseHandler([&](int x, int y, int buttons, int wheel) // [?] seriously WTF
-	{
-		static bool oldButtonDown = false;
-		static int oldx, oldy;
-		if (buttons == 3 && !oldButtonDown)
-		{
-			oldButtonDown = true;
-			view.ToggleGPUTransform();
-			oldx = x;
-			oldy = y;
-			return;
-		}
-		if (buttons == 2 && !oldButtonDown)
-		{
-			oldButtonDown = true;
-			view.ToggleGPURendering();
-			oldx = x;
-			oldy = y;
-		}
-		if (buttons && !oldButtonDown)
-		{
-			// We're beginning a drag.
-			oldButtonDown = true;
-			oldx = x;
-			oldy = y;
-			scr.SetMouseCursor(Screen::CursorMove);
-		}
-		if (buttons)
-		{
-			#if REAL >= REAL_RATIONAL
-				view.Translate(Real(oldx, scr.ViewportWidth()) -Real(x,scr.ViewportWidth()), Real(oldy, scr.ViewportHeight()) - Real(y,scr.ViewportHeight()));
-			#else			
-				view.Translate(Real(oldx-x)/Real(scr.ViewportWidth()), Real(oldy-y)/Real(scr.ViewportHeight()));
-			#endif
-		}
-		else
-		{
-			oldButtonDown = false;
-			scr.SetMouseCursor(Screen::CursorArrow);
-		}
-		oldx = x;
-		oldy = y;
-		
-		if (wheel)
-		{
-			#if REAL >= REAL_RATIONAL
-				view.ScaleAroundPoint(Real(x,scr.ViewportWidth()), Real(y,scr.ViewportHeight()), Real(20-wheel, 20));
-			#else
-				view.ScaleAroundPoint(Real(x)/Real(scr.ViewportWidth()),Real(y)/Real(scr.ViewportHeight()), Real(expf(-wheel/20.f)));
-			#endif
-		
-		}
-	}
-	);
+	scr.SetMouseHandler(RatCatcher);
 
 	double total_cpu_time = 0;
 	double total_gpu_time = 0;

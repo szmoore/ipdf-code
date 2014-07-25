@@ -16,7 +16,7 @@ void FrameBuffer::Create(int w, int h)
 	glGenFramebuffers(1, &m_render_fbo);
 
 	glBindTexture(GL_TEXTURE_2D, m_render_texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, m_render_fbo);
 

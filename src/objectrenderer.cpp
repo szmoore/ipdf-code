@@ -274,12 +274,12 @@ void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
 	m_bezier_coeffs.Resize(objects.beziers.size()*sizeof(GPUBezierCoeffs));
 	BufferBuilder<GPUBezierCoeffs> builder(m_bezier_coeffs.Map(false, true, true), m_bezier_coeffs.GetSize());
 
-	for (auto bez : objects.beziers)
+	for (auto bez = objects.beziers.begin(); bez != objects.beziers.end(); ++bez)
 	{
 		GPUBezierCoeffs coeffs = {
-			Float(bez.x0), Float(bez.y0),
-			Float(bez.x1 - bez.x0), Float(bez.y1 - bez.y0),
-			Float(bez.x2 - bez.x0), Float(bez.y2 - bez.y0)
+			Float(bez->x0), Float(bez->y0),
+			Float(bez->x1 - bez->x0), Float(bez->y1 - bez->y0),
+			Float(bez->x2 - bez->x0), Float(bez->y2 - bez->y0)
 			};
 		builder.Add(coeffs);
 	}

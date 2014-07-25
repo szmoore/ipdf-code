@@ -20,6 +20,8 @@ View::View(Document & document, Screen & screen, const Rect & bounds, const Colo
 {
 	Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
 
+	screen.SetView(this); // oh dear...
+
 	// Create ObjectRenderers - new's match delete's in View::~View
 	//TODO: Don't forget to put new renderers here or things will be segfaultastic
 	m_object_renderers[RECT_FILLED] = new RectFilledRenderer();

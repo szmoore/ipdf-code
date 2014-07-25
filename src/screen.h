@@ -11,6 +11,7 @@
 
 namespace IPDF
 {
+	class View;
 	/*
 	 * The "Screen" class handles managing the OS window (using SDL2).
 	 */
@@ -41,7 +42,7 @@ namespace IPDF
 		void DebugFontPrintF(const char *fmt, ...);
 		
 		// Handle mouse input.
-		typedef std::function<void(int x, int y, int button, int wheel)> MouseHandler;
+		typedef void(*MouseHandler)(int x, int y, int button, int wheel, Screen * scr, View * view);
 		void SetMouseHandler(MouseHandler handler)
 		{
 			m_mouse_handler = handler;
@@ -62,6 +63,7 @@ namespace IPDF
 		void RenderPixels(int x, int y, int w, int h, uint8_t * pixels) const;
 
 
+		void SetView(View * new_view) {m_view = new_view;}
 
 		// Returns the CPU time (in seconds) it took to render the last completed frame.
 		double GetLastFrameTimeCPU() const { return m_last_frame_time / SDL_GetPerformanceFrequency(); }
@@ -97,6 +99,7 @@ namespace IPDF
 		GraphicsBuffer m_debug_font_indices;
 		int m_debug_font_vertex_head;
 		int m_debug_font_index_head;
+		View * m_view;
 	};
 
 }

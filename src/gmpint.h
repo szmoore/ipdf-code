@@ -55,7 +55,6 @@ class Gmpint
 		
 		
 	private:
-		Gmpint(const mpz_t & op) : m_op(op) {}
 		mpz_t m_op;
 };	
 

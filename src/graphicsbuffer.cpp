@@ -190,7 +190,7 @@ void GraphicsBuffer::UnMap()
 	{
 		Upload(m_buffer_size, m_map_pointer);
 		free(m_map_pointer);
-		m_map_pointer = nullptr;
+		m_map_pointer = NULL;
 		m_invalidated = false;
 		m_faking_map = false;
 		return;
@@ -198,7 +198,7 @@ void GraphicsBuffer::UnMap()
 	
 	Bind();
 	glUnmapBuffer(target);
-	m_map_pointer = nullptr;
+	m_map_pointer = NULL;
 	m_invalidated = false;
 }
 
@@ -215,7 +215,7 @@ void GraphicsBuffer::Upload(size_t length, const void* data)
 		Bind();
 		glBufferData(target, length, data, usage);
 	}
-	if (data != nullptr)
+	if (data != NULL)
 		m_invalidated = false;
 }
 
@@ -242,7 +242,7 @@ void GraphicsBuffer::Resize(size_t length)
 		UnMap();
 		GLuint old_buffer = m_buffer_handle;	
 		glGenBuffers(1, &m_buffer_handle);
-		Upload(length, nullptr);
+		Upload(length, NULL);
 		glBindBuffer(GL_COPY_READ_BUFFER, old_buffer);
 		glBindBuffer(GL_COPY_WRITE_BUFFER, m_buffer_handle);
 		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, m_buffer_size);

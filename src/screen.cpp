@@ -89,6 +89,7 @@ Screen::Screen()
 
 	m_debug_font_atlas = 0;
 
+	m_view = NULL;
 	ResizeViewport(800, 600);
 
 	Clear();
@@ -145,7 +146,7 @@ bool Screen::PumpEvents()
 			m_last_mouse_y = evt.motion.y;
 			if (m_mouse_handler)
 			{
-				m_mouse_handler(evt.motion.x, evt.motion.y,evt.motion.state, 0);
+				m_mouse_handler(evt.motion.x, evt.motion.y,evt.motion.state, 0, this, m_view);
 			}
 			break;
 		case SDL_MOUSEBUTTONDOWN:
@@ -154,13 +155,13 @@ bool Screen::PumpEvents()
 			m_last_mouse_y = evt.button.y;
 			if (m_mouse_handler)
 			{
-				m_mouse_handler(evt.button.x, evt.button.y, evt.button.state?evt.button.button:0, 0);
+				m_mouse_handler(evt.button.x, evt.button.y, evt.button.state?evt.button.button:0, 0, this, m_view);
 			}
 			break;
 		case SDL_MOUSEWHEEL:
 			if (m_mouse_handler)
 			{
-				m_mouse_handler(m_last_mouse_x, m_last_mouse_y, 0, evt.wheel.y);
+				m_mouse_handler(m_last_mouse_x, m_last_mouse_y, 0, evt.wheel.y, this, m_view);
 			}
 			break;
 		case SDL_KEYDOWN:
@@ -390,7 +391,7 @@ void Screen::DebugFontInit(const char *name, float font_size)
 
 	m_debug_font_vertices.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
 	m_debug_font_vertices.SetType(GraphicsBuffer::BufferTypeVertex);
-	m_debug_font_vertices.Upload(8192, nullptr);
+	m_debug_font_vertices.Upload(8192,NULL);
 	m_debug_font_vertex_head = 0;
 
 	m_debug_font_indices.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
@@ -438,14 +439,15 @@ void Screen::DebugFontFlush()
 	m_debug_font_index_head = 0;
 }
 
+struct fontvertex
+{
+	float x, y, s, t;
+};
+
 void Screen::DebugFontPrint(const char* str)
 {
 	if (!m_debug_font_atlas) return;
 
-	struct fontvertex
-	{
-		float x, y, s, t;
-	};
 
 	BufferBuilder<fontvertex> vertexData(m_debug_font_vertices.MapRange(m_debug_font_vertex_head*sizeof(float), m_debug_font_vertices.GetSize() - m_debug_font_vertex_head*sizeof(float), false, true, true), m_debug_font_vertices.GetSize() - m_debug_font_vertex_head*sizeof(float));
 	BufferBuilder<uint16_t> indexData(m_debug_font_indices.MapRange(m_debug_font_index_head*sizeof(uint16_t), m_debug_font_indices.GetSize() - m_debug_font_index_head*sizeof(uint16_t), false, true, true), m_debug_font_indices.GetSize() - m_debug_font_index_head*sizeof(uint16_t));
