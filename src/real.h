@@ -7,7 +7,7 @@
 #define REAL_SINGLE 0
 #define REAL_DOUBLE 1
 #define REAL_LONG_DOUBLE 2
-#define REAL_SINGLE_FAST2SUM 3 //TODO: Remove, is FITH
+#define REAL_VFPU 3
 #define REAL_RATIONAL 4
 #define REAL_RATIONAL_ARBINT 5
 
@@ -15,9 +15,9 @@
 	#error "REAL was not defined!"
 #endif
 
-#if REAL >= REAL_SINGLE_FAST2SUM
-	#include "real_fast2sum.h"
-#endif //REAL
+#if REAL == REAL_VFPU
+	#include "vfpu.h"
+#endif
 
 #if REAL == REAL_RATIONAL
 	#include "rational.h"
@@ -39,8 +39,8 @@ namespace IPDF
 	typedef double Real;
 #elif REAL == REAL_LONG_DOUBLE
 	typedef long double Real;
-#elif REAL == REAL_SINGLE_FAST2SUM
-	typedef RealF2S<float> Real;
+#elif REAL == REAL_VFPU
+	typedef VFPU::Float Real;
 	inline float Float(const Real & r) {return r.m_value;}
 	inline double Double(const Real & r) {return r.m_value;}
 #elif REAL == REAL_RATIONAL

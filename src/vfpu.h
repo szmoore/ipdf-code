@@ -16,6 +16,81 @@ namespace VFPU
 	typedef std::bitset<32> Register;
 	extern Register Exec(const Register & a, const Register & b, Opcode op, Rmode rmode = EVEN); // operate with registers
 	extern float Exec(float a, float b, Opcode op, Rmode rmode = EVEN); //converts floats into registers and back
+	
+	class Float
+	{
+		public:
+			Float(float f = 0) : m_value(f) 
+			{
+				static bool init = false;
+				if (!init)
+				{
+					init = true;
+					VFPU::Start();
+				}
+			}
+			Float(const Float & cpy) : m_value(cpy.m_value) {}
+			virtual ~Float() 
+			{
+
+			}
+			
+			Float & operator+=(const Float & op)
+			{
+				m_value = Exec(m_value, op.m_value, ADD);
+				return *this;
+			}
+			Float & operator-=(const Float & op)
+			{
+				m_value = Exec(m_value, op.m_value, SUB);
+				return *this;
+			}
+			Float & operator*=(const Float & op)
+			{
+				m_value = Exec(m_value, op.m_value, MULT);
+				return *this;
+			}
+			Float & operator/=(const Float & op)
+			{
+				m_value = Exec(m_value, op.m_value, DIV);
+				return *this;
+			}
+			
+			Float operator+(const Float & op) const {Float f(*this); f+=op; return f;}
+			Float operator-(const Float & op) const {Float f(*this); f-=op; return f;}
+			Float operator*(const Float & op) const {Float f(*this); f*=op; return f;}
+			Float operator/(const Float & op) const {Float f(*this); f/=op; return f;}
+			
+			bool operator==(const Float & op) const
+			{
+				Float f(op);
+				f -= *this;
+				return (f.m_value == 0);				
+			}
+			bool operator!=(const Float & op) const {return !this->operator==(op);}
+			bool operator<(const Float & op) const
+			{
+				Float f(op);
+				f -= *this;
+				return (f.m_value > 0);
+			}
+			bool operator<=(const Float & op) const
+			{
+				Float f(op);
+				f -= *this;
+				return (f.m_value >= 0);				
+			}
+			bool operator>(const Float & op) const {return !this->operator<=(op);}
+			bool operator>=(const Float & op) const {return !this->operator<(op);}
+			
+			float m_value;
+			
+	};
+	
+	inline Float pow(const Float & a, const Float & b)
+	{
+		return Float(pow(a.m_value, b.m_value));
+	}
 }
 
 #endif //_VFPU_H

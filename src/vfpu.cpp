@@ -21,7 +21,7 @@ using namespace std;
 
 namespace VFPU
 {
-
+	
 static const char g_fpu[] = "vfpu";
 
 static bool g_running = false;
@@ -114,10 +114,9 @@ float Exec(float opa, float opb, Opcode op, Rmode rmode)
 Register Exec(const Register & a, const Register &  b, Opcode op, Rmode rmode)
 {
 	assert(g_running);
-	Fatal("Unsupported");	
 	stringstream s;
-	//TODO: Make it compile again
-	//s << hex << setw(8) << setfill('0') << a.to_ullong() << "\n" << b.to_ullong() << "\n" << setw(1) << op <<"\n" << setw(1) << rmode << "\n";
+	//TODO: Make it compile on non C++11
+	s << hex << setw(8) << setfill('0') << a.to_ullong() << "\n" << b.to_ullong() << "\n" << setw(1) << op <<"\n" << setw(1) << rmode << "\n";
 	string str(s.str());
 	//Debug("Writing: %s", str.c_str());
 
@@ -139,8 +138,8 @@ Register Exec(const Register & a, const Register &  b, Opcode op, Rmode rmode)
 	}
 	
 	stringstream s2;
-	//TODO: Make it comp[ile again
-	//s2 << hex << result.to_ullong();
+	//TODO: Make it compile on non C++11
+	s2 << hex << result.to_ullong();
 	//Debug("Result is: %s", s2.str().c_str());
 	return result;
 }
