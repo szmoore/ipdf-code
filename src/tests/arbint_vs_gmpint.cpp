@@ -7,13 +7,14 @@
 #include "gmpint.h"
 #include "arbint.h"
 
-#define TEST_CASES 100
+
 
 using namespace IPDF;
 
 int main(int argc, char ** argv)
 {
-	for (unsigned i = 0; i < TEST_CASES; ++i)
+	unsigned test_cases = (argc > 1) ? atoi(argv[1]) : 100;
+	for (unsigned i = 0; i < test_cases; ++i)
 	{
 		uint64_t a = rand();
 	
@@ -28,6 +29,13 @@ int main(int argc, char ** argv)
 			gmp_a *= b;
 		}
 		
+		
+		for (unsigned j = 0; j < 5; ++j)
+		{
+			arb_a += b;
+			gmp_a += b;
+		}
+		
 		for (unsigned j = 0; j < 5; ++j)
 		{
 			arb_a /= b;
@@ -35,6 +43,11 @@ int main(int argc, char ** argv)
 		}
 		
 		
+		for (unsigned j = 0; j < 5; ++j)
+		{
+			arb_a -= b;
+			gmp_a -= b;
+		}		
 	}
 	return 0;
 }

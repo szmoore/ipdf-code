@@ -179,17 +179,16 @@ void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & 
 		{
 			for (int64_t y = max(0L, bounds.y); y <= min(bounds.y + bounds.h, target.h-1); ++y)
 			{
-				double dx = 2.0*(double)(x - centre_x)/(double)(bounds.w);
-				double dy = 2.0*(double)(y - centre_y)/(double)(bounds.h);
+				Real dx(2); dx *= Real(x - centre_x)/Real(bounds.w);
+				Real dy(2); dy *= Real(y - centre_y)/Real(bounds.h);
 				int64_t index = (x+target.w*y)*4;
 				
-				if (dx*dx + dy*dy <= 1.0)
+				if (dx*dx + dy*dy <= Real(1))
 				{
 					target.pixels[index+0] = 0;
 					target.pixels[index+1] = 0;
 					target.pixels[index+2] = 0;
 					target.pixels[index+3] = 255;
-
 				}
 			}
 		}
