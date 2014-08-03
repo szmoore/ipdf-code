@@ -86,11 +86,6 @@ namespace VFPU
 			float m_value;
 			
 	};
-	
-	inline Float pow(const Float & a, const Float & b)
-	{
-		return Float(pow(a.m_value, b.m_value));
-	}
 }
 
 #endif //_VFPU_H

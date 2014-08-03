@@ -42,7 +42,7 @@ int BinomialCoeff(int n, int k)
  */
 Real Bernstein(int k, int n, const Real & u)
 {
-	return Real(BinomialCoeff(n, k)) * pow(u, k) * pow(Real(1.0) - u, n-k);
+	return Real(BinomialCoeff(n, k)) * Power(u, k) * Power(Real(1.0) - u, n-k);
 }
 
 }

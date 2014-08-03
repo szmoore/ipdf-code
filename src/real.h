@@ -54,12 +54,7 @@ namespace IPDF
 	typedef Rational<ARBINT> Real;
 	inline float Float(const Real & r) {return (float)r.ToDouble();}
 	inline double Double(const Real & r) {return r.ToDouble();}
-	inline Rational<ARBINT> pow(const Rational<ARBINT> & a, const Rational<ARBINT> & b)
-	{
-		ARBINT P(std::pow(static_cast<double>(a.P), b.ToDouble()));
-		ARBINT Q(std::pow(static_cast<double>(a.Q), b.ToDouble()));
-		return Rational<ARBINT>(P,Q);
-	}
+
 #else
 	#error "Type of Real unspecified."
 #endif //REAL
@@ -73,6 +68,19 @@ namespace IPDF
 	inline double Double(float f) {return (double)f;}
 	inline double Double(double f) {return (double)f;}
 	inline double Double(long double f) {return (double)(f);}
+	
+	inline Real Power(const Real & a, int n)
+	{
+		if (n < 0)
+		{
+			return Power(Real(1)/a, -n);
+		}
+		Real r(1);
+		for (int i = 0; i < n; ++i)
+			r *= a;
+		return r;
+	}
+	
 }
 
 #endif //_REAL_H

@@ -183,7 +183,7 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 	Rect old_bounds = m_bounds;
 	if (node == QUADTREE_EMPTY) return;
 	if (!remaining_depth) return;
-	Debug("Rendering QT node %d, (objs: %d -- %d)\n", node, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
+	//Debug("Rendering QT node %d, (objs: %d -- %d)\n", node, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
 	RenderRange(width, height, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
 
 	m_bounds = TransformToQuadChild(old_bounds, QTC_TOP_LEFT);

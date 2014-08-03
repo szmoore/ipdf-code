@@ -196,13 +196,6 @@ struct Rational
 	T Q;
 };
 
-inline Rational<int64_t> pow(const Rational<int64_t> & a, const Rational<int64_t> & b)
-{
-	//TODO:Implement properly
-	int64_t P = std::pow((double)a.P, b.ToDouble());
-	int64_t Q = std::pow((double)a.Q, b.ToDouble());
-	return Rational<int64_t>(P, Q);
-}
 
 
 
