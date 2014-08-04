@@ -44,7 +44,6 @@ namespace IPDF
 	inline float Float(const Real & r) {return r.m_value;}
 	inline double Double(const Real & r) {return r.m_value;}
 #elif REAL == REAL_RATIONAL
-	
 	typedef Rational<int64_t> Real;
 	inline float Float(const Real & r) {return (float)r.ToDouble();}
 	inline double Double(const Real & r) {return r.ToDouble();}

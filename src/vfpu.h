@@ -1,6 +1,7 @@
 /**
  * @file vfpu.h
  * @brief Implements a terrible and hacky interface to use a virtual FPU to do floating point operations
+ * 	Updated with even more terror! Whatever floats the boat!
  */
 
 #ifndef _VFPU_H
@@ -17,6 +18,9 @@ namespace VFPU
 	extern Register Exec(const Register & a, const Register & b, Opcode op, Rmode rmode = EVEN); // operate with registers
 	extern float Exec(float a, float b, Opcode op, Rmode rmode = EVEN); //converts floats into registers and back
 	
+	/**
+	 * Wrapper class for floats where operations are done on the VFPU
+	 */
 	class Float
 	{
 		public:
@@ -26,7 +30,7 @@ namespace VFPU
 				if (!init)
 				{
 					init = true;
-					VFPU::Start();
+					VFPU::Start("flops.vcd");
 				}
 			}
 			Float(const Float & cpy) : m_value(cpy.m_value) {}
