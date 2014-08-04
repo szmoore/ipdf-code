@@ -115,8 +115,7 @@ Register Exec(const Register & a, const Register &  b, Opcode op, Rmode rmode)
 {
 	assert(g_running);
 	stringstream s;
-	//TODO: Make it compile on non C++11
-	s << hex << setw(8) << setfill('0') << a.to_ullong() << "\n" << b.to_ullong() << "\n" << setw(1) << op <<"\n" << setw(1) << rmode << "\n";
+	s << hex << setw(8) << setfill('0') << a.to_ulong() << "\n" << b.to_ulong() << "\n" << setw(1) << op <<"\n" << setw(1) << rmode << "\n";
 	string str(s.str());
 	//Debug("Writing: %s", str.c_str());
 
@@ -139,7 +138,7 @@ Register Exec(const Register & a, const Register &  b, Opcode op, Rmode rmode)
 	
 	stringstream s2;
 	//TODO: Make it compile on non C++11
-	s2 << hex << result.to_ullong();
+	s2 << hex << result.to_ulong();
 	//Debug("Result is: %s", s2.str().c_str());
 	return result;
 }

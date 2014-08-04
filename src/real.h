@@ -40,7 +40,7 @@ namespace IPDF
 #elif REAL == REAL_LONG_DOUBLE
 	typedef long double Real;
 #elif REAL == REAL_VFPU
-	typedef VFPU::Float Real;
+	typedef VFPU::VFloat Real;
 	inline float Float(const Real & r) {return r.m_value;}
 	inline double Double(const Real & r) {return r.m_value;}
 #elif REAL == REAL_RATIONAL

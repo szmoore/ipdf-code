@@ -1,7 +1,7 @@
 #ifndef _SCREEN_H
 #define _SCREEN_H
 
-#include <SDL.h>
+#include "SDL.h"
 
 #include <functional>
 

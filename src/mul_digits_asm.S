@@ -2,6 +2,8 @@
 .globl mul_digits
 .type mul_digits, @function
 
+#ifdef __x86_64__
+
 # Multiply an array of 64 bit digits by *one* 64 bit digit, modifies the array in place
 mul_digits:
 	movq %rdx, %rcx # rdx is reserved for mulq, use rcx as counter
@@ -29,3 +31,10 @@ mul_digits:
 	end:
 		movq %r12, %rax # Return overflow
 		ret # We are done
+
+#else
+
+mul_digits:
+	ret
+
+#endif

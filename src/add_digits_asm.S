@@ -1,18 +1,20 @@
 .section .text
-.globl sub_digits
-.type sub_digits, @function
+.globl add_digits
+.type add_digits, @function
 
-# Subtract two arrays of 64 bit digits, with carry, modifying the first argument
+#ifdef __x86_64__
+
+# Add two arrays of 64 bit digits, with carry, modifying the first argument
 # Address at first argument %rdi is array to add and modify
 # Address at second %rsi will be added (not modified)
 # Third argument is counter of number of digits
 # Result in %rax is the final result in the carry flag
 # Exploits the fact that inc and dec do not affect the carry flag
-sub_digits:
-	subq $0, %rax		# Reset the carry/borrow flag
+add_digits:
+	addq $0, %rax
 	loop:
 		movq (%rsi), %rax # Temporarily store digit from second array
-		sbbq %rax, (%rdi) # Subtract digits in second and first array, store in first
+		adcq %rax, (%rdi) # Add digits in second and first array, store in first
 		dec %rdx # Decrement counter
 		jz end_loop # We are done
 		
@@ -27,3 +29,10 @@ sub_digits:
 		movq $1, %rax
 	end:
 		ret # We are done
+
+#else
+
+add_digits:
+	ret
+
+#endif

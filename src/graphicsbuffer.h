@@ -1,7 +1,7 @@
 #ifndef _GRAPHICSBUFFER_H
 #define _GRAPHICSBUFFER_H
 
-#include <SDL.h>
+#include "SDL.h"
 #include "gl_core44.h"
 
 

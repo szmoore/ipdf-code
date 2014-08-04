@@ -118,7 +118,7 @@ inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const 
 		total_real_time += real_frame; total_cpu_time += cpu_frame; total_gpu_time += gpu_frame;
 		if (data_rate > 0 && total_real_time > data_rate*(data_points+1)) 
 		{
-			printf("%lu\t%f\t%f\t%f\t%f\t%f\t%f\n", (uint64_t)frames, total_real_time, total_cpu_time, total_gpu_time, real_frame, cpu_frame, gpu_frame);
+			printf("%lu\t%f\t%f\t%f\t%f\t%f\t%f\n", (long unsigned int)frames, total_real_time, total_cpu_time, total_gpu_time, real_frame, cpu_frame, gpu_frame);
 			data_points++;
 		}
 		scr.DebugFontPrintF("Rendered frame %lu\n", (uint64_t)frames);

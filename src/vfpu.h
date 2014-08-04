@@ -21,10 +21,10 @@ namespace VFPU
 	/**
 	 * Wrapper class for floats where operations are done on the VFPU
 	 */
-	class Float
+	class VFloat
 	{
 		public:
-			Float(float f = 0) : m_value(f) 
+			VFloat(float f = 0) : m_value(f) 
 			{
 				static bool init = false;
 				if (!init)
@@ -33,59 +33,59 @@ namespace VFPU
 					VFPU::Start("flops.vcd");
 				}
 			}
-			Float(const Float & cpy) : m_value(cpy.m_value) {}
-			virtual ~Float() 
+			VFloat(const VFloat & cpy) : m_value(cpy.m_value) {}
+			virtual ~VFloat() 
 			{
 
 			}
 			
-			Float & operator+=(const Float & op)
+			VFloat & operator+=(const VFloat & op)
 			{
 				m_value = Exec(m_value, op.m_value, ADD);
 				return *this;
 			}
-			Float & operator-=(const Float & op)
+			VFloat & operator-=(const VFloat & op)
 			{
 				m_value = Exec(m_value, op.m_value, SUB);
 				return *this;
 			}
-			Float & operator*=(const Float & op)
+			VFloat & operator*=(const VFloat & op)
 			{
 				m_value = Exec(m_value, op.m_value, MULT);
 				return *this;
 			}
-			Float & operator/=(const Float & op)
+			VFloat & operator/=(const VFloat & op)
 			{
 				m_value = Exec(m_value, op.m_value, DIV);
 				return *this;
 			}
 			
-			Float operator+(const Float & op) const {Float f(*this); f+=op; return f;}
-			Float operator-(const Float & op) const {Float f(*this); f-=op; return f;}
-			Float operator*(const Float & op) const {Float f(*this); f*=op; return f;}
-			Float operator/(const Float & op) const {Float f(*this); f/=op; return f;}
+			VFloat operator+(const VFloat & op) const {VFloat f(*this); f+=op; return f;}
+			VFloat operator-(const VFloat & op) const {VFloat f(*this); f-=op; return f;}
+			VFloat operator*(const VFloat & op) const {VFloat f(*this); f*=op; return f;}
+			VFloat operator/(const VFloat & op) const {VFloat f(*this); f/=op; return f;}
 			
-			bool operator==(const Float & op) const
+			bool operator==(const VFloat & op) const
 			{
-				Float f(op);
+				VFloat f(op);
 				f -= *this;
 				return (f.m_value == 0);				
 			}
-			bool operator!=(const Float & op) const {return !this->operator==(op);}
-			bool operator<(const Float & op) const
+			bool operator!=(const VFloat & op) const {return !this->operator==(op);}
+			bool operator<(const VFloat & op) const
 			{
-				Float f(op);
+				VFloat f(op);
 				f -= *this;
 				return (f.m_value > 0);
 			}
-			bool operator<=(const Float & op) const
+			bool operator<=(const VFloat & op) const
 			{
-				Float f(op);
+				VFloat f(op);
 				f -= *this;
 				return (f.m_value >= 0);				
 			}
-			bool operator>(const Float & op) const {return !this->operator<=(op);}
-			bool operator>=(const Float & op) const {return !this->operator<(op);}
+			bool operator>(const VFloat & op) const {return !this->operator<=(op);}
+			bool operator>=(const VFloat & op) const {return !this->operator<(op);}
 			
 			float m_value;
 			

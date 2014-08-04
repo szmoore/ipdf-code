@@ -1,7 +1,7 @@
 #ifndef _FRAMEBUFFER_H
 #define _FRAMEBUFFER_H
 
-#include <SDL.h>
+#include "SDL.h"
 #include "gl_core44.h"
 
 

@@ -6,15 +6,19 @@ MAIN = main.o
 OBJ = log.o real.o bezier.o document.o objectrenderer.o view.o screen.o vfpu.o quadtree.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o add_digits_asm.o sub_digits_asm.o mul_digits_asm.o div_digits_asm.o arbint.o
 LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL -lgmp
 LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL -lgmp
+LIB_i686 = $(LIB_i386)
 
 MAINRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../contrib/lib'
 MAINRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../contrib/lib32'
+MAINRPATH_i686 = $(MAINRPATH_i386)
 TESTRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib'
 TESTRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib32'
+TESTRPATH_i686 = $(TESTRPATH_i386)
 OBJPATHS = $(OBJ:%=../obj/%)
 DEPS := $(OBJPATHS:%.o=%.d)
 CFLAGS_x86_64 := -I../contrib/include/SDL2 -I`pwd`
 CFLAGS_i386 := -I../contrib/include32/SDL2 -I`pwd`
+CFLAGS_i686 := $(CFLAGS_i386)
 
 
 LIB := $(LIB_$(ARCH))
@@ -54,7 +58,7 @@ movie : $(BIN) ../tools/stream_plot.py
 # To change that you can run as `make DEFS="REAL=X" tests/<target>` where X is your chosen type
 # But remember to make clean first.
 tests/% : tests/%.cpp ../obj/tests/%.o $(LINKOBJ)
-	$(CXX) -o $@.test $(LINKOBJ) ../obj/$@.o $(LIB) $(TESTRPATH)
+	$(CXX) $(CFLAGS) -o $@.test $(LINKOBJ) ../obj/$@.o $(LIB) $(TESTRPATH)
 
 -include $(DEPS)
 
@@ -65,7 +69,7 @@ runtests : tests/runtests.sh
 $(BIN) : $(LINKOBJ) ../obj/$(MAIN)
 	echo $(LINKOBJ)
 	@mkdir -p $(dir $@)
-	$(CXX) -o $(BIN) $(LINKOBJ) ../obj/$(MAIN) $(LIB) $(MAINRPATH)
+	$(CXX) $(CFLAGS) -o $(BIN) $(LINKOBJ) ../obj/$(MAIN) $(LIB) $(MAINRPATH)
 
 -include $(DEPS)
 
@@ -73,7 +77,7 @@ $(BIN) : $(LINKOBJ) ../obj/$(MAIN)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CFLAGS) $(DEF) -c -MMD -o $@ $<
 
-../obj/%_asm.o : %_asm.s main.h
+../obj/%_asm.o : %_asm.S main.h
 	@mkdir -p $(dir $@)
 	$(CXX) -c -o $@ $<
 

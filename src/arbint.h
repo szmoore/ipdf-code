@@ -25,7 +25,7 @@ namespace IPDF
 			
 			int64_t AsDigit() const
 			{
-				int64_t digit = (m_digits.size() == 1) ? m_digits[0] : 0x7FFFFFFFFFFFFFFF;
+				int64_t digit = (m_digits.size() == 1) ? m_digits[0] : 0xBADF00D;
 				return (m_sign) ? -digit : digit;
 			}
 			

@@ -117,9 +117,9 @@ void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & vi
 		if (m_indexes[i] < first_obj_id) continue;
 		if (m_indexes[i] >= last_obj_id) continue;
 		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
-		for (int64_t x = max(0L, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
+		for (int64_t x = max((int64_t)0, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
 		{
-			for (int64_t y = max(0L, bounds.y); y <= min(bounds.y+bounds.h, target.h-1); ++y)
+			for (int64_t y = max((int64_t)0, bounds.y); y <= min(bounds.y+bounds.h, target.h-1); ++y)
 			{
 				int index = (x+target.w*y)*4;
 				target.pixels[index+0] = 0;
@@ -175,9 +175,9 @@ void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & 
 		//Debug("Centre is %d, %d", centre_x, centre_y);
 		//Debug("Bounds are %d,%d,%d,%d", bounds.x, bounds.y, bounds.w, bounds.h);
 		//Debug("Windos is %d,%d", target.w, target.h);
-		for (int64_t x = max(0L, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
+		for (int64_t x = max((int64_t)0, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
 		{
-			for (int64_t y = max(0L, bounds.y); y <= min(bounds.y + bounds.h, target.h-1); ++y)
+			for (int64_t y = max((int64_t)0, bounds.y); y <= min(bounds.y + bounds.h, target.h-1); ++y)
 			{
 				Real dx(2); dx *= Real(x - centre_x)/Real(bounds.w);
 				Real dy(2); dy *= Real(y - centre_y)/Real(bounds.h);
@@ -237,7 +237,7 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 		
 		Real x[2]; Real y[2];
 		control.Evaluate(x[0], y[0], Real(0));
-		int64_t blen = max(2L, min(100L, pix_bounds.w));
+		int64_t blen = max((int64_t)2, min((int64_t)100, pix_bounds.w));
 		Real invblen(1); invblen /= blen;
 		Debug("Using %li lines, inverse %f", blen, Double(invblen));
 		for (int64_t j = 1; j <= blen; ++j)

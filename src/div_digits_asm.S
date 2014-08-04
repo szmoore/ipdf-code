@@ -2,6 +2,8 @@
 .globl div_digits
 .type div_digits, @function
 
+#ifdef __x86_64__
+
 # div_digits(digits, div, size, res)
 # divides an arbint in digits by uint64 div into res, returns remainder
 # res may alias digits
@@ -23,4 +25,9 @@ end:
 	movq %rdx, %rax			# return the remainder
 	ret
 	
-	
+#else
+
+div_digits:
+	ret
+
+#endif
