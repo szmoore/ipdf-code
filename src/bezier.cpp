@@ -34,7 +34,7 @@ int Factorial(int n)
  */
 int BinomialCoeff(int n, int k)
 {
-	return Factorial(n) / Factorial(k) / Factorial(n-k);
+	return Factorial(n) / (Factorial(k) * Factorial(n-k));
 }
 
 /**

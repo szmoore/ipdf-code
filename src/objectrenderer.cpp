@@ -281,8 +281,8 @@ void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
 	{
 		GPUBezierCoeffs coeffs = {
 			Float(bez->x0), Float(bez->y0),
-			Float(bez->x1 - bez->x0), Float(bez->y1 - bez->y0),
-			Float(bez->x2 - bez->x0), Float(bez->y2 - bez->y0)
+			Float(bez->x1), Float(bez->y1),
+			Float(bez->x2), Float(bez->y2)
 			};
 		builder.Add(coeffs);
 	}
