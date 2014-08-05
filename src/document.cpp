@@ -1,6 +1,7 @@
 #include "document.h"
 #include "bezier.h"
 #include <cstdio>
+#include <fstream>
 
 using namespace IPDF;
 using namespace std;
@@ -217,4 +218,217 @@ bool Document::operator==(const Document & equ) const
 		&& memcmp(m_objects.bounds.data(), equ.m_objects.bounds.data(), ObjectCount() * sizeof(Rect)) == 0
 		&& memcmp(m_objects.data_indices.data(), equ.m_objects.data_indices.data(), ObjectCount() * sizeof(unsigned)) == 0
 		&& memcmp(m_objects.beziers.data(), equ.m_objects.beziers.data(), m_objects.beziers.size() * sizeof(Bezier)) == 0);
+}
+
+
+#include "../contrib/pugixml-1.4/src/pugixml.hpp"
+#include "../contrib/pugixml-1.4/src/pugixml.cpp"
+
+void Document::LoadSVG(const string & filename, const Rect & bounds)
+{
+	using namespace pugi;
+	
+	xml_document doc_xml;
+	ifstream input(filename.c_str(), ios_base::in);
+	xml_parse_result result = doc_xml.load(input);
+	
+	if (!result)
+		Fatal("Couldn't load \"%s\" - %s", filename.c_str(), result.description());
+		
+	Debug("Loaded XML - %s", result.description());
+	
+	input.close();
+
+	// Combine all SVG tags into one thing because lazy
+	for (xml_node svg : doc_xml.children("svg"))
+	{
+		Real width = svg.attribute("width").as_float() * bounds.w;
+		Real height = svg.attribute("width").as_float() * bounds.h;
+		
+		
+		// Rectangles
+		Real coords[4];
+		const char * attrib_names[] = {"x", "y", "width", "height"};
+		for (pugi::xml_node rect : svg.children("rect"))
+		{
+			for (size_t i = 0; i < 4; ++i)
+				coords[i] = rect.attribute(attrib_names[i]).as_float();
+			
+			bool outline = !(rect.attribute("fill"));
+			Add(outline?RECT_OUTLINE:RECT_FILLED, Rect(coords[0]/width + bounds.x, coords[1]/height + bounds.y, coords[2]/width, coords[3]/height),0);
+			Debug("Added rectangle");
+		}		
+		
+		// Circles
+		for (pugi::xml_node circle : svg.children("circle"))
+		{
+			Real cx = circle.attribute("cx").as_float();
+			Real cy = circle.attribute("cy").as_float();
+			Real r = circle.attribute("r").as_float();
+			
+			Real x = (cx - r)/width + bounds.x; 
+			Real y = (cy - r)/height + bounds.y; 
+			Real w = 2*r/width; 
+			Real h = 2*r/height;
+			
+			Rect rect(x,y,w,h);
+			Add(CIRCLE_FILLED, rect,0);
+			Debug("Added Circle %s", rect.Str().c_str());
+
+		}		
+		
+		// paths
+		for (pugi::xml_node path : svg.children("path"))
+		{
+			
+			string d = path.attribute("d").as_string();
+			Debug("Path data attribute is \"%s\"", d.c_str());
+			AddPathFromString(d, Rect(bounds.x,bounds.y,width,height));
+			
+		}
+	}
+	
+	//Fatal("Done");
+	
+	
+
+}
+
+// Behold my amazing tokenizing abilities
+static string & GetToken(const string & d, string & token, unsigned & i)
+{
+	token.clear();
+	while (i < d.size() && iswspace(d[i]))
+	{
+		++i;
+	}
+	
+	while (i < d.size())
+	{
+		if (d[i] == ',' || isalpha(d[i]) || iswspace(d[i]))
+		{
+			if (token.size() == 0 && !iswspace(d[i]))
+			{
+				token += d[i++];
+			}
+			break;	
+		}
+		token += d[i++];
+	}
+	Debug("Got token \"%s\"", token.c_str());
+	return token;
+}
+
+
+// Fear the wrath of the tokenizing svg data
+// Seriously this isn't really very DOM-like at all is it?
+void Document::AddPathFromString(const string & d, const Rect & bounds)
+{
+	Real x[3] = {0,0,0};
+	Real y[3] = {0,0,0};
+	
+	string token("");
+	string command("m");
+	
+	unsigned i = 0;
+	unsigned prev_i = 0;
+	Real x0;
+	Real y0;
+	bool started = false;
+	while (i < d.size() && GetToken(d, token, i).size() > 0)
+	{
+		if (isalpha(token[0]))
+			command = token;
+		else
+		{
+			i = prev_i; // hax
+			if(command == "")
+				command = "l";
+		}
+			
+		if (command == "m")
+		{
+			Debug("Construct moveto command");
+			x[0] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			assert(GetToken(d,token,i) == ",");
+			y[0] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			if (!started)
+			{
+				x0 = x[0];
+				y0 = y[0];
+				started = true;
+			}
+			Debug("mmoveto %f,%f", Float(x[0]),Float(y[0]));
+			command = "l";
+		}
+		else if (command == "c")
+		{
+			Debug("Construct curveto command");
+			x[0] = strtod(GetToken(d,token,i).c_str(),NULL)/bounds.w;
+			assert(GetToken(d,token,i) == ",");
+			y[0] = strtod(GetToken(d,token,i).c_str(),NULL)/bounds.h;
+			
+			x[1] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			assert(GetToken(d,token,i) == ",");
+			y[1] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			
+			x[2] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			assert(GetToken(d,token,i) == ",");
+			y[2] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			
+			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2]));
+			Add(BEZIER,bounds,index);
+			
+			
+			Debug("[%u] curveto %f,%f %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]),Float(x[2]),Float(y[2]));
+			
+			x[0] = x[2];
+			y[0] = y[2];
+
+			
+		}
+		else if (command == "l")
+		{
+			Debug("Construct lineto command");
+		
+			x[1] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			assert(GetToken(d,token,i) == ",");
+			y[1] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			
+			x[2] = x[1];
+			y[2] = y[1];
+			
+			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2]));
+			Add(BEZIER,bounds,index);
+			
+			Debug("[%u] lineto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
+			
+			x[0] = x[2];
+			y[0] = y[2];
+
+		}
+		else if (command == "z")
+		{
+			Debug("Construct returnto command");
+			x[1] = x0;
+			y[1] = y0;
+			x[2] = x0;
+			y[2] = y0;
+			
+			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2]));
+			Add(BEZIER,bounds,index);
+			
+			Debug("[%u] returnto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
+			
+			x[0] = x[2];
+			y[0] = y[2];
+			command = "m";
+		}
+		else
+		{
+			Warn("Unrecognised command \"%s\", set to \"m\"", command.c_str());
+			command = "m";
+		}
+		prev_i = i;
+	}
 }

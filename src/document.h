@@ -11,6 +11,8 @@ namespace IPDF
 		public:
 			Document(const std::string & filename = "") : m_objects(), m_count(0) {Load(filename);}
 			virtual ~Document() {}
+			
+			void LoadSVG(const std::string & filename, const Rect & bounds = {0,0,1,1});
 
 			void Load(const std::string & filename = "");
 			void Save(const std::string & filename);
@@ -24,6 +26,8 @@ namespace IPDF
 
 			void Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
 			unsigned AddBezierData(const Bezier & bezier);
+			
+			void AddPathFromString(const std::string & d, const Rect & bounds);
 
 #ifndef QUADTREE_DISABLED
 			inline const QuadTree& GetQuadTree() { if (m_quadtree.root_id == QUADTREE_EMPTY) { GenBaseQuadtree(); } return m_quadtree; }

@@ -77,14 +77,14 @@ int main(int argc, char ** argv)
 
 	if (input_filename != NULL)
 	{
-		doc.Load(input_filename);
+		doc.LoadSVG(input_filename);
 	}
 	else 
 	{
 		doc.AddBezierData(Bezier(0,0,0,1,1,0));
-		//doc.AddBezierData(Bezier(0,0,1,0,0,1));
-		//doc.AddBezierData(Bezier(0,0,1,1,1,0));
-		//doc.AddBezierData(Bezier(0,1,1,0,0,1));
+		doc.AddBezierData(Bezier(0,0,1,0,0,1));
+		doc.AddBezierData(Bezier(0,0,1,1,1,0));
+		doc.AddBezierData(Bezier(0,1,1,0,0,1));
 		
 		
 		
@@ -97,7 +97,10 @@ int main(int argc, char ** argv)
 				//doc.Add(BEZIER, Rect(0.2+x-4.0, 0.2+y-4.0, 0.6,0.6), (x^y)%3);
 			}
 		}
-		doc.Add(RECT_OUTLINE, Rect(0.1,0.1,0.8,0.8), 0);
+		doc.Add(BEZIER, Rect(0.1,0.1,0.8,0.8), 0);
+		doc.Add(BEZIER, Rect(0.1,0.1,0.8,0.8), 1);
+		doc.Add(BEZIER, Rect(0.1,0.1,0.8,0.8), 2);
+		doc.Add(BEZIER, Rect(0.1,0.1,0.8,0.8), 3);
 		//doc.Add(CIRCLE_FILLED, Rect(0.1,0.1,0.8,0.8), 0);
 	}
 	Debug("Start!");

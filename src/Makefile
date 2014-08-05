@@ -26,22 +26,23 @@ MAINRPATH := $(MAINRPATH_$(ARCH))
 TESTRPATH := $(TESTRPATH_$(ARCH))
 CFLAGS := $(CFLAGS_$(ARCH))
 
-DEF = -DREAL=1
-
+REALTYPE=1
 LINKOBJ = $(OBJPATHS)
 
 RM = rm -f
 BIN = ../bin/ipdf
 
 
-all : DEF = -DREAL=1
+all : REAL = 1
 all : $(BIN)
 
-single : DEF = -DREAL=0
+single : REAL = 0
 single : $(BIN)
 
-double : DEF = -DREAL=1
+double : REAL = 1
 double : $(BIN)
+
+DEF = -DREAL=$(REALTYPE) -DQUADTREE_REMOVED
 
 demo : $(BIN) ../tools/stream_plot.py
 	mkdir -p ../data/
