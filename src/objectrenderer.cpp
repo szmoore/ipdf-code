@@ -31,10 +31,14 @@ ObjectRenderer::ObjectRenderer(const ObjectType & type,
  */
 void ObjectRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 {
+	// If we don't have anything to render, return.
+	if (first_obj_id == last_obj_id) return;
+	// If there are no objects of this type, return.
+	if (m_indexes.empty()) return;
 	unsigned first_index = 0;
-	while (m_indexes[first_index] < first_obj_id) first_index ++;
+	while (m_indexes.size() > first_index && m_indexes[first_index] < first_obj_id) first_index ++;
 	unsigned last_index = first_index;
-	while (m_indexes[last_index] < last_obj_id) last_index ++;
+	while (m_indexes.size() > last_index && m_indexes[last_index] < last_obj_id) last_index ++;
 
 	m_shader_program.Use();
 	m_ibo.Bind();
@@ -303,10 +307,15 @@ void BezierRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 	if (!m_shader_program.Valid())
 		Warn("Shader is invalid (objects are of type %d)", m_type);
 
+	// If we don't have anything to render, return.
+	if (first_obj_id == last_obj_id) return;
+	// If there are no objects of this type, return.
+	if (m_indexes.empty()) return;
+
 	unsigned first_index = 0;
-	while (m_indexes[first_index] < first_obj_id) first_index ++;
+	while (m_indexes.size() > first_index && m_indexes[first_index] < first_obj_id) first_index ++;
 	unsigned last_index = first_index;
-	while (m_indexes[last_index] < last_obj_id) last_index ++;
+	while (m_indexes.size() > last_index && m_indexes[last_index] < last_obj_id) last_index ++;
 
 	m_shader_program.Use();
 	glUniform1i(m_shader_program.GetUniformLocation("bezier_buffer_texture"), 0);
