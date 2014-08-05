@@ -23,12 +23,20 @@ namespace IPDF
 			s << "Bezier{" << Float(x0) << "," << Float(y0) << " -> " << Float(x1) << "," << Float(y1) << " -> " << Float(x2) << "," << Float(y2) << "}";
 			return s.str();
 		}
-		Bezier(const Bezier & cpy, const Rect & t = Rect(0,0,1,1)) : x0(cpy.x0+t.x), y0(cpy.y0+t.y), x1(cpy.x1+t.x), y1(cpy.y1+t.y), x2(cpy.x2+t.x),y2(cpy.y2+t.y)
+		Bezier(const Bezier & cpy, const Rect & t = Rect(0,0,1,1)) : x0(cpy.x0), y0(cpy.y0), x1(cpy.x1), y1(cpy.y1), x2(cpy.x2),y2(cpy.y2)
 		{
-			x1 = x0 + (x1-x0)*t.w;
-			y1 = y0 + (y1-y0)*t.h;
-			x2 = x0 + (x2-x0)*t.w;
-			y2 = y0 + (y2-y0)*t.h;
+			x0 *= t.w;
+			y0 *= t.h;
+			x1 *= t.w;
+			y1 *= t.h;
+			x2 *= t.w;
+			y2 *= t.h;
+			x0 += t.x;
+			y0 += t.y;
+			x1 += t.x;
+			y1 += t.y;
+			x2 += t.x;
+			y2 += t.y;
 		}
 
 		Rect ToRect() {return Rect(x0,y0,x2-x0,y2-y0);}
