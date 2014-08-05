@@ -185,6 +185,10 @@ void* GraphicsBuffer::MapRange(int offset, int length, bool read, bool write, bo
 void GraphicsBuffer::UnMap()
 {
 	GLenum target = BufferTypeToGLType(m_buffer_type);
+	
+	// If we're not mapped, unmapping is a no-op.
+	if (!m_map_pointer)
+		return;
 
 	if (m_faking_map)
 	{
