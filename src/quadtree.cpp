@@ -12,11 +12,11 @@ Rect TransformToQuadChild(const Rect& src, QuadTreeNodeChildren child_type)
 	dst.h *= 2;
 	if (child_type == QTC_BOTTOM_LEFT || child_type == QTC_BOTTOM_RIGHT)
 	{
-		dst.x -= 1;
+		dst.y -= 1;
 	}
 	if (child_type == QTC_TOP_RIGHT || child_type == QTC_BOTTOM_RIGHT)
 	{
-		dst.y -= 1;
+		dst.x -= 1;
 	}
 	return dst;
 }
@@ -30,11 +30,11 @@ Rect TransformFromQuadChild(const Rect& src, QuadTreeNodeChildren child_type)
 	dst.h *= 0.5;
 	if (child_type == QTC_BOTTOM_LEFT || child_type == QTC_BOTTOM_RIGHT)
 	{
-		dst.x += 1;
+		dst.y += 1;
 	}
 	if (child_type == QTC_TOP_RIGHT || child_type == QTC_BOTTOM_RIGHT)
 	{
-		dst.y += 1;
+		dst.x += 1;
 	}
 	return dst;
 }
