@@ -215,13 +215,13 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 	if (m_use_gpu_transform)
 	{
 		GLfloat glbounds[] = {static_cast<GLfloat>(Float(m_bounds.x)), static_cast<GLfloat>(Float(m_bounds.y)), static_cast<GLfloat>(Float(m_bounds.w)), static_cast<GLfloat>(Float(m_bounds.h)),
-					0.0, 0.0, 640.0, 480.0};
+					0.0, 0.0, static_cast<GLfloat>(width), static_cast<GLfloat>(height)};
 		m_bounds_ubo.Upload(sizeof(float)*8, glbounds);
 	}
 	else
 	{
 		GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f,
-					0.0f, 0.0f, 640.0f, 480.0f};
+					0.0f, 0.0f, float(width), float(height)};
 		m_bounds_ubo.Upload(sizeof(float)*8, glbounds);
 	}
 	m_bounds_dirty = false;
