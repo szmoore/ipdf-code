@@ -90,9 +90,9 @@ void Document::Save(const string & filename)
 
 void Document::GenBaseQuadtree()
 {
-	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, 1, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 0, 1});
-	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 1, ObjectCount()});
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 0, ObjectCount()});
 	m_quadtree.root_id = 0;
+	GenQuadNode(0, QTC_TOP_LEFT);
 }
 
 QuadTreeIndex Document::GenQuadNode(QuadTreeIndex parent, QuadTreeNodeChildren type)
@@ -108,6 +108,7 @@ QuadTreeIndex Document::GenQuadNode(QuadTreeIndex parent, QuadTreeNodeChildren t
 			m_objects.bounds.push_back(TransformToQuadChild(m_objects.bounds[i], type));
 			m_objects.types.push_back(m_objects.types[i]);
 			m_objects.data_indices.push_back(m_objects.data_indices[i]);
+			m_count++;
 		}
 	}
 	m_quadtree.nodes[new_index].object_end = m_objects.bounds.size();
