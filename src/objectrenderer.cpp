@@ -241,7 +241,13 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 		
 		Real x[2]; Real y[2];
 		control.Evaluate(x[0], y[0], Real(0));
-		int64_t blen = max((int64_t)2, min((int64_t)100, pix_bounds.w));
+		Debug("target is (%lu, %lu)", target.w, target.h);
+		int64_t blen = 1;
+		if ((control.x1 != control.x2 || control.y1 != control.y2)
+			&& (control.x1 != control.x0 || control.y1 != control.y0))
+		{
+			blen = min(max((int64_t)2, (int64_t)(target.w/view.GetBounds().w)), (int64_t)100);
+		}
 		Real invblen(1); invblen /= blen;
 		Debug("Using %li lines, inverse %f", blen, Double(invblen));
 		for (int64_t j = 1; j <= blen; ++j)
