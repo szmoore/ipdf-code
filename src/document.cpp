@@ -280,7 +280,7 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 	input.close();
 
 	// Combine all SVG tags into one thing because lazy
-	for (xml_node svg : doc_xml.children("svg"))
+	for (xml_node svg = doc_xml.child("svg"); svg; svg = svg.next_sibling("svg"))
 	{
 		Real width = svg.attribute("width").as_float() * bounds.w;
 		Real height = svg.attribute("width").as_float() * bounds.h;
@@ -289,7 +289,7 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 		// Rectangles
 		Real coords[4];
 		const char * attrib_names[] = {"x", "y", "width", "height"};
-		for (pugi::xml_node rect : svg.children("rect"))
+		for (pugi::xml_node rect = svg.child("rect"); rect; rect = rect.next_sibling("rect"))
 		{
 			for (size_t i = 0; i < 4; ++i)
 				coords[i] = rect.attribute(attrib_names[i]).as_float();
@@ -300,7 +300,7 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 		}		
 		
 		// Circles
-		for (pugi::xml_node circle : svg.children("circle"))
+		for (pugi::xml_node circle = svg.child("circle"); circle; circle = circle.next_sibling("circle"))
 		{
 			Real cx = circle.attribute("cx").as_float();
 			Real cy = circle.attribute("cy").as_float();
@@ -318,7 +318,7 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 		}		
 		
 		// paths
-		for (pugi::xml_node path : svg.children("path"))
+		for (pugi::xml_node path = svg.child("path"); path; path = path.next_sibling("path"))
 		{
 			
 			string d = path.attribute("d").as_string();

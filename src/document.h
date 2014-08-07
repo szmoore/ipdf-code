@@ -12,7 +12,7 @@ namespace IPDF
 			Document(const std::string & filename = "") : m_objects(), m_count(0) {Load(filename);}
 			virtual ~Document() {}
 			
-			void LoadSVG(const std::string & filename, const Rect & bounds = {0,0,1,1});
+			void LoadSVG(const std::string & filename, const Rect & bounds = Rect(0,0,1,1));
 
 			void Load(const std::string & filename = "");
 			void Save(const std::string & filename);
