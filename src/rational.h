@@ -10,6 +10,8 @@
 #include <cassert>
 #include "arbint.h"
 #include "gmpint.h"
+#include <climits>
+#include <values.h>
 
 namespace IPDF
 {
@@ -171,7 +173,13 @@ struct Rational
 
 	double ToDouble() const 
 	{
-		return (double)P/(double)Q;
+		T num = P, denom = Q;
+		while (Tabs(num) > T(DBL_MAX))
+		{
+			num /= T(16);
+			denom /= T(16);
+		}
+		return ((double)(num))/((double)(denom));
 	}
 	bool CheckAccuracy(double d, const char * msg, double threshold = 1e-3) const
 	{
