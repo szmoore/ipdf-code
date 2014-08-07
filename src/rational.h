@@ -162,7 +162,7 @@ struct Rational
 	//Rational operator*(const Rational & r) const {return Rational(ToDouble()*r.ToDouble());}
 	//Rational operator/(const Rational & r) const {return Rational(ToDouble()/r.ToDouble());}
 
-	Rational operator-() const {Rational r(*this); r.P = -r.P;}
+	Rational operator-() const {Rational r(*this); r.P = -r.P; return r;}
 	Rational & operator=(const Rational & r) {P = r.P; Q = r.Q; Simplify(); return *this;}
 	Rational & operator+=(const Rational & r) {this->operator=(*this+r); return *this;}
 	Rational & operator-=(const Rational & r) {this->operator=(*this-r); return *this;}

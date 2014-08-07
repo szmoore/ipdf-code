@@ -284,8 +284,8 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 	// Combine all SVG tags into one thing because lazy
 	for (xml_node svg : doc_xml.children("svg"))
 	{
-		Real width = svg.attribute("width").as_float() * bounds.w;
-		Real height = svg.attribute("width").as_float() * bounds.h;
+		Real width = Real(svg.attribute("width").as_float()) * bounds.w;
+		Real height = Real(svg.attribute("width").as_float()) * bounds.h;
 		
 		
 		// Rectangles
@@ -310,8 +310,8 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 			
 			Real x = (cx - r)/width + bounds.x; 
 			Real y = (cy - r)/height + bounds.y; 
-			Real w = 2*r/width; 
-			Real h = 2*r/height;
+			Real w = Real(2)*r/width; 
+			Real h = Real(2)*r/height;
 			
 			Rect rect(x,y,w,h);
 			Add(CIRCLE_FILLED, rect,0);
@@ -396,9 +396,9 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 		if (command == "m" || command == "M")
 		{
 			Debug("Construct moveto command");
-			Real dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			Real dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			Real dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			Real dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
 			
 			x[0] = (relative) ? x[0] + dx : dx;
 			y[0] = (relative) ? y[0] + dy : dy;
@@ -411,25 +411,25 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 		else if (command == "c" || command == "C" || command == "q" || command == "Q")
 		{
 			Debug("Construct curveto command");
-			Real dx = strtod(GetToken(d,token,i).c_str(),NULL)/bounds.w;
+			Real dx = Real(strtod(GetToken(d,token,i).c_str(),NULL))/bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			Real dy = strtod(GetToken(d,token,i).c_str(),NULL)/bounds.h;
+			Real dy = Real(strtod(GetToken(d,token,i).c_str(),NULL))/bounds.h;
 			
 			x[1] = (relative) ? x[0] + dx : dx;
 			y[1] = (relative) ? y[0] + dy : dy;
 			
-			dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
 			
 			x[2] = (relative) ? x[0] + dx : dx;
 			y[2] = (relative) ? y[0] + dy : dy;
 			
 			if (command != "q" && command != "Q")
 			{
-				dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+				dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
 				assert(GetToken(d,token,i) == ",");
-				dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+				dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
 				x[3] = (relative) ? x[0] + dx : dx;
 				y[3] = (relative) ? y[0] + dy : dy;
 			}
@@ -459,9 +459,9 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 		{
 			Debug("Construct lineto command");
 		
-			Real dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			Real dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			Real dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			Real dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
 			
 			x[1] = (relative) ? x[0] + dx : dx;
 			y[1] = (relative) ? y[0] + dy : dy;
