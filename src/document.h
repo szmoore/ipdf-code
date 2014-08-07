@@ -31,7 +31,8 @@ namespace IPDF
 
 #ifndef QUADTREE_DISABLED
 			inline const QuadTree& GetQuadTree() { if (m_quadtree.root_id == QUADTREE_EMPTY) { GenBaseQuadtree(); } return m_quadtree; }
-			QuadTreeIndex GenQuadNode(QuadTreeIndex parent, QuadTreeNodeChildren type);
+			QuadTreeIndex GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type);
+			QuadTreeIndex GenQuadParent(QuadTreeIndex child, QuadTreeNodeChildren mytype);
 #endif
 
 		private:

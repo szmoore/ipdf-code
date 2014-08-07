@@ -42,7 +42,7 @@ single : $(BIN)
 double : REAL = 1
 double : $(BIN)
 
-DEF = -DREAL=$(REALTYPE) -DQUADTREE_REMOVED
+DEF = -DREAL=$(REALTYPE) -DQUADTREE_DISABLED
 
 demo : $(BIN) ../tools/stream_plot.py
 	mkdir -p ../data/

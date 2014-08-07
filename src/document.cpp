@@ -92,10 +92,11 @@ void Document::GenBaseQuadtree()
 {
 	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 0, ObjectCount()});
 	m_quadtree.root_id = 0;
-	GenQuadNode(0, QTC_TOP_LEFT);
+	GenQuadChild(0, QTC_TOP_LEFT);
+	GenQuadParent(0, QTC_BOTTOM_RIGHT);
 }
 
-QuadTreeIndex Document::GenQuadNode(QuadTreeIndex parent, QuadTreeNodeChildren type)
+QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type)
 {
 	QuadTreeIndex new_index = m_quadtree.nodes.size();
 	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, parent, type, 0, 0});
@@ -125,6 +126,41 @@ QuadTreeIndex Document::GenQuadNode(QuadTreeIndex parent, QuadTreeNodeChildren t
 			break;
 		case QTC_BOTTOM_RIGHT:
 			m_quadtree.nodes[parent].bottom_right = new_index;
+			break;
+		default:
+			Fatal("Tried to add a QuadTree child of invalid type!");
+	}
+	return new_index;
+}
+
+// Reparent a quadtree node, making it the "type" child of a new node.
+QuadTreeIndex Document::GenQuadParent(QuadTreeIndex child, QuadTreeNodeChildren type)
+{
+	QuadTreeIndex new_index = m_quadtree.nodes.size();
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, -1, QTC_UNKNOWN, 0, 0});
+
+	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();
+	for (unsigned i = m_quadtree.nodes[child].object_begin; i < m_quadtree.nodes[child].object_end; ++i)
+	{
+		m_objects.bounds.push_back(TransformFromQuadChild(m_objects.bounds[i], type));
+		m_objects.types.push_back(m_objects.types[i]);
+		m_objects.data_indices.push_back(m_objects.data_indices[i]);
+		m_count++;
+	}
+	m_quadtree.nodes[new_index].object_end = m_objects.bounds.size();
+	switch (type)
+	{
+		case QTC_TOP_LEFT:
+			m_quadtree.nodes[new_index].top_left = child;
+			break;
+		case QTC_TOP_RIGHT:
+			m_quadtree.nodes[new_index].top_right = child;
+			break;
+		case QTC_BOTTOM_LEFT:
+			m_quadtree.nodes[new_index].bottom_left = child;
+			break;
+		case QTC_BOTTOM_RIGHT:
+			m_quadtree.nodes[new_index].bottom_right = child;
 			break;
 		default:
 			Fatal("Tried to add a QuadTree child of invalid type!");
