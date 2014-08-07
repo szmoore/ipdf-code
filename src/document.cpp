@@ -225,6 +225,9 @@ bool Document::operator==(const Document & equ) const
 #include "../contrib/pugixml-1.4/src/pugixml.hpp"
 #include "../contrib/pugixml-1.4/src/pugixml.cpp"
 
+/**
+ * Load an SVG into a rectangle
+ */
 void Document::LoadSVG(const string & filename, const Rect & bounds)
 {
 	using namespace pugi;
@@ -306,7 +309,7 @@ static string & GetToken(const string & d, string & token, unsigned & i)
 	
 	while (i < d.size())
 	{
-		if (d[i] == ',' || isalpha(d[i]) || iswspace(d[i]))
+		if (d[i] == ',' || (isalpha(d[i]) && d[i] != 'e') || iswspace(d[i]))
 		{
 			if (token.size() == 0 && !iswspace(d[i]))
 			{
@@ -325,17 +328,20 @@ static string & GetToken(const string & d, string & token, unsigned & i)
 // Seriously this isn't really very DOM-like at all is it?
 void Document::AddPathFromString(const string & d, const Rect & bounds)
 {
-	Real x[3] = {0,0,0};
-	Real y[3] = {0,0,0};
+	Real x[4] = {0,0,0,0};
+	Real y[4] = {0,0,0,0};
 	
 	string token("");
 	string command("m");
 	
+	Real x0(0);
+	Real y0(0);
+	
 	unsigned i = 0;
 	unsigned prev_i = 0;
-	Real x0;
-	Real y0;
-	bool started = false;
+	
+	bool start = false;
+	
 	while (i < d.size() && GetToken(d, token, i).size() > 0)
 	{
 		if (isalpha(token[0]))
@@ -344,93 +350,124 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 		{
 			i = prev_i; // hax
 			if(command == "")
-				command = "l";
+				command = "L";
 		}
+		
+		bool relative = islower(command[0]);
 			
-		if (command == "m")
+		if (command == "m" || command == "M")
 		{
 			Debug("Construct moveto command");
-			x[0] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			Real dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			y[0] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
-			if (!started)
-			{
-				x0 = x[0];
-				y0 = y[0];
-				started = true;
-			}
+			Real dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			
+			x[0] = (relative) ? x[0] + dx : dx;
+			y[0] = (relative) ? y[0] + dy : dy;
+			
+
+			
 			Debug("mmoveto %f,%f", Float(x[0]),Float(y[0]));
-			command = "l";
+			command = (command == "m") ? "l" : "L";
 		}
-		else if (command == "c")
+		else if (command == "c" || command == "C" || command == "q" || command == "Q")
 		{
 			Debug("Construct curveto command");
-			x[0] = strtod(GetToken(d,token,i).c_str(),NULL)/bounds.w;
+			Real dx = strtod(GetToken(d,token,i).c_str(),NULL)/bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			y[0] = strtod(GetToken(d,token,i).c_str(),NULL)/bounds.h;
+			Real dy = strtod(GetToken(d,token,i).c_str(),NULL)/bounds.h;
 			
-			x[1] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			x[1] = (relative) ? x[0] + dx : dx;
+			y[1] = (relative) ? y[0] + dy : dy;
+			
+			dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			y[1] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
 			
-			x[2] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
-			assert(GetToken(d,token,i) == ",");
-			y[2] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			x[2] = (relative) ? x[0] + dx : dx;
+			y[2] = (relative) ? y[0] + dy : dy;
 			
-			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2]));
-			Add(BEZIER,bounds,index);
+			if (command != "q" && command != "Q")
+			{
+				dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+				assert(GetToken(d,token,i) == ",");
+				dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+				x[3] = (relative) ? x[0] + dx : dx;
+				y[3] = (relative) ? y[0] + dy : dy;
+			}
+			else
+			{
+				x[3] = x[2];
+				y[3] = y[2];
+			}
+			
+			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
+			Add(BEZIER,Rect(0,0,1,1),index);
 			
 			
-			Debug("[%u] curveto %f,%f %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]),Float(x[2]),Float(y[2]));
+			Debug("[%u] curveto %f,%f %f,%f %f,%f", index, Float(x[1]),Float(y[1]),Float(x[2]),Float(y[2]),Float(x[3]),Float(y[3]));
 			
-			x[0] = x[2];
-			y[0] = y[2];
+			x[0] = x[3];
+			y[0] = y[3];
 
 			
 		}
-		else if (command == "l")
+		else if (command == "l" || command == "L")
 		{
 			Debug("Construct lineto command");
 		
-			x[1] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			Real dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			y[1] = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			Real dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			
+			x[1] = (relative) ? x0 + dx : dx;
+			y[1] = (relative) ? y0 + dy : dy;
 			
 			x[2] = x[1];
 			y[2] = y[1];
-
-			Rect segment_bounds(x[0], y[0], x[2] - x[0], y[2] - y[0]);
 			
-			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2]));
-			Add(BEZIER,bounds,index);
+			x[3] = x[1];
+			y[3] = y[1];
+
+			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
+			Add(BEZIER,Rect(0,0,1,1),index);
 			
 			Debug("[%u] lineto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
 			
-			x[0] = x[2];
-			y[0] = y[2];
+			x[0] = x[3];
+			y[0] = y[3];
 
 		}
-		else if (command == "z")
+		else if (command == "z" || command == "Z")
 		{
 			Debug("Construct returnto command");
 			x[1] = x0;
 			y[1] = y0;
 			x[2] = x0;
 			y[2] = y0;
+			x[3] = x0;
+			y[3] = y0;
 			
-			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2]));
-			Add(BEZIER,bounds,index);
+			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
+			Add(BEZIER,Rect(0,0,1,1),index);
 			
 			Debug("[%u] returnto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
 			
-			x[0] = x[2];
-			y[0] = y[2];
+			x[0] = x[3];
+			y[0] = y[3];
 			command = "m";
 		}
 		else
 		{
 			Warn("Unrecognised command \"%s\", set to \"m\"", command.c_str());
 			command = "m";
+		}
+		
+		if (!start)
+		{
+			x0 = x[0];
+			y0 = y[0];
+			start = true;
 		}
 		prev_i = i;
 	}

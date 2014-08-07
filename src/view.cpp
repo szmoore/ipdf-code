@@ -330,7 +330,7 @@ void View::PrepareRender()
 		m_object_renderers.at(type)->AddObjectToBuffers(id); // Use at() in case the document is corrupt TODO: Better error handling?
 		// (Also, Wow I just actually used std::vector::at())
 		// (Also, I just managed to make it throw an exception because I'm a moron)
-		Debug("Object of type %d", type);
+		//Debug("Object of type %d", type);
 	}
 
 	// Finish the buffers

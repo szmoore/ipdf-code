@@ -121,6 +121,7 @@ namespace IPDF
 				float x0, y0;
 				float x1, y1;
 				float x2, y2;
+				float x3, y3;
 			};
 
 			GLuint m_bezier_buffer_texture;
