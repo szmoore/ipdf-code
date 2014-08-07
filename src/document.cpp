@@ -437,6 +437,11 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 			{
 				x[3] = x[2];
 				y[3] = y[2];
+				Real old_x1(x[1]), old_y1(y[1]);
+				x[1] = x[0] + Real(2) * (old_x1 - x[0])/ Real(3);
+				y[1] = y[0] + Real(2) * (old_y1 - y[0])/ Real(3);
+				x[2] = x[3] + Real(2) * (old_x1 - x[3])/ Real(3);
+				y[2] = y[3] + Real(2) * (old_y1 - y[3])/ Real(3);
 			}
 			
 			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
@@ -458,8 +463,8 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 			assert(GetToken(d,token,i) == ",");
 			Real dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
 			
-			x[1] = (relative) ? x0 + dx : dx;
-			y[1] = (relative) ? y0 + dy : dy;
+			x[1] = (relative) ? x[0] + dx : dx;
+			y[1] = (relative) ? y[0] + dy : dy;
 			
 			x[2] = x[1];
 			y[2] = y[1];
