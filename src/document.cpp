@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <fstream>
 
+#include "stb_truetype.h"
+
 using namespace IPDF;
 using namespace std;
 
@@ -507,4 +509,58 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 		}
 		prev_i = i;
 	}
+}
+
+void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real scale, Real x, Real y)
+{
+	int glyph_index = stbtt_FindGlyphIndex(font, character);
+
+	// Check if there is actully a glyph to render.
+	if (stbtt_IsGlyphEmpty(font, glyph_index))
+	{
+		return;
+	}
+
+	stbtt_vertex *instructions;
+	int num_instructions = stbtt_GetGlyphShape(font, glyph_index, &instructions);
+
+	Real current_x(0), current_y(0);
+
+	for (int i = 0; i < num_instructions; ++i)
+	{
+		// TTF uses 16-bit signed ints for coordinates:
+		// with the y-axis inverted compared to us.
+		// Convert and scale any data.
+		Real inst_x = Real(instructions[i].x)*scale;
+		Real inst_y = Real(instructions[i].y)*-scale;
+		Real inst_cx = Real(instructions[i].cx)*scale;
+		Real inst_cy = Real(instructions[i].cy)*-scale;
+		Real old_x(current_x), old_y(current_y);
+		current_x = inst_x;
+		current_y = inst_y;
+		unsigned bezier_index;
+		switch(instructions[i].type)
+		{
+		// Move To
+		case STBTT_vmove:
+			break;
+		// Line To
+		case STBTT_vline:
+			bezier_index = AddBezierData(Bezier(old_x + x, old_y + y, old_x + x, old_y + y, current_x + x, current_y + y, current_x + x, current_y + y));
+			Add(BEZIER,Rect(0,0,1,1),bezier_index);
+			break;
+		// Quadratic Bezier To:
+		case STBTT_vcurve:
+			// Quadratic -> Cubic:
+			// - Endpoints are the same.
+			// - cubic1 = quad0+(2/3)*(quad1-quad0)
+			// - cubic2 = quad2+(2/3)*(quad1-quad2)
+			bezier_index = AddBezierData(Bezier(old_x + x, old_y + y, old_x + Real(2)*(inst_cx-old_x)/Real(3) + x, old_y + Real(2)*(inst_cy-old_y)/Real(3) + y,
+						current_x + Real(2)*(inst_cx-current_x)/Real(3) + x, current_y + Real(2)*(inst_cy-current_y)/Real(3) + y, current_x + x, current_y + y));
+			Add(BEZIER,Rect(0,0,1,1),bezier_index);
+			break;
+		}
+	}
+
+	stbtt_FreeShape(font, instructions);
 }

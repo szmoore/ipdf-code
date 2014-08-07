@@ -4,6 +4,8 @@
 #include "ipdf.h"
 #include "quadtree.h"
 
+typedef struct stbtt_fontinfo stbtt_fontinfo;
+
 namespace IPDF
 {
 	class Document
@@ -28,6 +30,8 @@ namespace IPDF
 			unsigned AddBezierData(const Bezier & bezier);
 			
 			void AddPathFromString(const std::string & d, const Rect & bounds);
+
+			void AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real scale, Real x, Real y);
 
 #ifndef QUADTREE_DISABLED
 			inline const QuadTree& GetQuadTree() { if (m_quadtree.root_id == QUADTREE_EMPTY) { GenBaseQuadtree(); } return m_quadtree; }
