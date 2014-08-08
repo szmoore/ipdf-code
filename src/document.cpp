@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <fstream>
 
+#include "stb_truetype.h"
+
 using namespace IPDF;
 using namespace std;
 
@@ -282,8 +284,8 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 	// Combine all SVG tags into one thing because lazy
 	for (xml_node svg = doc_xml.child("svg"); svg; svg = svg.next_sibling("svg"))
 	{
-		Real width = svg.attribute("width").as_float() * bounds.w;
-		Real height = svg.attribute("width").as_float() * bounds.h;
+		Real width = Real(svg.attribute("width").as_float()) * bounds.w;
+		Real height = Real(svg.attribute("width").as_float()) * bounds.h;
 		
 		
 		// Rectangles
@@ -308,8 +310,8 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 			
 			Real x = (cx - r)/width + bounds.x; 
 			Real y = (cy - r)/height + bounds.y; 
-			Real w = 2*r/width; 
-			Real h = 2*r/height;
+			Real w = Real(2)*r/width; 
+			Real h = Real(2)*r/height;
 			
 			Rect rect(x,y,w,h);
 			Add(CIRCLE_FILLED, rect,0);
@@ -394,9 +396,9 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 		if (command == "m" || command == "M")
 		{
 			Debug("Construct moveto command");
-			Real dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			Real dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			Real dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			Real dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
 			
 			x[0] = (relative) ? x[0] + dx : dx;
 			y[0] = (relative) ? y[0] + dy : dy;
@@ -409,25 +411,25 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 		else if (command == "c" || command == "C" || command == "q" || command == "Q")
 		{
 			Debug("Construct curveto command");
-			Real dx = strtod(GetToken(d,token,i).c_str(),NULL)/bounds.w;
+			Real dx = Real(strtod(GetToken(d,token,i).c_str(),NULL))/bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			Real dy = strtod(GetToken(d,token,i).c_str(),NULL)/bounds.h;
+			Real dy = Real(strtod(GetToken(d,token,i).c_str(),NULL))/bounds.h;
 			
 			x[1] = (relative) ? x[0] + dx : dx;
 			y[1] = (relative) ? y[0] + dy : dy;
 			
-			dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
 			
 			x[2] = (relative) ? x[0] + dx : dx;
 			y[2] = (relative) ? y[0] + dy : dy;
 			
 			if (command != "q" && command != "Q")
 			{
-				dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+				dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
 				assert(GetToken(d,token,i) == ",");
-				dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+				dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
 				x[3] = (relative) ? x[0] + dx : dx;
 				y[3] = (relative) ? y[0] + dy : dy;
 			}
@@ -435,6 +437,11 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 			{
 				x[3] = x[2];
 				y[3] = y[2];
+				Real old_x1(x[1]), old_y1(y[1]);
+				x[1] = x[0] + Real(2) * (old_x1 - x[0])/ Real(3);
+				y[1] = y[0] + Real(2) * (old_y1 - y[0])/ Real(3);
+				x[2] = x[3] + Real(2) * (old_x1 - x[3])/ Real(3);
+				y[2] = y[3] + Real(2) * (old_y1 - y[3])/ Real(3);
 			}
 			
 			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
@@ -452,12 +459,12 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 		{
 			Debug("Construct lineto command");
 		
-			Real dx = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.w;
+			Real dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
 			assert(GetToken(d,token,i) == ",");
-			Real dy = strtod(GetToken(d,token,i).c_str(),NULL) / bounds.h;
+			Real dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
 			
-			x[1] = (relative) ? x0 + dx : dx;
-			y[1] = (relative) ? y0 + dy : dy;
+			x[1] = (relative) ? x[0] + dx : dx;
+			y[1] = (relative) ? y[0] + dy : dy;
 			
 			x[2] = x[1];
 			y[2] = y[1];
@@ -507,4 +514,58 @@ void Document::AddPathFromString(const string & d, const Rect & bounds)
 		}
 		prev_i = i;
 	}
+}
+
+void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real scale, Real x, Real y)
+{
+	int glyph_index = stbtt_FindGlyphIndex(font, character);
+
+	// Check if there is actully a glyph to render.
+	if (stbtt_IsGlyphEmpty(font, glyph_index))
+	{
+		return;
+	}
+
+	stbtt_vertex *instructions;
+	int num_instructions = stbtt_GetGlyphShape(font, glyph_index, &instructions);
+
+	Real current_x(0), current_y(0);
+
+	for (int i = 0; i < num_instructions; ++i)
+	{
+		// TTF uses 16-bit signed ints for coordinates:
+		// with the y-axis inverted compared to us.
+		// Convert and scale any data.
+		Real inst_x = Real(instructions[i].x)*scale;
+		Real inst_y = Real(instructions[i].y)*-scale;
+		Real inst_cx = Real(instructions[i].cx)*scale;
+		Real inst_cy = Real(instructions[i].cy)*-scale;
+		Real old_x(current_x), old_y(current_y);
+		current_x = inst_x;
+		current_y = inst_y;
+		unsigned bezier_index;
+		switch(instructions[i].type)
+		{
+		// Move To
+		case STBTT_vmove:
+			break;
+		// Line To
+		case STBTT_vline:
+			bezier_index = AddBezierData(Bezier(old_x + x, old_y + y, old_x + x, old_y + y, current_x + x, current_y + y, current_x + x, current_y + y));
+			Add(BEZIER,Rect(0,0,1,1),bezier_index);
+			break;
+		// Quadratic Bezier To:
+		case STBTT_vcurve:
+			// Quadratic -> Cubic:
+			// - Endpoints are the same.
+			// - cubic1 = quad0+(2/3)*(quad1-quad0)
+			// - cubic2 = quad2+(2/3)*(quad1-quad2)
+			bezier_index = AddBezierData(Bezier(old_x + x, old_y + y, old_x + Real(2)*(inst_cx-old_x)/Real(3) + x, old_y + Real(2)*(inst_cy-old_y)/Real(3) + y,
+						current_x + Real(2)*(inst_cx-current_x)/Real(3) + x, current_y + Real(2)*(inst_cy-current_y)/Real(3) + y, current_x + x, current_y + y));
+			Add(BEZIER,Rect(0,0,1,1),bezier_index);
+			break;
+		}
+	}
+
+	stbtt_FreeShape(font, instructions);
 }

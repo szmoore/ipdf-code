@@ -10,6 +10,8 @@
 #include <cassert>
 #include "arbint.h"
 #include "gmpint.h"
+#include <climits>
+#include <values.h>
 
 namespace IPDF
 {
@@ -162,7 +164,7 @@ struct Rational
 	//Rational operator*(const Rational & r) const {return Rational(ToDouble()*r.ToDouble());}
 	//Rational operator/(const Rational & r) const {return Rational(ToDouble()/r.ToDouble());}
 
-	Rational operator-() const {Rational r(*this); r.P = -r.P;}
+	Rational operator-() const {Rational r(*this); r.P = -r.P; return r;}
 	Rational & operator=(const Rational & r) {P = r.P; Q = r.Q; Simplify(); return *this;}
 	Rational & operator+=(const Rational & r) {this->operator=(*this+r); return *this;}
 	Rational & operator-=(const Rational & r) {this->operator=(*this-r); return *this;}
@@ -171,7 +173,13 @@ struct Rational
 
 	double ToDouble() const 
 	{
-		return (double)P/(double)Q;
+		T num = P, denom = Q;
+		while (Tabs(num) > T(DBL_MAX))
+		{
+			num /= T(16);
+			denom /= T(16);
+		}
+		return ((double)(num))/((double)(denom));
 	}
 	bool CheckAccuracy(double d, const char * msg, double threshold = 1e-3) const
 	{

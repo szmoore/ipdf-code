@@ -15,8 +15,7 @@ class Gmpint
 		Gmpint(int64_t i) {mpz_init_set_si(m_op, i);}
 		Gmpint(const std::string & str, int base=10) {mpz_init_set_str(m_op, str.c_str(), base);}
 		Gmpint(const Gmpint & cpy) {mpz_init(m_op); mpz_set(m_op, cpy.m_op);}
-		virtual ~Gmpint() {} //TODO: Do we need to delete m_op somehow?
-		
+		virtual ~Gmpint() {mpz_clear(m_op);}
 		
 		operator int64_t() const {return mpz_get_si(m_op);}
 		operator uint64_t() const {return mpz_get_ui(m_op);}
