@@ -291,6 +291,15 @@ void Document::ParseSVGNode(pugi::xml_node & root, const Rect & bounds, Real & w
 			Debug("Path data attribute is \"%s\"", d.c_str());
 			ParseSVGPathData(d, Rect(bounds.x,bounds.y,width,height));
 		}
+		else if (strcmp(child.name(), "line") == 0)
+		{
+			Real x0(child.attribute("x1").as_float()/width + bounds.x);
+			Real y0(child.attribute("y1").as_float()/height + bounds.y);
+			Real x1(child.attribute("x2").as_float()/width + bounds.x);
+			Real y1(child.attribute("y2").as_float()/height + bounds.y);
+			unsigned index = AddBezierData(Bezier(x0,y0,x1,y1,x1,y1,x1,y1));
+			Add(BEZIER, Rect(0,0,1,1), index);
+		}
 		else if (strcmp(child.name(), "rect") == 0)
 		{
 			Real coords[4];
@@ -315,6 +324,13 @@ void Document::ParseSVGNode(pugi::xml_node & root, const Rect & bounds, Real & w
 			Rect rect(x,y,w,h);
 			Add(CIRCLE_FILLED, rect,0);
 			Debug("Added Circle %s", rect.Str().c_str());			
+		}
+		else if (strcmp(child.name(), "text") == 0)
+		{
+			Real x = child.attribute("x").as_float()/width + bounds.x;
+			Real y = child.attribute("y").as_float()/height + bounds.y;
+			Debug("Add text \"%s\"", child.child_value());
+			AddText(child.child_value(), 0.05, x, y);
 		}
 	}
 }
