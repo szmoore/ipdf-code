@@ -4,6 +4,9 @@
 #include "ipdf.h"
 #include "quadtree.h"
 
+#include "../contrib/pugixml-1.4/src/pugixml.hpp"
+
+
 typedef struct stbtt_fontinfo stbtt_fontinfo;
 
 namespace IPDF
@@ -14,7 +17,7 @@ namespace IPDF
 			Document(const std::string & filename = "") : m_objects(), m_count(0) {Load(filename);}
 			virtual ~Document() {}
 			
-			void LoadSVG(const std::string & filename, const Rect & bounds = Rect(0,0,1,1));
+			
 
 			void Load(const std::string & filename = "");
 			void Save(const std::string & filename);
@@ -29,7 +32,18 @@ namespace IPDF
 			void Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
 			unsigned AddBezierData(const Bezier & bezier);
 			
-			void AddPathFromString(const std::string & d, const Rect & bounds);
+			
+			
+			
+			/** SVG Related functions **/
+			
+			/** Load an SVG text file and add to the document **/
+			void LoadSVG(const std::string & filename, const Rect & bounds = Rect(0,0,1,1));
+			
+			/** Parse an SVG node or SVG-group node, adding children to the document **/
+			void ParseSVGNode(pugi::xml_node & root, const Rect & bounds, Real & width, Real & height);
+			/** Parse an SVG path with string **/
+			void ParseSVGPathData(const std::string & d, const Rect & bounds);
 
 			void AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real scale, Real x, Real y);
 

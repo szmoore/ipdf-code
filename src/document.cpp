@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <fstream>
 
+#include "../contrib/pugixml-1.4/src/pugixml.cpp"
+
 #include "stb_truetype.h"
 
 using namespace IPDF;
@@ -260,8 +262,62 @@ bool Document::operator==(const Document & equ) const
 }
 
 
-#include "../contrib/pugixml-1.4/src/pugixml.hpp"
-#include "../contrib/pugixml-1.4/src/pugixml.cpp"
+
+
+void Document::ParseSVGNode(pugi::xml_node & root, const Rect & bounds, Real & width, Real & height)
+{
+	Debug("Parse node <%s>", root.name());
+	pugi::xml_attribute attrib_w = root.attribute("width");
+	pugi::xml_attribute attrib_h = root.attribute("height");
+	if (!attrib_w.empty())
+		width = attrib_w.as_float() * bounds.w;
+	if (!attrib_h.empty())
+		height = attrib_h.as_float() * bounds.h;
+			
+	for (pugi::xml_node child = root.first_child(); child; child = child.next_sibling())
+	{
+
+		
+		if (strcmp(child.name(), "svg") == 0 || strcmp(child.name(),"g") == 0
+			|| strcmp(child.name(), "group") == 0)
+		{
+			//TODO: Handle translates etc here
+			ParseSVGNode(child, bounds, width, height);
+			continue;
+		}
+		else if (strcmp(child.name(), "path") == 0)
+		{
+			string d = child.attribute("d").as_string();
+			Debug("Path data attribute is \"%s\"", d.c_str());
+			ParseSVGPathData(d, Rect(bounds.x,bounds.y,width,height));
+		}
+		else if (strcmp(child.name(), "rect") == 0)
+		{
+			Real coords[4];
+			const char * attrib_names[] = {"x", "y", "width", "height"};
+			for (size_t i = 0; i < 4; ++i)
+				coords[i] = child.attribute(attrib_names[i]).as_float();
+			
+			bool outline = !(child.attribute("fill"));
+			Add(outline?RECT_OUTLINE:RECT_FILLED, Rect(coords[0]/width + bounds.x, coords[1]/height + bounds.y, coords[2]/width, coords[3]/height),0);
+		}
+		else if (strcmp(child.name(), "circle") == 0)
+		{
+			Real cx = child.attribute("cx").as_float();
+			Real cy = child.attribute("cy").as_float();
+			Real r = child.attribute("r").as_float();
+			
+			Real x = (cx - r)/width + bounds.x; 
+			Real y = (cy - r)/height + bounds.y; 
+			Real w = Real(2)*r/width; 
+			Real h = Real(2)*r/height;
+			
+			Rect rect(x,y,w,h);
+			Add(CIRCLE_FILLED, rect,0);
+			Debug("Added Circle %s", rect.Str().c_str());			
+		}
+	}
+}
 
 /**
  * Load an SVG into a rectangle
@@ -280,60 +336,9 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 	Debug("Loaded XML - %s", result.description());
 	
 	input.close();
-
-	// Combine all SVG tags into one thing because lazy
-	for (xml_node svg = doc_xml.child("svg"); svg; svg = svg.next_sibling("svg"))
-	{
-		Real width = Real(svg.attribute("width").as_float()) * bounds.w;
-		Real height = Real(svg.attribute("width").as_float()) * bounds.h;
-		
-		
-		// Rectangles
-		Real coords[4];
-		const char * attrib_names[] = {"x", "y", "width", "height"};
-		for (pugi::xml_node rect = svg.child("rect"); rect; rect = rect.next_sibling("rect"))
-		{
-			for (size_t i = 0; i < 4; ++i)
-				coords[i] = rect.attribute(attrib_names[i]).as_float();
-			
-			bool outline = !(rect.attribute("fill"));
-			Add(outline?RECT_OUTLINE:RECT_FILLED, Rect(coords[0]/width + bounds.x, coords[1]/height + bounds.y, coords[2]/width, coords[3]/height),0);
-			Debug("Added rectangle");
-		}		
-		
-		// Circles
-		for (pugi::xml_node circle = svg.child("circle"); circle; circle = circle.next_sibling("circle"))
-		{
-			Real cx = circle.attribute("cx").as_float();
-			Real cy = circle.attribute("cy").as_float();
-			Real r = circle.attribute("r").as_float();
-			
-			Real x = (cx - r)/width + bounds.x; 
-			Real y = (cy - r)/height + bounds.y; 
-			Real w = Real(2)*r/width; 
-			Real h = Real(2)*r/height;
-			
-			Rect rect(x,y,w,h);
-			Add(CIRCLE_FILLED, rect,0);
-			Debug("Added Circle %s", rect.Str().c_str());
-
-		}		
-		
-		// paths
-		for (pugi::xml_node path = svg.child("path"); path; path = path.next_sibling("path"))
-		{
-			
-			string d = path.attribute("d").as_string();
-			Debug("Path data attribute is \"%s\"", d.c_str());
-			AddPathFromString(d, Rect(bounds.x,bounds.y,width,height));
-			
-		}
-	}
-	
-	//Fatal("Done");
-	
-	
-
+	Real width(1);
+	Real height(1);
+	ParseSVGNode(doc_xml, bounds,width,height);
 }
 
 // Behold my amazing tokenizing abilities
@@ -357,14 +362,14 @@ static string & GetToken(const string & d, string & token, unsigned & i)
 		}
 		token += d[i++];
 	}
-	Debug("Got token \"%s\"", token.c_str());
+	//Debug("Got token \"%s\"", token.c_str());
 	return token;
 }
 
 
 // Fear the wrath of the tokenizing svg data
 // Seriously this isn't really very DOM-like at all is it?
-void Document::AddPathFromString(const string & d, const Rect & bounds)
+void Document::ParseSVGPathData(const string & d, const Rect & bounds)
 {
 	Real x[4] = {0,0,0,0};
 	Real y[4] = {0,0,0,0};
