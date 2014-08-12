@@ -5,7 +5,7 @@
 #include "quadtree.h"
 
 #include "../contrib/pugixml-1.4/src/pugixml.hpp"
-
+#include "stb_truetype.h"
 
 typedef struct stbtt_fontinfo stbtt_fontinfo;
 
@@ -14,8 +14,16 @@ namespace IPDF
 	class Document
 	{
 		public:
-			Document(const std::string & filename = "") : m_objects(), m_count(0) {Load(filename);}
-			virtual ~Document() {}
+			Document(const std::string & filename = "", const std::string & font_filename = "DejaVuSansMono.ttf") : m_objects(), m_count(0), m_font_data(NULL), m_font()
+			{
+				Load(filename);
+				if (font_filename != "")
+					SetFont(font_filename);
+			}
+			virtual ~Document() 
+			{
+				free(m_font_data);
+			}
 			
 			
 
@@ -32,8 +40,7 @@ namespace IPDF
 			void Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
 			unsigned AddBezierData(const Bezier & bezier);
 			
-			
-			
+
 			
 			/** SVG Related functions **/
 			
@@ -45,6 +52,10 @@ namespace IPDF
 			/** Parse an SVG path with string **/
 			void ParseSVGPathData(const std::string & d, const Rect & bounds);
 
+			/** Font related functions **/
+			void SetFont(const std::string & font_filename);
+			void AddText(const std::string & text, Real scale, Real x, Real y);
+			
 			void AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real scale, Real x, Real y);
 
 #ifndef QUADTREE_DISABLED
@@ -61,6 +72,9 @@ namespace IPDF
 			void GenBaseQuadtree();
 #endif
 			unsigned m_count;
+			unsigned char * m_font_data;
+			stbtt_fontinfo m_font;
+		
 			
 
 	};

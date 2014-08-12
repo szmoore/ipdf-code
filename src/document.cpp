@@ -521,6 +521,53 @@ void Document::ParseSVGPathData(const string & d, const Rect & bounds)
 	}
 }
 
+void Document::SetFont(const string & font_filename)
+{
+	if (m_font_data != NULL)
+	{
+		free(m_font_data);
+	}
+	
+	FILE *font_file = fopen("DejaVuSansMono.ttf", "rb");
+	fseek(font_file, 0, SEEK_END);
+	size_t font_file_size = ftell(font_file);
+	fseek(font_file, 0, SEEK_SET);
+	m_font_data = (unsigned char*)malloc(font_file_size);
+	size_t read = fread(m_font_data, 1, font_file_size, font_file);
+	if (read != font_file_size)
+	{
+		Fatal("Failed to read font data from \"%s\" - Read %u bytes expected %u - %s", font_filename.c_str(), read, font_file_size, strerror(errno));
+	}
+	fclose(font_file);
+	stbtt_InitFont(&m_font, m_font_data, 0);
+}
+
+void Document::AddText(const string & text, Real scale, Real x, Real y)
+{
+	if (m_font_data == NULL)
+	{
+		Warn("No font loaded");
+		return;
+	}
+		
+	float font_scale = stbtt_ScaleForPixelHeight(&m_font, scale);
+	Real x0(x);
+	//Real y0(y);
+	for (unsigned i = 0; i < text.size(); ++i)
+	{
+		if (text[i] == '\n')
+		{
+			y += 0.5*scale;
+			x = x0;
+		}
+		if (!isprint(text[i]))
+			continue;
+			
+		AddFontGlyphAtPoint(&m_font, text[i], font_scale, x, y);
+		x += 0.5*scale;
+	}
+}
+
 void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real scale, Real x, Real y)
 {
 	int glyph_index = stbtt_FindGlyphIndex(font, character);
