@@ -4,17 +4,40 @@
 #include "ipdf.h"
 #include "quadtree.h"
 
+#include "../contrib/pugixml-1.4/src/pugixml.hpp"
+#include "stb_truetype.h"
+
 typedef struct stbtt_fontinfo stbtt_fontinfo;
 
 namespace IPDF
 {
+	struct SVGMatrix
+	{
+		Real a; // width
+		Real b; // skew y by x
+		Real c; // skew x by y
+		Real d; // height
+		Real e; // translate x
+		Real f; // translate y
+	};
+	// SVG matrix transforms (x,y) <- (a x' + c y' + e, b x' + d y' + f)
+	// Equivelant to OpenGL 3d matrix transform ((a, c, e) (b, d, f) (0,0,1))
+	
 	class Document
 	{
 		public:
-			Document(const std::string & filename = "") : m_objects(), m_count(0) {Load(filename);}
-			virtual ~Document() {}
+			Document(const std::string & filename = "", const std::string & font_filename = "DejaVuSansMono.ttf") : m_objects(), m_count(0), m_font_data(NULL), m_font()
+			{
+				Load(filename);
+				if (font_filename != "")
+					SetFont(font_filename);
+			}
+			virtual ~Document() 
+			{
+				free(m_font_data);
+			}
 			
-			void LoadSVG(const std::string & filename, const Rect & bounds = {0,0,1,1});
+			
 
 			void Load(const std::string & filename = "");
 			void Save(const std::string & filename);
@@ -29,8 +52,29 @@ namespace IPDF
 			void Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
 			unsigned AddBezierData(const Bezier & bezier);
 			
-			void AddPathFromString(const std::string & d, const Rect & bounds);
 
+
+			
+
+			
+			
+			/** SVG Related functions **/
+			
+			/** Load an SVG text file and add to the document **/
+			void LoadSVG(const std::string & filename, const Rect & bounds = Rect(0,0,1,1));
+			
+			/** Parse an SVG node or SVG-group node, adding children to the document **/
+			void ParseSVGNode(pugi::xml_node & root, SVGMatrix & transform);
+			/** Parse an SVG path with string **/
+			void ParseSVGPathData(const std::string & d, const SVGMatrix & transform);
+			
+			/** Modify an SVG transformation matrix **/
+			static void ParseSVGTransform(const std::string & s, SVGMatrix & transform);
+
+			/** Font related functions **/
+			void SetFont(const std::string & font_filename);
+			void AddText(const std::string & text, Real scale, Real x, Real y);
+			
 			void AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real scale, Real x, Real y);
 
 #ifndef QUADTREE_DISABLED
@@ -47,6 +91,9 @@ namespace IPDF
 			void GenBaseQuadtree();
 #endif
 			unsigned m_count;
+			unsigned char * m_font_data;
+			stbtt_fontinfo m_font;
+		
 			
 
 	};

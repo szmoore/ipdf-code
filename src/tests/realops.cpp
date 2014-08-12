@@ -1,3 +1,7 @@
+/**
+ * Test mathematical operations on the Real type and consistency with double
+ */
+
 #include "main.h"
 #include "real.h"
 

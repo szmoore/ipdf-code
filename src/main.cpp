@@ -1,6 +1,6 @@
 #include "main.h"
 #include <unistd.h> // Because we can.
-#include "stb_truetype.h"
+
 int main(int argc, char ** argv)
 {	
 	#ifndef __STDC_IEC_559__
@@ -78,7 +78,7 @@ int main(int argc, char ** argv)
 
 	if (input_filename != NULL)
 	{
-		doc.LoadSVG(input_filename);
+		doc.LoadSVG(input_filename, Rect(0,0,Real(1)/Real(800),Real(1)/Real(600)));
 	}
 	else 
 	{
@@ -87,25 +87,10 @@ int main(int argc, char ** argv)
 		doc.AddBezierData(Bezier(0,0,1,1,1,0));
 		doc.AddBezierData(Bezier(0,1,1,0,0,1));*/
 		
-		stbtt_fontinfo font;
-		FILE *font_file = fopen("DejaVuSansMono.ttf", "rb");
-		fseek(font_file, 0, SEEK_END);
-		size_t font_file_size = ftell(font_file);
-		fseek(font_file, 0, SEEK_SET);
-		unsigned char *font_file_data = (unsigned char*)malloc(font_file_size);
-		SDL_assert(fread(font_file_data, 1, font_file_size, font_file) == font_file_size);
-		fclose(font_file);
-		stbtt_InitFont(&font, font_file_data, 0);
-
-		float font_scale = stbtt_ScaleForPixelHeight(&font, 1);
-		doc.AddFontGlyphAtPoint(&font,'a', Real(font_scale), Real(0), Real(1));  
-		doc.AddFontGlyphAtPoint(&font,'b', Real(font_scale), Real(0.5), Real(1));  
-		doc.AddFontGlyphAtPoint(&font,'c', Real(font_scale), Real(1), Real(1));  
-		doc.AddFontGlyphAtPoint(&font,'d', Real(font_scale), Real(1.5), Real(1));  
-
-		free(font_file_data);
+	
 		
-		
+		doc.AddText("abcde", 0.5, Real(0), Real(1));
+
 		for(int x = 0; x < 8; ++x)
 		{
 			

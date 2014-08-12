@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="400" height="400">
+    <line x1="0" y1="0" x2="400" y2="0" stroke="red"/>
+    
+    <line x1="0" y1="0" x2="0" y2="400" stroke="red"/>
+    
+    <line x1="400" y1="0" x2="400" y2="400" stroke="red"/>
+    
+    <line x1="0" y1="400" x2="400" y2="400" stroke="red"/>
+    
+	<line 
+	 	x1="0" y1="0" x2="400" y2="400" stroke="black"/>
+
+	<line
+		x1="400" y1="0" x2="0" y2="400" stroke="black"/>
+</svg>
