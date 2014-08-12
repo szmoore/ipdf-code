@@ -290,7 +290,8 @@ static string & GetToken(const string & d, string & token, unsigned & i, const s
 static void GetXYPair(const string & d, Real & x, Real & y, unsigned & i,const string & delims = "()[],{}<>;:=")
 {
 	string token("");
-	x = strtod(GetToken(d, token, i, delims).c_str(),NULL);
+	while (GetToken(d, token, i, delims) == ",");
+	x = strtod(token.c_str(),NULL);
 	if (GetToken(d, token, i, delims) != ",")
 	{
 		Fatal("Expected \",\" seperating x,y pair");
@@ -298,7 +299,7 @@ static void GetXYPair(const string & d, Real & x, Real & y, unsigned & i,const s
 	y = strtod(GetToken(d, token, i, delims).c_str(),NULL);
 }
 
-static void TransformXYPair(Real & x, Real & y, SVGMatrix & transform)
+static void TransformXYPair(Real & x, Real & y, const SVGMatrix & transform)
 {
 	Real x0(x);
 	x = transform.a * x + transform.c * y + transform.e;
@@ -311,57 +312,70 @@ void Document::ParseSVGTransform(const string & s, SVGMatrix & transform)
 	string token;
 	string command;
 	unsigned i = 0;
-	GetToken(s, command, i);
-	Debug("Token is \"%s\"", command.c_str());
 	
-	SVGMatrix delta = {1,0,0,1,0,0};
-	
-	
-	assert(GetToken(s,token, i) == "(");
-	if (command == "translate")
+	while (i < s.size())
 	{
-		GetXYPair(s, delta.e, delta.f, i);
-		assert(GetToken(s,token, i) == ")");	
-	}
-	else if (command == "matrix")
-	{
-		GetXYPair(s, delta.a, delta.b,i);
-		GetXYPair(s, delta.c, delta.d,i);
-		GetXYPair(s, delta.e, delta.f,i);
-		assert(GetToken(s,token, i) == ")");	
-	}
-	else if (command == "scale")
-	{
-		delta.a = (strtod(GetToken(s,token,i).c_str(), NULL));
-		GetToken(s, token, i);
-		if (token != ")")
+		GetToken(s, command, i);
+		if (command == "," || command == "" || command == ":")
 		{
-			delta.b = (strtod(token.c_str(), NULL));
+			if (i < s.size())
+				GetToken(s, command, i);
+			else
+				return;
+		}
+		Debug("Token is \"%s\"", command.c_str());
+	
+		SVGMatrix delta = {1,0,0,0,1,0};
+	
+	
+		assert(GetToken(s,token, i) == "(");
+		if (command == "translate")
+		{
+			GetXYPair(s, delta.e, delta.f, i);
+			assert(GetToken(s,token, i) == ")");	
+		}
+		else if (command == "matrix")
+		{
+			GetXYPair(s, delta.a, delta.b,i);
+			GetXYPair(s, delta.c, delta.d,i);
+			GetXYPair(s, delta.e, delta.f,i);
+			assert(GetToken(s,token, i) == ")");	
+		}
+		else if (command == "scale")
+		{
+			delta.a = (strtod(GetToken(s,token,i).c_str(), NULL));
+			GetToken(s, token, i);
+			if (token == ",")
+			{
+				delta.d = (strtod(GetToken(s,token,i).c_str(), NULL));
+				assert(GetToken(s, token, i) == ")");
+			}
+			else
+			{
+				delta.d = delta.a;
+				assert(token == ")");
+			}
+			
 		}
 		else
 		{
-			delta.b = delta.a;
+			Warn("Unrecognised transform \"%s\", using identity", command.c_str());
 		}
-		
+	
+		Debug("Old transform is {%f,%f,%f,%f,%f,%f}", transform.a, transform.b, transform.c, transform.d,transform.e,transform.f);
+		Debug("Delta transform is {%f,%f,%f,%f,%f,%f}", delta.a, delta.b, delta.c, delta.d,delta.e,delta.f);
+	
+		SVGMatrix old(transform);
+		transform.a = old.a * delta.a + old.c * delta.b;
+		transform.c = old.a * delta.c + old.c * delta.d;
+		transform.e = old.a * delta.e + old.c * delta.f + old.e;
+	
+		transform.b = old.b * delta.a + old.d * delta.b;
+		transform.d = old.b * delta.c + old.d * delta.d;
+		transform.f = old.b * delta.e + old.d * delta.f + old.f;
+	
+		Debug("New transform is {%f,%f,%f,%f,%f,%f}", transform.a, transform.b, transform.c, transform.d,transform.e,transform.f);
 	}
-	else
-	{
-		Warn("Unrecognised transform \"%s\", using identity", command.c_str());
-	}
-	
-	Debug("Old transform is {%f,%f,%f,%f,%f,%f}", transform.a, transform.b, transform.c, transform.d,transform.e,transform.f);
-	Debug("Delta transform is {%f,%f,%f,%f,%f,%f}", delta.a, delta.b, delta.c, delta.d,delta.e,delta.f);
-	
-	SVGMatrix old(transform);
-	transform.a = old.a * delta.a + old.c * delta.b;
-	transform.c = old.a * delta.c + old.c * delta.d;
-	transform.e = old.a * delta.e + old.c * delta.f + old.e;
-	
-	transform.b = old.b * delta.a + old.d * delta.b;
-	transform.d = old.b * delta.c + old.d * delta.d;
-	transform.f = old.b * delta.e + old.d * delta.f + old.f;
-	
-	Debug("New transform is {%f,%f,%f,%f,%f,%f}", transform.a, transform.b, transform.c, transform.d,transform.e,transform.f);
 }
 
 void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
@@ -464,8 +478,8 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 	Debug("Loaded XML - %s", result.description());
 	
 	input.close();
-
-	SVGMatrix transform = {bounds.w, 0,bounds.x, bounds.h,0,bounds.y};
+						// a c e, b d f
+	SVGMatrix transform = {bounds.w, 0,bounds.x, 0,bounds.h,bounds.y};
 	ParseSVGNode(doc_xml, transform);
 }
 
@@ -507,14 +521,12 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 		if (command == "m" || command == "M")
 		{
 			//Debug("Construct moveto command");
-			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) * transform.a;
+			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
 			assert(GetToken(d,token,i,delims) == ",");
-			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) * transform.d;
+			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
 			
-			x[0] = (relative) ? x[0] + dx : dx + transform.e;
-			y[0] = (relative) ? y[0] + dy : dy + transform.f;
-			
-
+			x[0] = (relative) ? x[0] + dx : dx;
+			y[0] = (relative) ? y[0] + dy : dy;
 			
 			//Debug("mmoveto %f,%f", Float(x[0]),Float(y[0]));
 			command = (command == "m") ? "l" : "L";
@@ -522,27 +534,27 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 		else if (command == "c" || command == "C" || command == "q" || command == "Q")
 		{
 			//Debug("Construct curveto command");
-			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) * transform.a;
+			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
 			assert(GetToken(d,token,i,delims) == ",");
-			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL))*transform.d;
+			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
 			
-			x[1] = (relative) ? x[0] + dx : dx + transform.e;
-			y[1] = (relative) ? y[0] + dy : dy + transform.f;
+			x[1] = (relative) ? x[0] + dx : dx;
+			y[1] = (relative) ? y[0] + dy : dy;
 			
-			dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.a;
+			dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
 			assert(GetToken(d,token,i,delims) == ",");
-			dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.d;
+			dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
 			
-			x[2] = (relative) ? x[0] + dx : dx + transform.e;
-			y[2] = (relative) ? y[0] + dy : dy + transform.f;
+			x[2] = (relative) ? x[0] + dx : dx;
+			y[2] = (relative) ? y[0] + dy : dy;
 			
 			if (command != "q" && command != "Q")
 			{
-				dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.a;
+				dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
 				assert(GetToken(d,token,i,delims) == ",");
-				dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.d;
-				x[3] = (relative) ? x[0] + dx : dx + transform.e;
-				y[3] = (relative) ? y[0] + dy : dy + transform.f;
+				dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+				x[3] = (relative) ? x[0] + dx : dx;
+				y[3] = (relative) ? y[0] + dy : dy;
 			}
 			else
 			{
@@ -555,41 +567,47 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 				y[2] = y[3] + Real(2) * (old_y1 - y[3])/ Real(3);
 			}
 			
+			Real x3(x[3]);
+			Real y3(y[3]);
+			for (int j = 0; j < 4; ++j)
+				TransformXYPair(x[j],y[j], transform);
+
 			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
 			Add(BEZIER,Rect(0,0,1,1),index);
 			
 			
 			//Debug("[%u] curveto %f,%f %f,%f %f,%f", index, Float(x[1]),Float(y[1]),Float(x[2]),Float(y[2]),Float(x[3]),Float(y[3]));
 			
-			x[0] = x[3];
-			y[0] = y[3];
+			x[0] = x3;
+			y[0] = y3;
 
 			
 		}
 		else if (command == "l" || command == "L")
 		{
-			//Debug("Construct lineto command");
+			Debug("Construct lineto command, relative %d", relative);
 		
-			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.a;
+			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
 			assert(GetToken(d,token,i,delims) == ",");
-			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.d;
+			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
 			
-			x[1] = (relative) ? x[0] + dx : dx + transform.e;
-			y[1] = (relative) ? y[0] + dy : dy + transform.f;
+			x[1] = (relative) ? x[0] + dx : dx;
+			y[1] = (relative) ? y[0] + dy : dy;
 			
-			x[2] = x[1];
-			y[2] = y[1];
+			Real x1(x[1]);
+			Real y1(y[1]);
 			
-			x[3] = x[1];
-			y[3] = y[1];
+			TransformXYPair(x[0],y[0],transform);
+			TransformXYPair(x[1],y[1],transform);
 
-			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
+
+			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[1],y[1],x[1],y[1]));
 			Add(BEZIER,Rect(0,0,1,1),index);
 			
 			//Debug("[%u] lineto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
 			
-			x[0] = x[3];
-			y[0] = y[3];
+			x[0] = x1;
+			y[0] = y1;
 
 		}
 		else if (command == "z" || command == "Z")
@@ -602,13 +620,18 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 			x[3] = x0;
 			y[3] = y0;
 			
+			Real x3(x[3]);
+			Real y3(y[3]);
+			for (int j = 0; j < 4; ++j)
+				TransformXYPair(x[j],y[j], transform);
+
 			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
 			Add(BEZIER,Rect(0,0,1,1),index);
 			
 			//Debug("[%u] returnto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
 			
-			x[0] = x[3];
-			y[0] = y[3];
+			x[0] = x3;
+			y[0] = y3;
 			command = "m";
 		}
 		else

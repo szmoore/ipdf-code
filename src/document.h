@@ -14,10 +14,11 @@ namespace IPDF
 	struct SVGMatrix
 	{
 		Real a; // width
-		Real b; // skew y by x
 		Real c; // skew x by y
-		Real d; // height
 		Real e; // translate x
+		
+		Real b; // skew y by x
+		Real d; // height
 		Real f; // translate y
 	};
 	// SVG matrix transforms (x,y) <- (a x' + c y' + e, b x' + d y' + f)
