@@ -263,40 +263,143 @@ bool Document::operator==(const Document & equ) const
 
 
 
+// Behold my amazing tokenizing abilities
+static string & GetToken(const string & d, string & token, unsigned & i, const string & delims = "()[],{}<>;:=")
+{
+	token.clear();
+	while (i < d.size() && iswspace(d[i]))
+	{
+		++i;
+	}
+	
+	while (i < d.size())
+	{
+		if (iswspace(d[i]) || strchr(delims.c_str(),d[i]) != NULL)
+		{
+			if (token.size() == 0 && !iswspace(d[i]))
+			{
+				token += d[i++];
+			}
+			break;	
+		}
+		token += d[i++];
+	}
+	//Debug("Got token \"%s\"", token.c_str());
+	return token;
+}
 
-void Document::ParseSVGNode(pugi::xml_node & root, const Rect & bounds, Real & width, Real & height)
+static void GetXYPair(const string & d, Real & x, Real & y, unsigned & i,const string & delims = "()[],{}<>;:=")
+{
+	string token("");
+	x = strtod(GetToken(d, token, i, delims).c_str(),NULL);
+	if (GetToken(d, token, i, delims) != ",")
+	{
+		Fatal("Expected \",\" seperating x,y pair");
+	}
+	y = strtod(GetToken(d, token, i, delims).c_str(),NULL);
+}
+
+static void TransformXYPair(Real & x, Real & y, SVGMatrix & transform)
+{
+	Real x0(x);
+	x = transform.a * x + transform.c * y + transform.e;
+	y = transform.b * x0 + transform.d * y + transform.f;
+}
+
+void Document::ParseSVGTransform(const string & s, SVGMatrix & transform)
+{
+	Debug("Parsing transform %s", s.c_str());
+	string token;
+	string command;
+	unsigned i = 0;
+	GetToken(s, command, i);
+	Debug("Token is \"%s\"", command.c_str());
+	
+	SVGMatrix delta = {1,0,0,1,0,0};
+	
+	
+	assert(GetToken(s,token, i) == "(");
+	if (command == "translate")
+	{
+		GetXYPair(s, delta.e, delta.f, i);
+		assert(GetToken(s,token, i) == ")");	
+	}
+	else if (command == "matrix")
+	{
+		GetXYPair(s, delta.a, delta.b,i);
+		GetXYPair(s, delta.c, delta.d,i);
+		GetXYPair(s, delta.e, delta.f,i);
+		assert(GetToken(s,token, i) == ")");	
+	}
+	else if (command == "scale")
+	{
+		delta.a = (strtod(GetToken(s,token,i).c_str(), NULL));
+		GetToken(s, token, i);
+		if (token != ")")
+		{
+			delta.b = (strtod(token.c_str(), NULL));
+		}
+		else
+		{
+			delta.b = delta.a;
+		}
+		
+	}
+	else
+	{
+		Warn("Unrecognised transform \"%s\", using identity", command.c_str());
+	}
+	
+	Debug("Old transform is {%f,%f,%f,%f,%f,%f}", transform.a, transform.b, transform.c, transform.d,transform.e,transform.f);
+	Debug("Delta transform is {%f,%f,%f,%f,%f,%f}", delta.a, delta.b, delta.c, delta.d,delta.e,delta.f);
+	
+	SVGMatrix old(transform);
+	transform.a = old.a * delta.a + old.c * delta.b;
+	transform.c = old.a * delta.c + old.c * delta.d;
+	transform.e = old.a * delta.e + old.c * delta.f + old.e;
+	
+	transform.b = old.b * delta.a + old.d * delta.b;
+	transform.d = old.b * delta.c + old.d * delta.d;
+	transform.f = old.b * delta.e + old.d * delta.f + old.f;
+	
+	Debug("New transform is {%f,%f,%f,%f,%f,%f}", transform.a, transform.b, transform.c, transform.d,transform.e,transform.f);
+}
+
+void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 {
 	Debug("Parse node <%s>", root.name());
-	pugi::xml_attribute attrib_w = root.attribute("width");
-	pugi::xml_attribute attrib_h = root.attribute("height");
-	if (!attrib_w.empty())
-		width = attrib_w.as_float() * bounds.w;
-	if (!attrib_h.empty())
-		height = attrib_h.as_float() * bounds.h;
-			
+
+		
 	for (pugi::xml_node child = root.first_child(); child; child = child.next_sibling())
 	{
-
+		SVGMatrix transform(parent_transform);	
+		pugi::xml_attribute attrib_trans = child.attribute("transform");
+		if (!attrib_trans.empty())
+		{
+			ParseSVGTransform(attrib_trans.as_string(), transform);
+		}
 		
 		if (strcmp(child.name(), "svg") == 0 || strcmp(child.name(),"g") == 0
 			|| strcmp(child.name(), "group") == 0)
 		{
-			//TODO: Handle translates etc here
-			ParseSVGNode(child, bounds, width, height);
+			
+			ParseSVGNode(child, transform);
 			continue;
 		}
 		else if (strcmp(child.name(), "path") == 0)
 		{
 			string d = child.attribute("d").as_string();
 			Debug("Path data attribute is \"%s\"", d.c_str());
-			ParseSVGPathData(d, Rect(bounds.x,bounds.y,width,height));
+			ParseSVGPathData(d, transform);
 		}
 		else if (strcmp(child.name(), "line") == 0)
 		{
-			Real x0(child.attribute("x1").as_float()/width + bounds.x);
-			Real y0(child.attribute("y1").as_float()/height + bounds.y);
-			Real x1(child.attribute("x2").as_float()/width + bounds.x);
-			Real y1(child.attribute("y2").as_float()/height + bounds.y);
+			Real x0(child.attribute("x1").as_float());
+			Real y0(child.attribute("y1").as_float());
+			Real x1(child.attribute("x2").as_float());
+			Real y1(child.attribute("y2").as_float());
+			TransformXYPair(x0,y0,transform);
+			TransformXYPair(x1,y1,transform);
 			unsigned index = AddBezierData(Bezier(x0,y0,x1,y1,x1,y1,x1,y1));
 			Add(BEZIER, Rect(0,0,1,1), index);
 		}
@@ -307,8 +410,15 @@ void Document::ParseSVGNode(pugi::xml_node & root, const Rect & bounds, Real & w
 			for (size_t i = 0; i < 4; ++i)
 				coords[i] = child.attribute(attrib_names[i]).as_float();
 			
-			bool outline = !(child.attribute("fill"));
-			Add(outline?RECT_OUTLINE:RECT_FILLED, Rect(coords[0]/width + bounds.x, coords[1]/height + bounds.y, coords[2]/width, coords[3]/height),0);
+			Real x2(coords[0]+coords[2]);
+			Real y2(coords[1]+coords[3]);
+			TransformXYPair(coords[0],coords[1],transform); // x, y, transform
+			TransformXYPair(x2,y2,transform);
+			coords[2] = x2 - coords[0];
+			coords[3] = y2 - coords[1];
+			
+			bool outline = !(child.attribute("fill") && strcmp(child.attribute("fill").as_string(),"none") != 0);
+			Add(outline?RECT_OUTLINE:RECT_FILLED, Rect(coords[0], coords[1], coords[2], coords[3]),0);
 		}
 		else if (strcmp(child.name(), "circle") == 0)
 		{
@@ -316,10 +426,12 @@ void Document::ParseSVGNode(pugi::xml_node & root, const Rect & bounds, Real & w
 			Real cy = child.attribute("cy").as_float();
 			Real r = child.attribute("r").as_float();
 			
-			Real x = (cx - r)/width + bounds.x; 
-			Real y = (cy - r)/height + bounds.y; 
-			Real w = Real(2)*r/width; 
-			Real h = Real(2)*r/height;
+			Real x = (cx - r);
+			Real y = (cy - r);
+			TransformXYPair(x,y,transform);
+			Real w = Real(2)*r*transform.a; // width scales
+			Real h = Real(2)*r*transform.d; // height scales
+			
 			
 			Rect rect(x,y,w,h);
 			Add(CIRCLE_FILLED, rect,0);
@@ -327,8 +439,9 @@ void Document::ParseSVGNode(pugi::xml_node & root, const Rect & bounds, Real & w
 		}
 		else if (strcmp(child.name(), "text") == 0)
 		{
-			Real x = child.attribute("x").as_float()/width + bounds.x;
-			Real y = child.attribute("y").as_float()/height + bounds.y;
+			Real x = child.attribute("x").as_float();
+			Real y = child.attribute("y").as_float();
+			TransformXYPair(x,y,transform);
 			Debug("Add text \"%s\"", child.child_value());
 			AddText(child.child_value(), 0.05, x, y);
 		}
@@ -352,40 +465,16 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 	Debug("Loaded XML - %s", result.description());
 	
 	input.close();
-	Real width(1);
-	Real height(1);
-	ParseSVGNode(doc_xml, bounds,width,height);
+
+	SVGMatrix transform = {bounds.w, 0,bounds.x, bounds.h,0,bounds.y};
+	ParseSVGNode(doc_xml, transform);
 }
 
-// Behold my amazing tokenizing abilities
-static string & GetToken(const string & d, string & token, unsigned & i)
-{
-	token.clear();
-	while (i < d.size() && iswspace(d[i]))
-	{
-		++i;
-	}
-	
-	while (i < d.size())
-	{
-		if (d[i] == ',' || (isalpha(d[i]) && d[i] != 'e') || iswspace(d[i]))
-		{
-			if (token.size() == 0 && !iswspace(d[i]))
-			{
-				token += d[i++];
-			}
-			break;	
-		}
-		token += d[i++];
-	}
-	//Debug("Got token \"%s\"", token.c_str());
-	return token;
-}
 
 
 // Fear the wrath of the tokenizing svg data
 // Seriously this isn't really very DOM-like at all is it?
-void Document::ParseSVGPathData(const string & d, const Rect & bounds)
+void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 {
 	Real x[4] = {0,0,0,0};
 	Real y[4] = {0,0,0,0};
@@ -400,6 +489,8 @@ void Document::ParseSVGPathData(const string & d, const Rect & bounds)
 	unsigned prev_i = 0;
 	
 	bool start = false;
+	
+	static string delims("()[],{}<>;:=LlmMqQzZcC");
 	
 	while (i < d.size() && GetToken(d, token, i).size() > 0)
 	{
@@ -416,43 +507,43 @@ void Document::ParseSVGPathData(const string & d, const Rect & bounds)
 			
 		if (command == "m" || command == "M")
 		{
-			Debug("Construct moveto command");
-			Real dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
-			assert(GetToken(d,token,i) == ",");
-			Real dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
+			//Debug("Construct moveto command");
+			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) * transform.a;
+			assert(GetToken(d,token,i,delims) == ",");
+			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) * transform.d;
 			
-			x[0] = (relative) ? x[0] + dx : dx;
-			y[0] = (relative) ? y[0] + dy : dy;
+			x[0] = (relative) ? x[0] + dx : dx + transform.e;
+			y[0] = (relative) ? y[0] + dy : dy + transform.f;
 			
 
 			
-			Debug("mmoveto %f,%f", Float(x[0]),Float(y[0]));
+			//Debug("mmoveto %f,%f", Float(x[0]),Float(y[0]));
 			command = (command == "m") ? "l" : "L";
 		}
 		else if (command == "c" || command == "C" || command == "q" || command == "Q")
 		{
-			Debug("Construct curveto command");
-			Real dx = Real(strtod(GetToken(d,token,i).c_str(),NULL))/bounds.w;
-			assert(GetToken(d,token,i) == ",");
-			Real dy = Real(strtod(GetToken(d,token,i).c_str(),NULL))/bounds.h;
+			//Debug("Construct curveto command");
+			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) * transform.a;
+			assert(GetToken(d,token,i,delims) == ",");
+			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL))*transform.d;
 			
-			x[1] = (relative) ? x[0] + dx : dx;
-			y[1] = (relative) ? y[0] + dy : dy;
+			x[1] = (relative) ? x[0] + dx : dx + transform.e;
+			y[1] = (relative) ? y[0] + dy : dy + transform.f;
 			
-			dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
-			assert(GetToken(d,token,i) == ",");
-			dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
+			dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.a;
+			assert(GetToken(d,token,i,delims) == ",");
+			dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.d;
 			
-			x[2] = (relative) ? x[0] + dx : dx;
-			y[2] = (relative) ? y[0] + dy : dy;
+			x[2] = (relative) ? x[0] + dx : dx + transform.e;
+			y[2] = (relative) ? y[0] + dy : dy + transform.f;
 			
 			if (command != "q" && command != "Q")
 			{
-				dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
-				assert(GetToken(d,token,i) == ",");
-				dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
-				x[3] = (relative) ? x[0] + dx : dx;
-				y[3] = (relative) ? y[0] + dy : dy;
+				dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.a;
+				assert(GetToken(d,token,i,delims) == ",");
+				dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.d;
+				x[3] = (relative) ? x[0] + dx : dx + transform.e;
+				y[3] = (relative) ? y[0] + dy : dy + transform.f;
 			}
 			else
 			{
@@ -469,7 +560,7 @@ void Document::ParseSVGPathData(const string & d, const Rect & bounds)
 			Add(BEZIER,Rect(0,0,1,1),index);
 			
 			
-			Debug("[%u] curveto %f,%f %f,%f %f,%f", index, Float(x[1]),Float(y[1]),Float(x[2]),Float(y[2]),Float(x[3]),Float(y[3]));
+			//Debug("[%u] curveto %f,%f %f,%f %f,%f", index, Float(x[1]),Float(y[1]),Float(x[2]),Float(y[2]),Float(x[3]),Float(y[3]));
 			
 			x[0] = x[3];
 			y[0] = y[3];
@@ -478,14 +569,14 @@ void Document::ParseSVGPathData(const string & d, const Rect & bounds)
 		}
 		else if (command == "l" || command == "L")
 		{
-			Debug("Construct lineto command");
+			//Debug("Construct lineto command");
 		
-			Real dx = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.w;
-			assert(GetToken(d,token,i) == ",");
-			Real dy = Real(strtod(GetToken(d,token,i).c_str(),NULL)) / bounds.h;
+			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.a;
+			assert(GetToken(d,token,i,delims) == ",");
+			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL)) *transform.d;
 			
-			x[1] = (relative) ? x[0] + dx : dx;
-			y[1] = (relative) ? y[0] + dy : dy;
+			x[1] = (relative) ? x[0] + dx : dx + transform.e;
+			y[1] = (relative) ? y[0] + dy : dy + transform.f;
 			
 			x[2] = x[1];
 			y[2] = y[1];
@@ -496,7 +587,7 @@ void Document::ParseSVGPathData(const string & d, const Rect & bounds)
 			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
 			Add(BEZIER,Rect(0,0,1,1),index);
 			
-			Debug("[%u] lineto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
+			//Debug("[%u] lineto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
 			
 			x[0] = x[3];
 			y[0] = y[3];
@@ -504,7 +595,7 @@ void Document::ParseSVGPathData(const string & d, const Rect & bounds)
 		}
 		else if (command == "z" || command == "Z")
 		{
-			Debug("Construct returnto command");
+			//Debug("Construct returnto command");
 			x[1] = x0;
 			y[1] = y0;
 			x[2] = x0;
@@ -515,7 +606,7 @@ void Document::ParseSVGPathData(const string & d, const Rect & bounds)
 			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
 			Add(BEZIER,Rect(0,0,1,1),index);
 			
-			Debug("[%u] returnto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
+			//Debug("[%u] returnto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
 			
 			x[0] = x[3];
 			y[0] = y[3];

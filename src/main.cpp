@@ -78,7 +78,7 @@ int main(int argc, char ** argv)
 
 	if (input_filename != NULL)
 	{
-		doc.LoadSVG(input_filename);
+		doc.LoadSVG(input_filename, Rect(0,0,Real(1)/Real(800),Real(1)/Real(600)));
 	}
 	else 
 	{

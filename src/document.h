@@ -11,6 +11,18 @@ typedef struct stbtt_fontinfo stbtt_fontinfo;
 
 namespace IPDF
 {
+	struct SVGMatrix
+	{
+		Real a; // width
+		Real b; // skew y by x
+		Real c; // skew x by y
+		Real d; // height
+		Real e; // translate x
+		Real f; // translate y
+	};
+	// SVG matrix transforms (x,y) <- (a x' + c y' + e, b x' + d y' + f)
+	// Equivelant to OpenGL 3d matrix transform ((a, c, e) (b, d, f) (0,0,1))
+	
 	class Document
 	{
 		public:
@@ -41,6 +53,10 @@ namespace IPDF
 			unsigned AddBezierData(const Bezier & bezier);
 			
 
+
+			
+
+			
 			
 			/** SVG Related functions **/
 			
@@ -48,9 +64,12 @@ namespace IPDF
 			void LoadSVG(const std::string & filename, const Rect & bounds = Rect(0,0,1,1));
 			
 			/** Parse an SVG node or SVG-group node, adding children to the document **/
-			void ParseSVGNode(pugi::xml_node & root, const Rect & bounds, Real & width, Real & height);
+			void ParseSVGNode(pugi::xml_node & root, SVGMatrix & transform);
 			/** Parse an SVG path with string **/
-			void ParseSVGPathData(const std::string & d, const Rect & bounds);
+			void ParseSVGPathData(const std::string & d, const SVGMatrix & transform);
+			
+			/** Modify an SVG transformation matrix **/
+			static void ParseSVGTransform(const std::string & s, SVGMatrix & transform);
 
 			/** Font related functions **/
 			void SetFont(const std::string & font_filename);
