@@ -63,6 +63,7 @@ namespace IPDF
 		GLuint GetHandle() const { return m_buffer_handle; }
 		
 		void Bind() const;
+		void BindRange(size_t start, size_t size) const;
 	private:
 		bool RecreateBuffer(const void *data = NULL);
 		GLuint m_buffer_handle;

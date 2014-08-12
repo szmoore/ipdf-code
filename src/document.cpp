@@ -95,7 +95,6 @@ void Document::GenBaseQuadtree()
 	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 0, ObjectCount()});
 	m_quadtree.root_id = 0;
 	GenQuadChild(0, QTC_TOP_LEFT);
-	GenQuadParent(0, QTC_BOTTOM_RIGHT);
 }
 
 QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type)

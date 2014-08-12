@@ -146,6 +146,22 @@ void View::Render(int width, int height)
 	m_cached_display.Bind(); //NOTE: This is redundant; Clear already calls Bind
 	m_cached_display.Clear();
 
+#ifndef QUADTREE_DISABLED
+	if (m_bounds_dirty)
+	{
+		if (ContainedInQuadChild(m_bounds, QTC_TOP_LEFT) && m_document.GetQuadTree().nodes[m_current_quadtree_node].top_left != QUADTREE_EMPTY)
+		{
+			m_bounds = TransformToQuadChild(m_bounds, QTC_TOP_LEFT);
+			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].top_left;
+		}
+		if ((m_bounds.w > 1 || m_bounds.h > 1) && m_document.GetQuadTree().nodes[m_current_quadtree_node].parent != QUADTREE_EMPTY)
+		{
+			m_bounds = TransformFromQuadChild(m_bounds, m_document.GetQuadTree().nodes[m_current_quadtree_node].child_type);
+			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].parent;
+		}
+	}
+	m_screen.DebugFontPrintF("Current View QuadTree Node: %d\n", m_current_quadtree_node);
+#endif
 
 	if (!m_use_gpu_rendering)
 	{
@@ -184,6 +200,7 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 	if (node == QUADTREE_EMPTY) return;
 	if (!remaining_depth) return;
 	//Debug("Rendering QT node %d, (objs: %d -- %d)\n", node, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
+	m_bounds_dirty = true;
 	RenderRange(width, height, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
 
 	m_bounds = TransformToQuadChild(old_bounds, QTC_TOP_LEFT);
@@ -205,11 +222,10 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 
 void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_obj)
 {
-
 	if (m_render_dirty) // document has changed
 		PrepareRender();
 
-	if (m_buffer_dirty) // object bounds have changed
+	if (m_buffer_dirty || m_bounds_dirty) // object bounds have changed
 		UpdateObjBoundsVBO(first_obj, last_obj);
 
 	if (m_use_gpu_transform)
@@ -275,7 +291,7 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 	}
 	m_objbounds_vbo.Resize(m_document.ObjectCount()*sizeof(GPUObjBounds));
 
-	BufferBuilder<GPUObjBounds> obj_bounds_builder(m_objbounds_vbo.MapRange(first_obj*sizeof(GPUObjBounds), (last_obj-first_obj)*sizeof(GPUObjBounds), false, true, true), m_objbounds_vbo.GetSize());
+	BufferBuilder<GPUObjBounds> obj_bounds_builder(m_objbounds_vbo.MapRange(first_obj*sizeof(GPUObjBounds), (last_obj-first_obj)*sizeof(GPUObjBounds), false, true, false), m_objbounds_vbo.GetSize());
 
 	for (unsigned id = first_obj; id < last_obj; ++id)
 	{

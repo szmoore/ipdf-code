@@ -263,3 +263,7 @@ void GraphicsBuffer::Bind() const
 		glBindBuffer(BufferTypeToGLType(m_buffer_type), m_buffer_handle);
 }
 
+void GraphicsBuffer::BindRange(size_t start, size_t size) const
+{
+	glBindBufferRange(BufferTypeToGLType(m_buffer_type), 0, m_buffer_handle, start, size);
+}

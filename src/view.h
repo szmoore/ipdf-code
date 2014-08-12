@@ -48,7 +48,7 @@ namespace IPDF
 			{
 				float x0, y0;
 				float x1, y1;
-			};
+			} __attribute__((packed));
 
 			void PrepareRender(); // call when m_render_dirty is true
 			void UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj); // call when m_buffer_dirty is true
