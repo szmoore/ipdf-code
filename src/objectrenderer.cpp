@@ -42,7 +42,7 @@ void ObjectRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 
 	m_shader_program.Use();
 	m_ibo.Bind();
-	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(first_index*sizeof(uint32_t)));
+	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(2*first_index*sizeof(uint32_t)));
 }
 
 
@@ -328,7 +328,7 @@ void BezierRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 	glUniform1i(m_shader_program.GetUniformLocation("bezier_buffer_texture"), 0);
 	glUniform1i(m_shader_program.GetUniformLocation("bezier_id_buffer_texture"), 1);
 	m_ibo.Bind();
-	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(first_index*sizeof(uint32_t)));
+	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(2*first_index*sizeof(uint32_t)));
 }
 
 /**
