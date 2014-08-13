@@ -99,6 +99,46 @@ void Document::GenBaseQuadtree()
 	GenQuadChild(0, QTC_TOP_LEFT);
 }
 
+int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
+{
+	switch (m_objects.types[object_id])
+	{
+	case RECT_FILLED:
+	case RECT_OUTLINE:
+		{
+		Rect obj_bounds = TransformToQuadChild(m_objects.bounds[object_id], type);
+		if (obj_bounds.x < 0)
+		{
+			obj_bounds.w += obj_bounds.x;
+			obj_bounds.x = 0;
+		}
+		if (obj_bounds.y < 0)
+		{
+			obj_bounds.h += obj_bounds.y;
+			obj_bounds.y = 0;
+		}
+		if (obj_bounds.x + obj_bounds.w > 1)
+		{
+			obj_bounds.w += (1 - (obj_bounds.x + obj_bounds.w));
+		}
+		if (obj_bounds.y + obj_bounds.h > 1)
+		{
+			obj_bounds.h += (1 - (obj_bounds.y + obj_bounds.h));
+		}
+		m_objects.bounds.push_back(obj_bounds);
+		m_objects.types.push_back(m_objects.types[object_id]);
+		m_objects.data_indices.push_back(m_objects.data_indices[object_id]);
+		return 1;
+		}
+	default:
+		Debug("Adding %s -> %s", m_objects.bounds[object_id].Str().c_str(), TransformToQuadChild(m_objects.bounds[object_id], type).Str().c_str());
+		m_objects.bounds.push_back(TransformToQuadChild(m_objects.bounds[object_id], type));
+		m_objects.types.push_back(m_objects.types[object_id]);
+		m_objects.data_indices.push_back(m_objects.data_indices[object_id]);
+		return 1;
+	}
+	return 0;
+}
 QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type)
 {
 	QuadTreeIndex new_index = m_quadtree.nodes.size();
@@ -109,11 +149,7 @@ QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren 
 	{
 		if (IntersectsQuadChild(m_objects.bounds[i], type))
 		{
-			Debug("Adding %s -> %s", m_objects.bounds[i].Str().c_str(), TransformToQuadChild(m_objects.bounds[i], type).Str().c_str());
-			m_objects.bounds.push_back(TransformToQuadChild(m_objects.bounds[i], type));
-			m_objects.types.push_back(m_objects.types[i]);
-			m_objects.data_indices.push_back(m_objects.data_indices[i]);
-			m_count++;
+			m_count += ClipObjectToQuadChild(i, type);
 		}
 	}
 	m_quadtree.nodes[new_index].object_end = m_objects.bounds.size();
