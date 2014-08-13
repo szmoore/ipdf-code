@@ -540,9 +540,9 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 	
 	bool start = false;
 	
-	static string delims("()[],{}<>;:=LlmMqQzZcC");
+	static string delims("()[],{}<>;:=LlHhVvmMqQzZcC");
 	
-	while (i < d.size() && GetToken(d, token, i).size() > 0)
+	while (i < d.size() && GetToken(d, token, i, delims).size() > 0)
 	{
 		if (isalpha(token[0]))
 			command = token;
@@ -620,16 +620,32 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 
 			
 		}
-		else if (command == "l" || command == "L")
+		else if (command == "l" || command == "L" || command == "h" || command == "H" || command == "v" || command == "V")
 		{
 			Debug("Construct lineto command, relative %d", relative);
 		
 			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
-			assert(GetToken(d,token,i,delims) == ",");
-			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+			Real dy;
+			if (command == "l" || command == "L")
+			{
+				assert(GetToken(d,token,i,delims) == ",");
+				dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+			}
+			else if (command == "v" || command == "V")
+			{
+				swap(dx,dy);
+			}
 			
 			x[1] = (relative) ? x[0] + dx : dx;
 			y[1] = (relative) ? y[0] + dy : dy;
+			if (command == "v" || command == "V")
+			{
+				x[1] = x[0];
+			}
+			else if (command == "h" || command == "H")
+			{
+				y[1] = y[0];
+			}
 			
 			Real x1(x[1]);
 			Real y1(y[1]);
