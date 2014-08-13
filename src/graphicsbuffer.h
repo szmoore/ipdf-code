@@ -40,6 +40,7 @@ namespace IPDF
 		GraphicsBuffer();
 		~GraphicsBuffer();
 		
+		void SetName(const char *name);
 		void SetType(BufferType bufType);
 		void SetUsage(BufferUsage bufUsage);
 		
@@ -74,6 +75,7 @@ namespace IPDF
 		bool m_invalidated;
 		bool m_buffer_shape_dirty;
 		bool m_faking_map;
+		const char *m_name;
 	};
 
 }

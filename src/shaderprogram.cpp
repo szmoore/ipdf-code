@@ -104,6 +104,7 @@ char * ShaderProgram::GetShaderSource(const char * src_file) const
 bool ShaderProgram::AttachShader(const char * src_file, GLenum type)
 {
 	GLuint shader_obj = glCreateShader(type);
+	glObjectLabel(GL_SHADER, shader_obj, -1, src_file);
 	char * src = GetShaderSource(src_file);
 	if (src == NULL)
 	{

@@ -74,6 +74,7 @@ GraphicsBuffer::GraphicsBuffer()
 	m_buffer_handle = 0;
 	m_buffer_usage = BufferUsageDynamicDraw;
 	m_faking_map = false;
+	m_name = "Unnamed Buffer";
 	SetUsage(BufferUsageStaticDraw);
 }
 
@@ -89,6 +90,11 @@ GraphicsBuffer::~GraphicsBuffer()
 void GraphicsBuffer::SetType(GraphicsBuffer::BufferType bufType)
 {
 	m_buffer_type = bufType;
+}
+
+void GraphicsBuffer::SetName(const char *name)
+{
+	m_name = name;
 }
 
 void GraphicsBuffer::SetUsage(GraphicsBuffer::BufferUsage bufUsage)
@@ -125,6 +131,7 @@ bool GraphicsBuffer::RecreateBuffer(const void *data)
 		glDeleteBuffers(1, &m_buffer_handle);
 	}
 	glGenBuffers(1, &m_buffer_handle);
+	glObjectLabel(GL_BUFFER, m_buffer_handle, -1, m_name);
 	m_buffer_shape_dirty = false;
 	if (m_buffer_size)
 		Upload(m_buffer_size, data);
@@ -236,6 +243,7 @@ void GraphicsBuffer::UploadRange(size_t length, intptr_t offset, const void* dat
 
 void GraphicsBuffer::Resize(size_t length)
 {
+	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Resizing buffer.");
 	if (m_invalidated)
 	{
 		m_buffer_size = length;
@@ -253,6 +261,7 @@ void GraphicsBuffer::Resize(size_t length)
 		glDeleteBuffers(1, &old_buffer);
 		m_buffer_size = length;
 	}
+	glPopDebugGroup();
 }
 
 void GraphicsBuffer::Bind() const

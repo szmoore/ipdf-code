@@ -391,11 +391,13 @@ void Screen::DebugFontInit(const char *name, float font_size)
 
 	m_debug_font_vertices.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
 	m_debug_font_vertices.SetType(GraphicsBuffer::BufferTypeVertex);
+	m_debug_font_vertices.SetName("m_debug_font_vertices");
 	m_debug_font_vertices.Upload(8192,NULL);
 	m_debug_font_vertex_head = 0;
 
 	m_debug_font_indices.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
 	m_debug_font_indices.SetType(GraphicsBuffer::BufferTypeIndex);
+	m_debug_font_indices.SetName("m_debug_font_indices");
 	m_debug_font_indices.Resize(500);
 	m_debug_font_index_head = 0;
 }
@@ -409,7 +411,7 @@ void Screen::DebugFontClear()
 
 void Screen::DebugFontFlush()
 {
-	
+	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 40, -1, "Screen::DebugFontFlush()");	
 		
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -437,6 +439,8 @@ void Screen::DebugFontFlush()
 	m_debug_font_indices.Invalidate();
 	m_debug_font_vertex_head = 0;
 	m_debug_font_index_head = 0;
+
+	glPopDebugGroup();
 }
 
 struct fontvertex
@@ -448,6 +452,7 @@ void Screen::DebugFontPrint(const char* str)
 {
 	if (!m_debug_font_atlas) return;
 
+	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 41, -1, "Screen::DebugFontPrint()");
 
 	BufferBuilder<fontvertex> vertexData(m_debug_font_vertices.MapRange(m_debug_font_vertex_head*sizeof(float), m_debug_font_vertices.GetSize() - m_debug_font_vertex_head*sizeof(float), false, true, true), m_debug_font_vertices.GetSize() - m_debug_font_vertex_head*sizeof(float));
 	BufferBuilder<uint16_t> indexData(m_debug_font_indices.MapRange(m_debug_font_index_head*sizeof(uint16_t), m_debug_font_indices.GetSize() - m_debug_font_index_head*sizeof(uint16_t), false, true, true), m_debug_font_indices.GetSize() - m_debug_font_index_head*sizeof(uint16_t));
@@ -460,6 +465,7 @@ void Screen::DebugFontPrint(const char* str)
 			m_debug_font_vertices.UnMap();
 			DebugFontFlush();
 			DebugFontPrint(str);
+			glPopDebugGroup();
 			return;
 		}
 		if (*str >= 32 && (unsigned char)(*str) < 128) {
@@ -492,6 +498,7 @@ void Screen::DebugFontPrint(const char* str)
 	}
 	m_debug_font_indices.UnMap();
 	m_debug_font_vertices.UnMap();
+	glPopDebugGroup();
 	//DebugFontFlush();
 }
 

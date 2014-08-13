@@ -72,6 +72,7 @@ void ObjectRenderer::PrepareBuffers(unsigned max_objects)
 	m_ibo.Invalidate();
 	m_ibo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
 	m_ibo.SetType(GraphicsBuffer::BufferTypeIndex);
+	m_ibo.SetName("m_ibo: ObjectRenderer GPU indices");
 	m_ibo.Resize(max_objects * 2 * sizeof(uint32_t));
 	// BufferBuilder is used to construct the ibo
 	m_buffer_builder = new BufferBuilder<uint32_t>(m_ibo.Map(false, true, true), m_ibo.GetSize()); // new matches delete in ObjectRenderer::FinaliseBuffers
@@ -277,6 +278,7 @@ void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
 {
 	m_bezier_coeffs.SetType(GraphicsBuffer::BufferTypeTexture);
 	m_bezier_coeffs.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
+	m_bezier_coeffs.SetName("m_bezier_coeffs: Bezier coefficients");
 	m_bezier_coeffs.Resize(objects.beziers.size()*sizeof(GPUBezierCoeffs));
 	BufferBuilder<GPUBezierCoeffs> builder(m_bezier_coeffs.Map(false, true, true), m_bezier_coeffs.GetSize());
 
@@ -297,6 +299,7 @@ void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
 
 	m_bezier_ids.SetType(GraphicsBuffer::BufferTypeTexture);
 	m_bezier_ids.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
+	m_bezier_ids.SetName("m_bezier_ids: object data_indices");
 	m_bezier_ids.Upload(objects.data_indices.size() * sizeof(uint32_t), &objects.data_indices[0]);
 	
 	glGenTextures(1, &m_bezier_id_buffer_texture);

@@ -127,6 +127,7 @@ Rect View::TransformToViewCoords(const Rect& inp) const
  */
 void View::Render(int width, int height)
 {
+	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION,42,-1, "Beginning View::Render()");
 	// View dimensions have changed (ie: Window was resized)
 	int prev_width = m_cached_display.GetWidth();
 	int prev_height = m_cached_display.GetHeight();
@@ -141,6 +142,7 @@ void View::Render(int width, int height)
 	{
 		m_cached_display.UnBind();
 		m_cached_display.Blit();
+		glPopDebugGroup();
 		return;
 	}
 	m_cached_display.Bind(); //NOTE: This is redundant; Clear already calls Bind
@@ -191,6 +193,7 @@ void View::Render(int width, int height)
 	m_cached_display.UnBind(); // resets render target to the screen
 	m_cached_display.Blit(); // blit FrameBuffer to screen
 	m_buffer_dirty = false;
+	glPopDebugGroup();
 }
 
 #ifndef QUADTREE_DISABLED
@@ -222,6 +225,7 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 
 void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_obj)
 {
+	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 43, -1, "View::RenderRange()");
 	if (m_render_dirty) // document has changed
 		PrepareRender();
 
@@ -275,12 +279,14 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 			m_object_renderers[i]->RenderUsingCPU(m_document.m_objects, *this, {m_cpu_rendering_pixels, width, height}, first_obj, last_obj);
 		}
 	}
+	glPopDebugGroup();
 }
 
 void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 {
 	//m_objbounds_vbo.Invalidate();
 	m_objbounds_vbo.SetType(GraphicsBuffer::BufferTypeVertex);
+	m_objbounds_vbo.SetName("Object Bounds VBO");
 	if (m_use_gpu_transform)
 	{
 		m_objbounds_vbo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
@@ -327,6 +333,7 @@ void View::PrepareRender()
 	m_bounds_ubo.Invalidate();
 	m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
 	m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
+	m_bounds_ubo.SetName("m_bounds_ubo: Screen bounds.");
 	
 	// Instead of having each ObjectRenderer go through the whole document
 	//  we initialise them, go through the document once adding to the appropriate Renderers
