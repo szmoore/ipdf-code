@@ -107,8 +107,9 @@ QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren 
 	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();
 	for (unsigned i = m_quadtree.nodes[parent].object_begin; i < m_quadtree.nodes[parent].object_end; ++i)
 	{
-		if (ContainedInQuadChild(m_objects.bounds[i], type))
+		if (IntersectsQuadChild(m_objects.bounds[i], type))
 		{
+			Debug("Adding %s -> %s", m_objects.bounds[i].Str().c_str(), TransformToQuadChild(m_objects.bounds[i], type).Str().c_str());
 			m_objects.bounds.push_back(TransformToQuadChild(m_objects.bounds[i], type));
 			m_objects.types.push_back(m_objects.types[i]);
 			m_objects.data_indices.push_back(m_objects.data_indices[i]);

@@ -16,6 +16,8 @@ using namespace std;
 
 static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* msg, const void *data)
 {
+	// Don't print out gl Errors we generated.
+	if (source == GL_DEBUG_SOURCE_APPLICATION) return;
 	Error("OpenGL Error (%d): %s", id, msg);
 }
 

@@ -243,13 +243,14 @@ void GraphicsBuffer::UploadRange(size_t length, intptr_t offset, const void* dat
 
 void GraphicsBuffer::Resize(size_t length)
 {
-	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Resizing buffer.");
 	if (m_invalidated)
 	{
 		m_buffer_size = length;
 	}
 	else
 	{
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Resizing buffer.");
+		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH, 0, NULL, GL_TRUE);
 		// Create a new buffer and copy the old data into it.
 		UnMap();
 		GLuint old_buffer = m_buffer_handle;	
@@ -260,8 +261,8 @@ void GraphicsBuffer::Resize(size_t length)
 		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, m_buffer_size);
 		glDeleteBuffers(1, &old_buffer);
 		m_buffer_size = length;
+		glPopDebugGroup();
 	}
-	glPopDebugGroup();
 }
 
 void GraphicsBuffer::Bind() const

@@ -50,6 +50,7 @@ namespace IPDF
 
 	Rect TransformToQuadChild(const Rect& src, QuadTreeNodeChildren child_type);
 	Rect TransformFromQuadChild(const Rect& src, QuadTreeNodeChildren child_type);
+	bool IntersectsQuadChild(const Rect& src, QuadTreeNodeChildren child_type);
 	bool ContainedInQuadChild(const Rect& src, QuadTreeNodeChildren child_type);
 }
 

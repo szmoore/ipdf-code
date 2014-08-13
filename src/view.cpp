@@ -37,7 +37,7 @@ View::View(Document & document, Screen & screen, const Rect & bounds, const Colo
 
 
 #ifndef QUADTREE_DISABLED
-	m_quadtree_max_depth = 2;
+	m_quadtree_max_depth = 1;
 	m_current_quadtree_node = document.GetQuadTree().root_id;
 #endif
 }
@@ -151,18 +151,62 @@ void View::Render(int width, int height)
 #ifndef QUADTREE_DISABLED
 	if (m_bounds_dirty)
 	{
-		if (ContainedInQuadChild(m_bounds, QTC_TOP_LEFT) && m_document.GetQuadTree().nodes[m_current_quadtree_node].top_left != QUADTREE_EMPTY)
+		if (m_bounds.x > 1.0 || m_bounds.x < 0.0 || m_bounds.y > 1.0 || m_bounds.y < 0.0 || m_bounds.w > 1.0 || m_bounds.h > 1.0)
 		{
+			//TODO: Generate a new parent node.
+			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].parent != QUADTREE_EMPTY)
+			{
+				m_bounds = TransformFromQuadChild(m_bounds, m_document.GetQuadTree().nodes[m_current_quadtree_node].child_type);
+				m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].parent;
+			}
+		}
+		if (ContainedInQuadChild(m_bounds, QTC_TOP_LEFT))
+		{
+			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].top_left == QUADTREE_EMPTY)
+			{
+				// We want to reparent into a child node, but none exist. Get the document to create one.
+				m_document.GenQuadChild(m_current_quadtree_node, QTC_TOP_LEFT);
+				m_render_dirty = true;
+			}
 			m_bounds = TransformToQuadChild(m_bounds, QTC_TOP_LEFT);
 			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].top_left;
 		}
-		if ((m_bounds.w > 1 || m_bounds.h > 1) && m_document.GetQuadTree().nodes[m_current_quadtree_node].parent != QUADTREE_EMPTY)
+		if (ContainedInQuadChild(m_bounds, QTC_TOP_RIGHT))
 		{
-			m_bounds = TransformFromQuadChild(m_bounds, m_document.GetQuadTree().nodes[m_current_quadtree_node].child_type);
-			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].parent;
+			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].top_right == QUADTREE_EMPTY)
+			{
+				// We want to reparent into a child node, but none exist. Get the document to create one.
+				m_document.GenQuadChild(m_current_quadtree_node, QTC_TOP_RIGHT);
+				m_render_dirty = true;
+			}
+			m_bounds = TransformToQuadChild(m_bounds, QTC_TOP_RIGHT);
+			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].top_right;
+		}
+		if (ContainedInQuadChild(m_bounds, QTC_BOTTOM_LEFT))
+		{
+			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].bottom_left == QUADTREE_EMPTY)
+			{
+				// We want to reparent into a child node, but none exist. Get the document to create one.
+				m_document.GenQuadChild(m_current_quadtree_node, QTC_BOTTOM_LEFT);
+				m_render_dirty = true;
+			}
+			m_bounds = TransformToQuadChild(m_bounds, QTC_BOTTOM_LEFT);
+			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].bottom_left;
+		}
+		if (ContainedInQuadChild(m_bounds, QTC_BOTTOM_RIGHT))
+		{
+			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].bottom_right == QUADTREE_EMPTY)
+			{
+				// We want to reparent into a child node, but none exist. Get the document to create one.
+				m_document.GenQuadChild(m_current_quadtree_node, QTC_BOTTOM_RIGHT);
+				m_render_dirty = true;
+			}
+			m_bounds = TransformToQuadChild(m_bounds, QTC_BOTTOM_RIGHT);
+			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].bottom_right;
 		}
 	}
-	m_screen.DebugFontPrintF("Current View QuadTree Node: %d\n", m_current_quadtree_node);
+	m_screen.DebugFontPrintF("Current View QuadTree Node: %d (objs: %d -> %d)\n", m_current_quadtree_node, m_document.GetQuadTree().nodes[m_current_quadtree_node].object_begin,
+				m_document.GetQuadTree().nodes[m_current_quadtree_node].object_end);
 #endif
 
 	if (!m_use_gpu_rendering)
@@ -293,11 +337,11 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 	}
 	else
 	{
-		m_objbounds_vbo.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
+		m_objbounds_vbo.SetUsage(GraphicsBuffer::BufferUsageDynamicCopy);
 	}
 	m_objbounds_vbo.Resize(m_document.ObjectCount()*sizeof(GPUObjBounds));
 
-	BufferBuilder<GPUObjBounds> obj_bounds_builder(m_objbounds_vbo.MapRange(first_obj*sizeof(GPUObjBounds), (last_obj-first_obj)*sizeof(GPUObjBounds), false, true, false), m_objbounds_vbo.GetSize());
+	BufferBuilder<GPUObjBounds> obj_bounds_builder(m_objbounds_vbo.MapRange(first_obj*sizeof(GPUObjBounds), (last_obj-first_obj)*sizeof(GPUObjBounds), false, true, true), m_objbounds_vbo.GetSize());
 
 	for (unsigned id = first_obj; id < last_obj; ++id)
 	{
