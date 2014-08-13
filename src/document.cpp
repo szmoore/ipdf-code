@@ -683,18 +683,28 @@ void Document::AddText(const string & text, Real scale, Real x, Real y)
 	float font_scale = stbtt_ScaleForPixelHeight(&m_font, scale);
 	Real x0(x);
 	//Real y0(y);
+	int ascent = 0, descent = 0, line_gap = 0;
+	stbtt_GetFontVMetrics(&m_font, &ascent, &descent, &line_gap);
+	Real y_advance = Real(font_scale) * Real(ascent - descent + line_gap);
 	for (unsigned i = 0; i < text.size(); ++i)
 	{
 		if (text[i] == '\n')
 		{
-			y += 0.5*scale;
+			y += y_advance;
 			x = x0;
 		}
 		if (!isprint(text[i]))
 			continue;
 			
+		int advance_width = 0, left_side_bearing = 0, kerning = 0;
+		stbtt_GetCodepointHMetrics(&m_font, text[i], &advance_width, &left_side_bearing);
+		if (i > 1)
+		{
+			kerning = stbtt_GetCodepointKernAdvance(&m_font, text[i-1], text[i]);
+		}
+		x += Real(font_scale) * Real(left_side_bearing + kerning);
 		AddFontGlyphAtPoint(&m_font, text[i], font_scale, x, y);
-		x += 0.5*scale;
+		x += Real(font_scale) * Real(advance_width);
 	}
 }
 
