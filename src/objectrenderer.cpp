@@ -229,8 +229,8 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 		// Draw a rectangle around the bezier for debugging the bounds rectangle calculations
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, Colour(1,0,0,1));
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
-		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, Colour(0,0,1,1));
-		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(1,0,1,1));
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, Colour(1,0,0,1));
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
 	
 		// Draw lines between the control points for debugging
 		//ObjectRenderer::RenderLineOnCPU((int64_t)control.x0, (int64_t)control.y0, (int64_t)control.x1, (int64_t)control.y1,target);
@@ -341,7 +341,15 @@ void GroupRenderer::RenderUsingCPU(const Objects & objects, const View & view, c
 		if (m_indexes[i] < first_obj_id) continue;
 		if (m_indexes[i] >= last_obj_id) continue;
 		
-		//pair<unsigned, unsigned> range = objects.groups[m_indexes[i]];
+		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
+		PixelBounds pix_bounds(bounds);
+	
+
+		Colour c(0.5,0.5,1,1);
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, c);
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, c);
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
 		
 	
 	}	

@@ -272,8 +272,26 @@ void Document::Load(const string & filename)
 
 unsigned Document::AddGroup(unsigned start_index, unsigned end_index)
 {
-	//TODO: Set bounds rect?
-	unsigned result = Add(GROUP, Rect(0,0,1,1),0);
+	Real xmin = 0; Real ymin = 0; 
+	Real xmax = 0; Real ymax = 0;
+	
+	for (unsigned i = start_index; i <= end_index; ++i)
+	{
+		Rect & objb = m_objects.bounds[i];
+		
+		if (i == start_index || objb.x < xmin)
+			xmin = objb.x;
+		if (i == start_index || (objb.x+objb.w) > xmax)
+			xmax = (objb.x+objb.w);
+			
+		if (i == start_index || objb.y < ymin)
+			ymin = objb.y;
+		if (i == start_index || (objb.y+objb.h) > ymax)
+			ymax = objb.y;
+	}
+	
+	Rect bounds(xmin,ymin, xmax-xmin, ymax-ymin);
+	unsigned result = Add(GROUP, bounds,0);
 	m_objects.groups[m_count-1].first = start_index;
 	m_objects.groups[m_count-1].second = end_index;
 	return result;
