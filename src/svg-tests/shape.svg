@@ -1,1 +1,31 @@
-../../../sam/figures/shape.svg
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- These lines are comments to assist human readability -->
+<svg id="svg_example"
+xmlns="http://www.w3.org/2000/svg"
+version="1.1"
+width="104"
+height="186">
+<!-- The straight line -->
+<g id="group1">
+<path id="straightline" d = "m 0, 0 104, 186"
+style="stroke:#000000;"/>
+<!-- The first (bottom) rectangle -->
+<rect id="rect1"
+x = "30" y = "20" width = "30" height = "150" fill="#0000ff"/>
+<!-- The curved region -->
+<path id="curvedshape"
+d = "m 57,185 c 0,0 57,-13 32,-43 -25,-30 -53,2 -25,
+-30 28,-32 52,17 28,-32 -24,-50 -16,44 -35,12
+-19,-32 13,-64 13,-64 0,0 40,-50 -0,-14 -40,36
+-94,68 -59,109 35,41 45,62 45,62 z"
+style = "fill:#ff0000; fill-opacity:0.75;
+stroke:#000000;"/>
+<!-- The second (top) rectangle -->
+<rect id="rect2"
+x = "12" y = "130" width = "60" height = "20"
+style = "fill:#00ff00; fill-opacity:0.5;
+stroke:#000000;"/>
+</g>
+</svg>
