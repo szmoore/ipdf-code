@@ -2,6 +2,7 @@
 #define _REAL_H
 
 #include "common.h"
+#include <cmath>
 
 
 #define REAL_SINGLE 0
@@ -67,6 +68,7 @@ namespace IPDF
 	inline double Double(float f) {return (double)f;}
 	inline double Double(double f) {return (double)f;}
 	inline double Double(long double f) {return (double)(f);}
+	inline double Sqrt(double f) {return sqrt(f);}
 	
 	inline Real Power(const Real & a, int n)
 	{
@@ -80,6 +82,8 @@ namespace IPDF
 		return r;
 	}
 	
+	
+
 }
 
 #endif //_REAL_H

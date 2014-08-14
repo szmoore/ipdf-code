@@ -254,6 +254,11 @@ void Document::Load(const string & filename)
 			Debug("Bezier data...");
 			LoadStructVector<Bezier>(file, chunk_size/sizeof(Bezier), m_objects.beziers);
 			break;
+			
+		case CT_OBJGROUPS:
+			Debug("Group data...");
+			Warn("Not handled because lazy");
+			break;
 		}
 	}
 	Debug("Successfully loaded %u objects from \"%s\"", ObjectCount(), filename.c_str());
@@ -265,12 +270,28 @@ void Document::Load(const string & filename)
 #endif
 }
 
-void Document::Add(ObjectType type, const Rect & bounds, unsigned data_index)
+unsigned Document::AddGroup(unsigned start_index, unsigned end_index)
+{
+	//TODO: Set bounds rect?
+	unsigned result = Add(GROUP, Rect(0,0,1,1),0);
+	m_objects.groups[m_count-1].first = start_index;
+	m_objects.groups[m_count-1].second = end_index;
+	return result;
+}
+
+unsigned Document::AddBezier(const Bezier & bezier)
+{
+	unsigned index = AddBezierData(bezier);
+	return Add(BEZIER, bezier.SolveBounds(), index);
+}
+
+unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index)
 {
 	m_objects.types.push_back(type);
 	m_objects.bounds.push_back(bounds);
 	m_objects.data_indices.push_back(data_index);
-	++m_count; // Why can't we just use the size of types or something?
+	m_objects.groups.push_back(pair<unsigned, unsigned>(data_index, data_index));
+	return (m_count++); // Why can't we just use the size of types or something?
 }
 
 unsigned Document::AddBezierData(const Bezier & bezier)
@@ -440,7 +461,9 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 		{
 			string d = child.attribute("d").as_string();
 			Debug("Path data attribute is \"%s\"", d.c_str());
-			ParseSVGPathData(d, transform);
+			pair<unsigned, unsigned> range = ParseSVGPathData(d, transform);
+			AddGroup(range.first, range.second);
+			
 		}
 		else if (strcmp(child.name(), "line") == 0)
 		{
@@ -450,8 +473,7 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 			Real y1(child.attribute("y2").as_float());
 			TransformXYPair(x0,y0,transform);
 			TransformXYPair(x1,y1,transform);
-			unsigned index = AddBezierData(Bezier(x0,y0,x1,y1,x1,y1,x1,y1));
-			Add(BEZIER, Rect(0,0,1,1), index);
+			AddBezier(Bezier(x0,y0,x1,y1,x1,y1,x1,y1));
 		}
 		else if (strcmp(child.name(), "rect") == 0)
 		{
@@ -524,7 +546,7 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 
 // Fear the wrath of the tokenizing svg data
 // Seriously this isn't really very DOM-like at all is it?
-void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
+pair<unsigned, unsigned> Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 {
 	Real x[4] = {0,0,0,0};
 	Real y[4] = {0,0,0,0};
@@ -540,7 +562,10 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 	
 	bool start = false;
 	
+
 	static string delims("()[],{}<>;:=LlHhVvmMqQzZcC");
+
+	pair<unsigned, unsigned> range(m_count, m_count);
 	
 	while (i < d.size() && GetToken(d, token, i, delims).size() > 0)
 	{
@@ -609,9 +634,7 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 			for (int j = 0; j < 4; ++j)
 				TransformXYPair(x[j],y[j], transform);
 
-			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
-			Add(BEZIER,Rect(0,0,1,1),index);
-			
+			range.second = AddBezier(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
 			
 			//Debug("[%u] curveto %f,%f %f,%f %f,%f", index, Float(x[1]),Float(y[1]),Float(x[2]),Float(y[2]),Float(x[3]),Float(y[3]));
 			
@@ -654,8 +677,7 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 			TransformXYPair(x[1],y[1],transform);
 
 
-			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[1],y[1],x[1],y[1]));
-			Add(BEZIER,Rect(0,0,1,1),index);
+			range.second = AddBezier(Bezier(x[0],y[0],x[1],y[1],x[1],y[1],x[1],y[1]));
 			
 			//Debug("[%u] lineto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
 			
@@ -678,9 +700,7 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 			for (int j = 0; j < 4; ++j)
 				TransformXYPair(x[j],y[j], transform);
 
-			unsigned index = AddBezierData(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
-			Add(BEZIER,Rect(0,0,1,1),index);
-			
+			range.second = AddBezier(Bezier(x[0],y[0],x[1],y[1],x[2],y[2],x[3],y[3]));
 			//Debug("[%u] returnto %f,%f %f,%f", index, Float(x[0]),Float(y[0]),Float(x[1]),Float(y[1]));
 			
 			x[0] = x3;
@@ -701,6 +721,7 @@ void Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
 		}
 		prev_i = i;
 	}
+	return range;
 }
 
 void Document::SetFont(const string & font_filename)
@@ -804,9 +825,8 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 			// - Endpoints are the same.
 			// - cubic1 = quad0+(2/3)*(quad1-quad0)
 			// - cubic2 = quad2+(2/3)*(quad1-quad2)
-			bezier_index = AddBezierData(Bezier(old_x + x, old_y + y, old_x + Real(2)*(inst_cx-old_x)/Real(3) + x, old_y + Real(2)*(inst_cy-old_y)/Real(3) + y,
+			bezier_index = AddBezier(Bezier(old_x + x, old_y + y, old_x + Real(2)*(inst_cx-old_x)/Real(3) + x, old_y + Real(2)*(inst_cy-old_y)/Real(3) + y,
 						current_x + Real(2)*(inst_cx-current_x)/Real(3) + x, current_y + Real(2)*(inst_cy-current_y)/Real(3) + y, current_x + x, current_y + y));
-			Add(BEZIER,Rect(0,0,1,1),bezier_index);
 			break;
 		}
 	}

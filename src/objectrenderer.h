@@ -128,6 +128,16 @@ namespace IPDF
 			GLuint m_bezier_id_buffer_texture;
 
 	};
+	
+		/** Renderer for filled circles **/
+	class GroupRenderer : public ObjectRenderer
+	{
+		public:
+			GroupRenderer() : ObjectRenderer(GROUP, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
+			virtual ~GroupRenderer() {}
+			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
+	};
+	
 }
 
 #endif //_OBJECT_RENDERER_H

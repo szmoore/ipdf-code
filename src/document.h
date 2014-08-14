@@ -50,7 +50,9 @@ namespace IPDF
 			bool operator==(const Document & equ) const;
 			bool operator!=(const Document & equ) const {return !(this->operator==(equ));}
 
-			void Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
+			unsigned AddGroup(unsigned start_index, unsigned end_index);
+			unsigned AddBezier(const Bezier & bezier);
+			unsigned Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
 			unsigned AddBezierData(const Bezier & bezier);
 			
 
@@ -67,7 +69,7 @@ namespace IPDF
 			/** Parse an SVG node or SVG-group node, adding children to the document **/
 			void ParseSVGNode(pugi::xml_node & root, SVGMatrix & transform);
 			/** Parse an SVG path with string **/
-			void ParseSVGPathData(const std::string & d, const SVGMatrix & transform);
+			std::pair<unsigned, unsigned> ParseSVGPathData(const std::string & d, const SVGMatrix & transform);
 			
 			/** Modify an SVG transformation matrix **/
 			static void ParseSVGTransform(const std::string & s, SVGMatrix & transform);

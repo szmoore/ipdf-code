@@ -29,6 +29,7 @@ namespace IPDF
 		RECT_FILLED,
 		RECT_OUTLINE,
 		BEZIER,
+		GROUP,
 		NUMBER_OF_OBJECT_TYPES
 	} ObjectType;
 
@@ -38,8 +39,8 @@ namespace IPDF
 		CT_OBJTYPES,
 		CT_OBJBOUNDS,
 		CT_OBJINDICES,
-		CT_OBJBEZIERS
-		//CT_OBJGROUPS
+		CT_OBJBEZIERS,
+		CT_OBJGROUPS
 	};
 
 
@@ -52,11 +53,10 @@ namespace IPDF
 		Colour() = default;
 		Colour(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
 	};
-
-	struct ObjectData
+	
+	struct Group
 	{
-		Colour colour;
-		
+		Colour shading;
 	};
 
 	struct Objects
@@ -70,6 +70,8 @@ namespace IPDF
 
 		/** Used by BEZIER only **/
 		std::vector<Bezier> beziers; // bezier curves - look up by data_indices
+		
+		std::vector<std::pair<unsigned, unsigned> > groups;
 	};
 
 	class View;

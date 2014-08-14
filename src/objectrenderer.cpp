@@ -42,7 +42,7 @@ void ObjectRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 
 	m_shader_program.Use();
 	m_ibo.Bind();
-	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(2*first_index*sizeof(uint32_t)));
+	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(first_index*sizeof(uint32_t)));
 }
 
 
@@ -72,7 +72,6 @@ void ObjectRenderer::PrepareBuffers(unsigned max_objects)
 	m_ibo.Invalidate();
 	m_ibo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
 	m_ibo.SetType(GraphicsBuffer::BufferTypeIndex);
-	m_ibo.SetName("m_ibo: ObjectRenderer GPU indices");
 	m_ibo.Resize(max_objects * 2 * sizeof(uint32_t));
 	// BufferBuilder is used to construct the ibo
 	m_buffer_builder = new BufferBuilder<uint32_t>(m_ibo.Map(false, true, true), m_ibo.GetSize()); // new matches delete in ObjectRenderer::FinaliseBuffers
@@ -225,14 +224,13 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		PixelBounds pix_bounds(bounds);
 
-
-		Bezier control(objects.beziers[objects.data_indices[m_indexes[i]]], bounds);
+		Bezier control(objects.beziers[objects.data_indices[m_indexes[i]]],CPURenderBounds(Rect(0,0,1,1), view, target));
 		//Debug("%s -> %s via %s", objects.beziers[objects.data_indices[m_indexes[i]]].Str().c_str(), control.Str().c_str(), bounds.Str().c_str());
-		// Draw a rectangle around the bezier for debugging the coord transforms
-		//ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target);
-		//ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target);
-		//ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target);
-		//ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target);
+		// Draw a rectangle around the bezier for debugging the bounds rectangle calculations
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, Colour(1,0,0,1));
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, Colour(0,0,1,1));
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(1,0,1,1));
 	
 		// Draw lines between the control points for debugging
 		//ObjectRenderer::RenderLineOnCPU((int64_t)control.x0, (int64_t)control.y0, (int64_t)control.x1, (int64_t)control.y1,target);
@@ -278,17 +276,20 @@ void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
 {
 	m_bezier_coeffs.SetType(GraphicsBuffer::BufferTypeTexture);
 	m_bezier_coeffs.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
-	m_bezier_coeffs.SetName("m_bezier_coeffs: Bezier coefficients");
 	m_bezier_coeffs.Resize(objects.beziers.size()*sizeof(GPUBezierCoeffs));
 	BufferBuilder<GPUBezierCoeffs> builder(m_bezier_coeffs.Map(false, true, true), m_bezier_coeffs.GetSize());
 
-	for (auto bez = objects.beziers.begin(); bez != objects.beziers.end(); ++bez)
+
+	for (unsigned i = 0; i < objects.types.size(); ++i)
 	{
+		if (objects.types[i] != BEZIER) continue;
+		Bezier bez = objects.beziers[objects.data_indices[i]].CopyInverse(objects.bounds[i]);
+		
 		GPUBezierCoeffs coeffs = {
-			Float(bez->x0), Float(bez->y0),
-			Float(bez->x1), Float(bez->y1),
-			Float(bez->x2), Float(bez->y2),
-			Float(bez->x3), Float(bez->y3)
+			Float(bez.x0), Float(bez.y0),
+			Float(bez.x1), Float(bez.y1),
+			Float(bez.x2), Float(bez.y2),
+			Float(bez.x3), Float(bez.y3)
 			};
 		builder.Add(coeffs);
 	}
@@ -299,7 +300,6 @@ void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
 
 	m_bezier_ids.SetType(GraphicsBuffer::BufferTypeTexture);
 	m_bezier_ids.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
-	m_bezier_ids.SetName("m_bezier_ids: object data_indices");
 	m_bezier_ids.Upload(objects.data_indices.size() * sizeof(uint32_t), &objects.data_indices[0]);
 	
 	glGenTextures(1, &m_bezier_id_buffer_texture);
@@ -328,7 +328,23 @@ void BezierRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 	glUniform1i(m_shader_program.GetUniformLocation("bezier_buffer_texture"), 0);
 	glUniform1i(m_shader_program.GetUniformLocation("bezier_id_buffer_texture"), 1);
 	m_ibo.Bind();
-	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(2*first_index*sizeof(uint32_t)));
+	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(first_index*sizeof(uint32_t)));
+}
+
+/**
+ * Render Group (shading)
+ */
+void GroupRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
+{
+	for (unsigned i = 0; i < m_indexes.size(); ++i)
+	{
+		if (m_indexes[i] < first_obj_id) continue;
+		if (m_indexes[i] >= last_obj_id) continue;
+		
+		//pair<unsigned, unsigned> range = objects.groups[m_indexes[i]];
+		
+	
+	}	
 }
 
 /**
