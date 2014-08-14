@@ -130,6 +130,8 @@ int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 		m_objects.data_indices.push_back(m_objects.data_indices[object_id]);
 		return 1;
 		}
+	case GROUP:
+		break;
 	default:
 		Debug("Adding %s -> %s", m_objects.bounds[object_id].Str().c_str(), TransformToQuadChild(m_objects.bounds[object_id], type).Str().c_str());
 		m_objects.bounds.push_back(TransformToQuadChild(m_objects.bounds[object_id], type));
