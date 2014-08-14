@@ -227,11 +227,12 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 		Bezier control(objects.beziers[objects.data_indices[m_indexes[i]]].ToAbsolute(bounds),CPURenderBounds(Rect(0,0,1,1), view, target));
 		//Debug("%s -> %s via %s", objects.beziers[objects.data_indices[m_indexes[i]]].Str().c_str(), control.Str().c_str(), bounds.Str().c_str());
 		// Draw a rectangle around the bezier for debugging the bounds rectangle calculations
+		/*
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, Colour(1,0,0,1));
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, Colour(1,0,0,1));
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
-	
+		*/
 		// Draw lines between the control points for debugging
 		//ObjectRenderer::RenderLineOnCPU((int64_t)control.x0, (int64_t)control.y0, (int64_t)control.x1, (int64_t)control.y1,target);
 		//ObjectRenderer::RenderLineOnCPU((int64_t)control.x1, (int64_t)control.y1, (int64_t)control.x2, (int64_t)control.y2,target);
@@ -341,15 +342,52 @@ void GroupRenderer::RenderUsingCPU(const Objects & objects, const View & view, c
 		if (m_indexes[i] < first_obj_id) continue;
 		if (m_indexes[i] >= last_obj_id) continue;
 		
+		
 		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		PixelBounds pix_bounds(bounds);
 	
 
 		Colour c(0.5,0.5,1,1);
+		// make the bounds just a little bit bigger
+		pix_bounds.x--;
+		pix_bounds.w++;
+		pix_bounds.y--;
+		pix_bounds.h++;
+		/*
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, c);
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, c);
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
+		*/
+		// Attempt to shade the region
+		// Assumes the outline has been drawn first...
+		for (int64_t y = max((int64_t)0, pix_bounds.y); y <= min(pix_bounds.y+pix_bounds.h, target.h-1); ++y)
+		{
+			bool inside = false;
+			bool online = false;
+			for (int64_t x = max((int64_t)0, pix_bounds.x); x <= min(pix_bounds.x+pix_bounds.w, target.w-1); ++x)
+			{
+				int64_t index = (x+target.w*y)*4;
+				if (target.pixels[index+0] == 0 && target.pixels[index+1] == 0 && target.pixels[index+2] == 0 && target.pixels[index+3] == 255)
+				{
+					online = true;
+					continue;
+				}
+				else if (online)
+				{
+					inside = !inside;
+					online = false;
+				}
+				
+				if (inside)
+				{
+					target.pixels[index+0] = c.r*255;
+					target.pixels[index+1] = c.g*255;
+					target.pixels[index+2] = c.b*255;
+					target.pixels[index+3] = c.a*255;
+				}
+			}
+		}
 		
 	
 	}	

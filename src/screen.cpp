@@ -18,7 +18,9 @@ static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum 
 {
 	// Don't print out gl Errors we generated.
 	if (source == GL_DEBUG_SOURCE_APPLICATION) return;
-	Error("OpenGL Error (%d): %s", id, msg);
+	//Error("OpenGL Error (%d): %s", id, msg);
+	// Spams this message on fglrx, disabling for now because it's damn annoying.
+	// ERROR: opengl_debug_callback (screen.cpp:21) - OpenGL Error (1011): glObjectLabel failed because (depending on the operation) a referenced binding point is empty; a referenced name is not the name of an object; or the given name is otherwise not valid to this operation (GL_INVALID_VALUE)
 }
 
 

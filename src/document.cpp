@@ -389,7 +389,7 @@ static void TransformXYPair(Real & x, Real & y, const SVGMatrix & transform)
 
 void Document::ParseSVGTransform(const string & s, SVGMatrix & transform)
 {
-	Debug("Parsing transform %s", s.c_str());
+	//Debug("Parsing transform %s", s.c_str());
 	string token;
 	string command;
 	unsigned i = 0;
@@ -404,7 +404,7 @@ void Document::ParseSVGTransform(const string & s, SVGMatrix & transform)
 			else
 				return;
 		}
-		Debug("Token is \"%s\"", command.c_str());
+		//Debug("Token is \"%s\"", command.c_str());
 	
 		SVGMatrix delta = {1,0,0,0,1,0};
 	
@@ -443,8 +443,8 @@ void Document::ParseSVGTransform(const string & s, SVGMatrix & transform)
 			Warn("Unrecognised transform \"%s\", using identity", command.c_str());
 		}
 	
-		Debug("Old transform is {%f,%f,%f,%f,%f,%f}", transform.a, transform.b, transform.c, transform.d,transform.e,transform.f);
-		Debug("Delta transform is {%f,%f,%f,%f,%f,%f}", delta.a, delta.b, delta.c, delta.d,delta.e,delta.f);
+		//Debug("Old transform is {%f,%f,%f,%f,%f,%f}", transform.a, transform.b, transform.c, transform.d,transform.e,transform.f);
+		//Debug("Delta transform is {%f,%f,%f,%f,%f,%f}", delta.a, delta.b, delta.c, delta.d,delta.e,delta.f);
 	
 		SVGMatrix old(transform);
 		transform.a = old.a * delta.a + old.c * delta.b;
@@ -455,13 +455,13 @@ void Document::ParseSVGTransform(const string & s, SVGMatrix & transform)
 		transform.d = old.b * delta.c + old.d * delta.d;
 		transform.f = old.b * delta.e + old.d * delta.f + old.f;
 	
-		Debug("New transform is {%f,%f,%f,%f,%f,%f}", transform.a, transform.b, transform.c, transform.d,transform.e,transform.f);
+		//Debug("New transform is {%f,%f,%f,%f,%f,%f}", transform.a, transform.b, transform.c, transform.d,transform.e,transform.f);
 	}
 }
 
 void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 {
-	Debug("Parse node <%s>", root.name());
+	//Debug("Parse node <%s>", root.name());
 
 		
 	for (pugi::xml_node child = root.first_child(); child; child = child.next_sibling())
@@ -818,7 +818,8 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 	int num_instructions = stbtt_GetGlyphShape(font, glyph_index, &instructions);
 
 	Real current_x(0), current_y(0);
-
+	unsigned start_index = m_count;
+	unsigned end_index = m_count;
 	for (int i = 0; i < num_instructions; ++i)
 	{
 		// TTF uses 16-bit signed ints for coordinates:
@@ -831,7 +832,7 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 		Real old_x(current_x), old_y(current_y);
 		current_x = inst_x;
 		current_y = inst_y;
-		//unsigned bezier_index;
+		
 		switch(instructions[i].type)
 		{
 		// Move To
@@ -839,8 +840,7 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 			break;
 		// Line To
 		case STBTT_vline:
-			AddBezier(Bezier(old_x + x, old_y + y, old_x + x, old_y + y, current_x + x, current_y + y, current_x + x, current_y + y));
-			//Add(BEZIER,Rect(0,0,1,1),bezier_index);
+			end_index = AddBezier(Bezier(old_x + x, old_y + y, old_x + x, old_y + y, current_x + x, current_y + y, current_x + x, current_y + y));
 			break;
 		// Quadratic Bezier To:
 		case STBTT_vcurve:
@@ -848,10 +848,15 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 			// - Endpoints are the same.
 			// - cubic1 = quad0+(2/3)*(quad1-quad0)
 			// - cubic2 = quad2+(2/3)*(quad1-quad2)
-			AddBezier(Bezier(old_x + x, old_y + y, old_x + Real(2)*(inst_cx-old_x)/Real(3) + x, old_y + Real(2)*(inst_cy-old_y)/Real(3) + y,
+			end_index = AddBezier(Bezier(old_x + x, old_y + y, old_x + Real(2)*(inst_cx-old_x)/Real(3) + x, old_y + Real(2)*(inst_cy-old_y)/Real(3) + y,
 						current_x + Real(2)*(inst_cx-current_x)/Real(3) + x, current_y + Real(2)*(inst_cy-current_y)/Real(3) + y, current_x + x, current_y + y));
 			break;
 		}
+	}
+	
+	if (start_index < m_count && end_index < m_count)
+	{
+		AddGroup(start_index, end_index);
 	}
 
 	stbtt_FreeShape(font, instructions);

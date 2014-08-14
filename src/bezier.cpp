@@ -59,8 +59,8 @@ static pair<Real, Real> BezierTurningPoints(const Real & p0, const Real & p1, co
 	{
 		return pair<Real,Real>(0, 1);
 	}
-	Real a = (p1- p0 - 2*(p2-p1) + p3-p2);
-	Real b = (p1-p0 - (p2-p1))*(p1-p0);
+	Real a = (3*(p1-p2) + p3 - p0);
+	Real b = 2*(p2 - 2*p1 + p0);
 	Real c = (p1-p0);
 	if (a == 0)
 	{
@@ -74,6 +74,7 @@ static pair<Real, Real> BezierTurningPoints(const Real & p0, const Real & p1, co
 	Debug("a, b, c are %f, %f, %f", Float(a), Float(b), Float(c));
 	if (b*b - 4*a*c < 0)
 	{
+		Debug("No real roots");
 		return pair<Real, Real>(0,1);
 	}
 	pair<Real, Real> tsols = SolveQuadratic(a, b, c);

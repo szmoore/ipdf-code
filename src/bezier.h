@@ -11,8 +11,8 @@ namespace IPDF
 	
 	inline std::pair<Real,Real> SolveQuadratic(const Real & a, const Real & b, const Real & c)
 	{
-		Real x0((b + Sqrt(b*b - Real(4)*a*c))/(Real(2)*a));
-		Real x1((b - Sqrt(b*b - Real(4)*a*c))/(Real(2)*a));
+		Real x0((-b + Sqrt(b*b - Real(4)*a*c))/(Real(2)*a));
+		Real x1((-b - Sqrt(b*b - Real(4)*a*c))/(Real(2)*a));
 		return std::pair<Real,Real>(x0,x1);
 	}
 
