@@ -287,7 +287,7 @@ unsigned Document::AddGroup(unsigned start_index, unsigned end_index)
 		if (i == start_index || objb.y < ymin)
 			ymin = objb.y;
 		if (i == start_index || (objb.y+objb.h) > ymax)
-			ymax = objb.y;
+			ymax = (objb.y+objb.h);
 	}
 	
 	Rect bounds(xmin,ymin, xmax-xmin, ymax-ymin);
