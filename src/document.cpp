@@ -297,10 +297,15 @@ unsigned Document::AddGroup(unsigned start_index, unsigned end_index)
 	return result;
 }
 
+/**
+ * Add a Bezier using Absolute coords
+ */
 unsigned Document::AddBezier(const Bezier & bezier)
 {
-	unsigned index = AddBezierData(bezier);
-	return Add(BEZIER, bezier.SolveBounds(), index);
+	Rect bounds = bezier.SolveBounds();
+	Bezier data = bezier.ToRelative(bounds); // Relative
+	unsigned index = AddBezierData(data);
+	return Add(BEZIER, bounds, index);
 }
 
 unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index)
@@ -826,7 +831,7 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 		Real old_x(current_x), old_y(current_y);
 		current_x = inst_x;
 		current_y = inst_y;
-		unsigned bezier_index;
+		//unsigned bezier_index;
 		switch(instructions[i].type)
 		{
 		// Move To
@@ -834,8 +839,8 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 			break;
 		// Line To
 		case STBTT_vline:
-			bezier_index = AddBezierData(Bezier(old_x + x, old_y + y, old_x + x, old_y + y, current_x + x, current_y + y, current_x + x, current_y + y));
-			Add(BEZIER,Rect(0,0,1,1),bezier_index);
+			AddBezier(Bezier(old_x + x, old_y + y, old_x + x, old_y + y, current_x + x, current_y + y, current_x + x, current_y + y));
+			//Add(BEZIER,Rect(0,0,1,1),bezier_index);
 			break;
 		// Quadratic Bezier To:
 		case STBTT_vcurve:
@@ -843,7 +848,7 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 			// - Endpoints are the same.
 			// - cubic1 = quad0+(2/3)*(quad1-quad0)
 			// - cubic2 = quad2+(2/3)*(quad1-quad2)
-			bezier_index = AddBezier(Bezier(old_x + x, old_y + y, old_x + Real(2)*(inst_cx-old_x)/Real(3) + x, old_y + Real(2)*(inst_cy-old_y)/Real(3) + y,
+			AddBezier(Bezier(old_x + x, old_y + y, old_x + Real(2)*(inst_cx-old_x)/Real(3) + x, old_y + Real(2)*(inst_cy-old_y)/Real(3) + y,
 						current_x + Real(2)*(inst_cx-current_x)/Real(3) + x, current_y + Real(2)*(inst_cy-current_y)/Real(3) + y, current_x + x, current_y + y));
 			break;
 		}

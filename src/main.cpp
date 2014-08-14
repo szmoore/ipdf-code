@@ -83,7 +83,8 @@ int main(int argc, char ** argv)
 	else 
 	{
 		//doc.AddBezier(Bezier(0,0, 1,0.5, 0.5,1, 1,1));
-		doc.AddText("c",1,0,0);
+		doc.AddText("The quick brown\nfox jumps over\nthe lazy dog",0.1,0,0.5);
+		//doc.AddBezier(Bezier(0,0,0,0.1,0,0.1,0,0.1));
 	}
 	Debug("Start!");
 	Rect bounds(b[0],b[1],b[2],b[3]);

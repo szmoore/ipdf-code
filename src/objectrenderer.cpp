@@ -221,10 +221,10 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 	{
 		if (m_indexes[i] < first_obj_id) continue;
 		if (m_indexes[i] >= last_obj_id) continue;
-		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
-		PixelBounds pix_bounds(bounds);
+		const Rect & bounds = objects.bounds[m_indexes[i]];
+		PixelBounds pix_bounds(CPURenderBounds(bounds,view,target));
 
-		Bezier control(objects.beziers[objects.data_indices[m_indexes[i]]],CPURenderBounds(Rect(0,0,1,1), view, target));
+		Bezier control(objects.beziers[objects.data_indices[m_indexes[i]]].ToAbsolute(bounds),CPURenderBounds(Rect(0,0,1,1), view, target));
 		//Debug("%s -> %s via %s", objects.beziers[objects.data_indices[m_indexes[i]]].Str().c_str(), control.Str().c_str(), bounds.Str().c_str());
 		// Draw a rectangle around the bezier for debugging the bounds rectangle calculations
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, Colour(1,0,0,1));
@@ -283,7 +283,7 @@ void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
 	for (unsigned i = 0; i < objects.types.size(); ++i)
 	{
 		if (objects.types[i] != BEZIER) continue;
-		Bezier bez = objects.beziers[objects.data_indices[i]].CopyInverse(objects.bounds[i]);
+		const Bezier & bez = objects.beziers[objects.data_indices[i]];//objects.beziers[objects.data_indices[i]].CopyInverse(objects.bounds[i]);
 		
 		GPUBezierCoeffs coeffs = {
 			Float(bez.x0), Float(bez.y0),

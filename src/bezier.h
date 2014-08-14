@@ -64,11 +64,16 @@ namespace IPDF
 
 		Rect SolveBounds() const;
 		
+		Bezier ToAbsolute(const Rect & bounds) const
+		{
+			return Bezier(*this, bounds);
+		}
+		
 		/** Convert absolute control points to control points relative to bounds
 		 * (This basically does the opposite of the Copy constructor)
 		 * ie: If this is absolute, the returned Bezier will be relative to the bounds rectangle
 		 */
-		Bezier CopyInverse(const Rect & bounds) const
+		Bezier ToRelative(const Rect & bounds) const
 		{
 			// x' <- (x - x0)/w etc
 			// special cases when w or h = 0
