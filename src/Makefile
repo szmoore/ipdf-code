@@ -3,8 +3,13 @@ ARCH := $(shell uname -m)
 # TODO: stb_truetype doesn't compile with some of these warnings.
 CXX = g++ -std=gnu++0x -g -Wall -Werror -Wshadow -pedantic -rdynamic
 MAIN = main.o
-OBJ = log.o real.o bezier.o document.o objectrenderer.o view.o screen.o vfpu.o quadtree.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o add_digits_asm.o sub_digits_asm.o mul_digits_asm.o div_digits_asm.o arbint.o
-LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL -lgmp
+OBJ = log.o real.o bezier.o document.o objectrenderer.o view.o screen.o vfpu.o quadtree.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o add_digits_asm.o sub_digits_asm.o mul_digits_asm.o div_digits_asm.o arbint.o controlpanel.o
+
+QT_INCLUDE := -I/usr/share/qt4/mkspecs/linux-g++-64 -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -Itests -I.
+
+QT_LIB :=  -L/usr/lib/x86_64-linux-gnu -lQtGui -lQtCore -lpthread 
+
+LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL -lgmp $(QT_LIB)
 LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL -lgmp
 LIB_i686 = $(LIB_i386)
 
@@ -16,7 +21,7 @@ TESTRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib32'
 TESTRPATH_i686 = $(TESTRPATH_i386)
 OBJPATHS = $(OBJ:%=../obj/%)
 DEPS := $(OBJPATHS:%.o=%.d)
-CFLAGS_x86_64 := -I../contrib/include/SDL2 -I`pwd`
+CFLAGS_x86_64 := -I../contrib/include/SDL2 -I`pwd` $(QT_INCLUDE)
 CFLAGS_i386 := -I../contrib/include32/SDL2 -I`pwd`
 CFLAGS_i686 := $(CFLAGS_i386)
 

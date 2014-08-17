@@ -3,6 +3,10 @@
 #include "screen.h"
 #include "gl_core44.h"
 
+#ifndef CONTROLPANEL_DISABLED
+	#include "controlpanel.h"
+#endif //CONTROLPANEL_DISABLED
+
 using namespace IPDF;
 using namespace std;
 
@@ -239,6 +243,11 @@ void View::Render(int width, int height)
 	m_cached_display.Blit(); // blit FrameBuffer to screen
 	m_buffer_dirty = false;
 	glPopDebugGroup();
+	
+#ifndef CONTROLPANEL_DISABLED
+	ControlPanel::Update();
+#endif //CONTROLPANEL_DISABLED
+	
 }
 
 #ifndef QUADTREE_DISABLED

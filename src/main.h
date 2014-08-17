@@ -78,11 +78,10 @@ void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 }
 
 
-inline void MainLoop(Document & doc, const Rect & bounds = Rect(0,0,1,1), const Colour & c = Colour(0.f,0.f,0.f,1.f))
+inline void MainLoop(Document & doc, Screen & scr, View & view)
 {
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
-	Screen scr;
-	View view(doc,scr, bounds, c);
+
 	scr.DebugFontInit("DejaVuSansMono.ttf");
 	scr.SetMouseHandler(RatCatcher);
 

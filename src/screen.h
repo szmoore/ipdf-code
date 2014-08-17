@@ -69,6 +69,9 @@ namespace IPDF
 		double GetLastFrameTimeCPU() const { return m_last_frame_time / SDL_GetPerformanceFrequency(); }
 		// Returns the GPU time (in seconds) it took to render the last completed frame.
 		double GetLastFrameTimeGPU() const;
+		
+		void RequestQuit() {m_no_quit_requested = false;}
+		bool QuitRequested() const {return !m_no_quit_requested;}
 	private:
 		void ResizeViewport(int width, int height);
 		void DebugFontFlush();
@@ -100,6 +103,7 @@ namespace IPDF
 		int m_debug_font_vertex_head;
 		int m_debug_font_index_head;
 		View * m_view;
+		bool m_no_quit_requested;
 	};
 
 }

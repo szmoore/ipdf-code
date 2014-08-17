@@ -1,6 +1,10 @@
 #include "main.h"
 #include <unistd.h> // Because we can.
 
+#include "controlpanel.h"
+
+
+
 int main(int argc, char ** argv)
 {	
 	#ifndef __STDC_IEC_559__
@@ -88,10 +92,34 @@ int main(int argc, char ** argv)
 	}
 	Debug("Start!");
 	Rect bounds(b[0],b[1],b[2],b[3]);
+	
+	Screen scr;
+	View view(doc,scr, bounds);
+
+	#ifndef CONTROLPANEL_DISABLED
+		ControlPanel::RunArgs args = {argc, argv, view, doc, scr};
+		SDL_Thread * cp_thread = SDL_CreateThread(ControlPanel::Run, "ControlPanel", &args);
+		if (cp_thread == NULL)
+		{
+			Error("Couldn't create ControlPanel thread: %s", SDL_GetError());
+		}
+	#endif //CONTROLPANEL_DISABLED
 
 	if (mode == LOOP)
-		MainLoop(doc, bounds, c);
-	else if (mode == OUTPUT_TO_BMP)
+		MainLoop(doc, scr, view);
+	else if (mode == OUTPUT_TO_BMP) //TODO: Remove this shit
 		OverlayBMP(doc, input_bmp, output_bmp, bounds, c);
+		
+	#ifndef CONTROLPANEL_DISABLED
+		
+		if (cp_thread != NULL)
+		{
+			int cp_return;
+			qApp->quit(); // will close the control panel
+			// (seems to not explode if the qApp has already been quit)
+			SDL_WaitThread(cp_thread, &cp_return);
+			Debug("ControlPanel thread returned %d", cp_return);
+		}
+	#endif //CONTROLPANEL_DISABLED
 	return 0;
 }

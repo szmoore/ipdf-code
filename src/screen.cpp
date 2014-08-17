@@ -92,10 +92,10 @@ Screen::Screen()
 	m_viewport_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
 
 	m_debug_font_atlas = 0;
-
+	m_no_quit_requested = true;
 	m_view = NULL;
 	ResizeViewport(800, 600);
-
+	
 	Clear();
 	Present();
 	
@@ -128,13 +128,13 @@ void Screen::ResizeViewport(int width, int height)
 bool Screen::PumpEvents()
 {
 	SDL_Event evt;
-	bool no_quit_requested = true;
+	
 	while (SDL_PollEvent(&evt))
 	{
 		switch (evt.type)
 		{
 		case SDL_QUIT:
-			no_quit_requested = false;
+			m_no_quit_requested = false;
 			break;
 		case SDL_WINDOWEVENT:
 			switch (evt.window.event)
@@ -183,7 +183,7 @@ bool Screen::PumpEvents()
 			break;
 		}
 	}
-	return no_quit_requested;
+	return m_no_quit_requested;
 }
 
 void Screen::SetMouseCursor(Screen::MouseCursors cursor)
