@@ -615,6 +615,8 @@ pair<unsigned, unsigned> Document::ParseSVGPathData(const string & d, const SVGM
 			x[0] = (relative) ? x[0] + dx : dx;
 			y[0] = (relative) ? y[0] + dy : dy;
 			
+			x0 = x[0];
+			y0 = y[0];
 			//Debug("mmoveto %f,%f", Float(x[0]),Float(y[0]));
 			command = (command == "m") ? "l" : "L";
 		}
