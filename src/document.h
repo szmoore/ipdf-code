@@ -27,7 +27,7 @@ namespace IPDF
 	class Document
 	{
 		public:
-			Document(const std::string & filename = "", const std::string & font_filename = "DejaVuSansMono.ttf") : m_objects(), m_count(0), m_font_data(NULL), m_font()
+			Document(const std::string & filename = "", const std::string & font_filename = "fonts/DejaVuSansMono.ttf") : m_objects(), m_count(0), m_font_data(NULL), m_font()
 			{
 				Load(filename);
 				if (font_filename != "")
@@ -65,6 +65,7 @@ namespace IPDF
 			
 			/** Load an SVG text file and add to the document **/
 			void LoadSVG(const std::string & filename, const Rect & bounds = Rect(0,0,1,1));
+			void ParseSVG(const std::string & svg, const Rect & bounds = Rect(0,0,1,1));
 			
 			/** Parse an SVG node or SVG-group node, adding children to the document **/
 			void ParseSVGNode(pugi::xml_node & root, SVGMatrix & transform);

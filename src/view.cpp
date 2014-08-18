@@ -78,6 +78,21 @@ void View::Translate(Real x, Real y)
 }
 
 /**
+ * Set View bounds
+ * @param bounds - New bounds
+ */
+void View::SetBounds(const Rect & bounds)
+{
+	m_bounds.x = bounds.x;
+	m_bounds.y = bounds.y;
+	m_bounds.w = bounds.w;
+	m_bounds.h = bounds.h;
+	if (!m_use_gpu_transform)
+		m_buffer_dirty = true;
+	m_bounds_dirty = true;
+}
+
+/**
  * Scale the View at a point
  * @param x, y - Coordinates to scale at (eg: Mouse cursor position)
  * @param scale_amount - Amount to scale by

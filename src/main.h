@@ -82,7 +82,7 @@ inline void MainLoop(Document & doc, Screen & scr, View & view)
 {
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
 
-	scr.DebugFontInit("DejaVuSansMono.ttf");
+	scr.DebugFontInit("fonts/DejaVuSansMono.ttf");
 	scr.SetMouseHandler(RatCatcher);
 
 	double total_cpu_time = 0;

@@ -93,8 +93,11 @@ Screen::Screen()
 
 	m_debug_font_atlas = 0;
 	m_no_quit_requested = true;
+	m_show_debug_font = true;
 	m_view = NULL;
 	ResizeViewport(800, 600);
+	
+	
 	
 	Clear();
 	Present();
@@ -454,7 +457,7 @@ struct fontvertex
 
 void Screen::DebugFontPrint(const char* str)
 {
-	if (!m_debug_font_atlas) return;
+	if (!m_debug_font_atlas || !m_show_debug_font) return;
 
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 41, -1, "Screen::DebugFontPrint()");
 

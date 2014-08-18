@@ -546,6 +546,24 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 }
 
 /**
+ * Parse an SVG string into a rectangle
+ */
+void Document::ParseSVG(const string & input, const Rect & bounds)
+{
+	using namespace pugi;
+	
+	xml_document doc_xml;
+	xml_parse_result result = doc_xml.load(input.c_str());
+	
+	if (!result)
+		Error("Couldn't parse SVG input - %s", result.description());
+		
+	Debug("Loaded XML - %s", result.description());
+	SVGMatrix transform = {bounds.w, 0,bounds.x, 0,bounds.h,bounds.y};
+	ParseSVGNode(doc_xml, transform);
+}
+
+/**
  * Load an SVG into a rectangle
  */
 void Document::LoadSVG(const string & filename, const Rect & bounds)
@@ -557,7 +575,7 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 	xml_parse_result result = doc_xml.load(input);
 	
 	if (!result)
-		Fatal("Couldn't load \"%s\" - %s", filename.c_str(), result.description());
+		Error("Couldn't load \"%s\" - %s", filename.c_str(), result.description());
 		
 	Debug("Loaded XML - %s", result.description());
 	
@@ -758,7 +776,7 @@ void Document::SetFont(const string & font_filename)
 		free(m_font_data);
 	}
 	
-	FILE *font_file = fopen("DejaVuSansMono.ttf", "rb");
+	FILE *font_file = fopen(font_filename.c_str(), "rb");
 	fseek(font_file, 0, SEEK_END);
 	size_t font_file_size = ftell(font_file);
 	fseek(font_file, 0, SEEK_SET);
@@ -863,6 +881,7 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 	{
 		AddGroup(start_index, end_index);
 	}
+	Debug("Added Glyph \"%c\" at %f %f, scale %f", (char)character, Float(x), Float(y), Float(scale));
 
 	stbtt_FreeShape(font, instructions);
 }

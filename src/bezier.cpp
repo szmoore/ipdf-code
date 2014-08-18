@@ -71,10 +71,10 @@ static pair<Real, Real> BezierTurningPoints(const Real & p0, const Real & p1, co
 		if (t < 0) t = 0;
 		return pair<Real, Real>(t, t);
 	}
-	Debug("a, b, c are %f, %f, %f", Float(a), Float(b), Float(c));
+	//Debug("a, b, c are %f, %f, %f", Float(a), Float(b), Float(c));
 	if (b*b - 4*a*c < 0)
 	{
-		Debug("No real roots");
+		//Debug("No real roots");
 		return pair<Real, Real>(0,1);
 	}
 	pair<Real, Real> tsols = SolveQuadratic(a, b, c);
@@ -102,7 +102,7 @@ Rect Bezier::SolveBounds() const
 	Evaluate(tp0, o, tsols.first);
 	Evaluate(tp1, o, tsols.second);
 	
-	Debug("x: tp0 is %f tp1 is %f", Float(tp0), Float(tp1));
+	//Debug("x: tp0 is %f tp1 is %f", Float(tp0), Float(tp1));
 	
 	vector<const Real*> v(4);
 	v[0] = &x0;
@@ -122,7 +122,7 @@ Rect Bezier::SolveBounds() const
 	Evaluate(o, tp1, tsols.second);
 	
 	
-	Debug("y: tp0 is %f tp1 is %f", Float(tp0), Float(tp1));
+	//Debug("y: tp0 is %f tp1 is %f", Float(tp0), Float(tp1));
 	
 	v[0] = &y0;
 	v[1] = &y3;
@@ -133,7 +133,7 @@ Rect Bezier::SolveBounds() const
 	result.y = *(v[0]);
 	result.h = *(v[3]) - result.y;
 	
-	Debug("Solved Bezier %s bounds as %s", Str().c_str(), result.Str().c_str());
+	//Debug("Solved Bezier %s bounds as %s", Str().c_str(), result.Str().c_str());
 	return result;
 }
 

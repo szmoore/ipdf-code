@@ -72,6 +72,9 @@ namespace IPDF
 		
 		void RequestQuit() {m_no_quit_requested = false;}
 		bool QuitRequested() const {return !m_no_quit_requested;}
+		
+		void ShowDebugFont(bool show = true) {m_show_debug_font = show;}
+		bool DebugFontShown() const {return m_show_debug_font;}
 	private:
 		void ResizeViewport(int width, int height);
 		void DebugFontFlush();
@@ -104,6 +107,7 @@ namespace IPDF
 		int m_debug_font_index_head;
 		View * m_view;
 		bool m_no_quit_requested;
+		bool m_show_debug_font;
 	};
 
 }

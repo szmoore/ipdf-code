@@ -27,10 +27,12 @@ namespace IPDF
 			
 			void Translate(Real x, Real y);
 			void ScaleAroundPoint(Real x, Real y, Real scale_amount);
+			void SetBounds(const Rect & new_bounds);
 			
 			Rect TransformToViewCoords(const Rect& inp) const;
 			
 			const Rect& GetBounds() const { return m_bounds; }
+			
 			
 			const bool UsingGPUTransform() const { return m_use_gpu_transform; } // whether view transform calculated on CPU or GPU
 			const bool UsingGPURendering() const { return m_use_gpu_rendering; } // whether GPU shaders are used or CPU rendering

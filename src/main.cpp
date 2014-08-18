@@ -14,7 +14,7 @@ int main(int argc, char ** argv)
 
 	Debug("Compiled with REAL = %d => \"%s\" sizeof(Real) == %d bytes", REAL, g_real_name[REAL], sizeof(Real));
 
-	Document doc;
+	Document doc("","fonts/ComicSans.ttf");
 	srand(time(NULL));
 
 	enum {OUTPUT_TO_BMP, LOOP} mode = LOOP;
@@ -86,9 +86,7 @@ int main(int argc, char ** argv)
 	}
 	else 
 	{
-		//doc.AddBezier(Bezier(0,0, 1,0.5, 0.5,1, 1,1));
-		doc.AddText("The quick brown\nfox jumps over\nthe lazy dog",0.1,0,0.5);
-		//doc.AddBezier(Bezier(0,0,0,0.1,0,0.1,0,0.1));
+		doc.Add(RECT_OUTLINE, Rect(0,0,0,0),0); // hack to stop segfault if document is empty (:S)
 	}
 	Debug("Start!");
 	Rect bounds(b[0],b[1],b[2],b[3]);

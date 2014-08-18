@@ -16,7 +16,9 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QApplication>
-
+#include <QTextEdit>
+#include <QInputDialog>
+#include <QFileDialog>
 
 
 namespace IPDF
@@ -47,34 +49,69 @@ namespace IPDF
 			};
 			
 			static int Run(void * args);
-			static void Update() {if (g_panel != NULL) g_panel->UpdateAll();};
-			
-			ControlPanel(RunArgs & a, QWidget * p = NULL);
-			virtual ~ControlPanel() {}
+			static void Update() {if (g_panel != NULL) g_panel->UpdateAll();}			
+	
+		private:
+			typedef enum {
+				ABOUT,
+				INSERT_TEXT,
+				PARSE_SVG
+			} State;
 			
 		private slots:
 			void SetGPURendering();
 			void SetCPURendering();
-
+			void ToggleScreenDebugFont();
+			void SetViewBounds();
+			void LoadSVGIntoDocument();
+			void SetDocumentFont();
+			void StateInsertText() {ChangeState(INSERT_TEXT);}
+			void StateAbout() {ChangeState(ABOUT);}
+			void StateParseSVG() {ChangeState(PARSE_SVG);}
+			void PressOK() {if (m_on_ok != NULL) (this->*m_on_ok)();}
 
 		private:
 			static ControlPanel * g_panel;
-
-			
+			void paintEvent(QPaintEvent * e);
+			ControlPanel(RunArgs & a, QWidget * p = NULL);
+			virtual ~ControlPanel() {}
 			void UpdateAll();
-					
+			void ChangeState(State next_state);
 			View & m_view;
 			Document & m_doc;
 			Screen & m_screen;
+			
+			int m_width;
+			int m_height;
+			
+			
+			State m_state;
 			
 			QMenu * CreateMainMenu();
 			QMenu * CreateViewMenu();
 			QMenu * CreateDocumentMenu();
 			QMenu * CreateScreenMenu();
+			void CreateLayout();
+			
+			void InsertTextIntoDocument();
+			void InsertSVGIntoDocument();
 			
 			QAction * m_screen_gpu_rendering;
 			QAction * m_screen_cpu_rendering;
+			QAction * m_screen_show_debug;
 			
+			QAction * m_document_set_font;
+			QAction * m_document_insert_text;
+			QAction * m_document_parse_svg;
+			QAction * m_document_load_svg;
+			QAction * m_view_set_bounds;
+			
+		
+			QTextEdit * m_text_edit;
+			QPushButton * m_ok_button;
+			
+			void (ControlPanel::* m_on_ok)();
+
 
 	};
 
