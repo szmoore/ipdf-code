@@ -16,6 +16,40 @@ namespace IPDF
 		return std::pair<Real,Real>(x0,x1);
 	}
 
+	inline std::vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d)
+	{
+		// This is going to be a big one...
+		// See http://en.wikipedia.org/wiki/Cubic_function#General_formula_for_roots
+
+		// delta = 18abcd - 4 b^3 d + b^2 c^2 - 4ac^3 - 27 a^2 d^2
+		/*
+		Real discriminant = Real(18) * a * b * c * d - Real(4) * (b * b * b) * d 
+				+ (b * b) * (c * c) - Real(4) * a * (c * c * c)
+				- Real(27) * (a * a) * (d * d);
+		*/
+		// discriminant > 0 => 3 distinct, real roots.
+		// discriminant = 0 => a multiple root (1 or 2 real roots)
+		// discriminant < 0 => 1 real root, 2 complex conjugate roots
+
+		////HACK: We know any roots we care about will be between 0 and 1, so...
+		Real maxi(100);
+		Real prevRes(d);
+		std::vector<Real> roots;
+		for(int i = 0; i <= 100; ++i)
+		{
+			Real x(i);
+			x /= maxi;
+			Real y = a*(x*x*x) + b*(x*x) + c*x + d;
+			if (y == Real(0) || (y < Real(0) && prevRes > Real(0)) || (y > Real(0) && prevRes < Real(0)))
+			{
+				roots.push_back(x);
+			}
+		}
+		return roots;
+			
+	}
+		
+
 	/** A _cubic_ bezier. **/
 	struct Bezier
 	{

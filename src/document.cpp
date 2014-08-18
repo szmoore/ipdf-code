@@ -816,7 +816,7 @@ void Document::AddText(const string & text, Real scale, Real x, Real y)
 			
 		int advance_width = 0, left_side_bearing = 0, kerning = 0;
 		stbtt_GetCodepointHMetrics(&m_font, text[i], &advance_width, &left_side_bearing);
-		if (i > 1)
+		if (i >= 1)
 		{
 			kerning = stbtt_GetCodepointKernAdvance(&m_font, text[i-1], text[i]);
 		}
