@@ -802,7 +802,8 @@ void Document::AddText(const string & text, Real scale, Real x, Real y)
 		{
 			kerning = stbtt_GetCodepointKernAdvance(&m_font, text[i-1], text[i]);
 		}
-		x += Real(font_scale) * Real(left_side_bearing + kerning);
+		Debug("%c: lsb %d, kern %d, adv_width %d", text[i], left_side_bearing, kerning, advance_width);
+		x += Real(font_scale) * Real(kerning);
 		AddFontGlyphAtPoint(&m_font, text[i], font_scale, x, y);
 		x += Real(font_scale) * Real(advance_width);
 	}
