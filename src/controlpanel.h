@@ -32,7 +32,7 @@ namespace IPDF
 	 */
 	class ControlPanel : public QMainWindow
 	{	
-		//Q_OBJECT // Having this causes shit about undefined vtables
+		Q_OBJECT // Having this causes shit about undefined vtables
 				// Not having it means things break
 				// Apparently you need "qmake" to build qt applications
 				// Or some bullshit -_-
