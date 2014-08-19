@@ -224,14 +224,13 @@ void ControlPanel::SetViewBounds()
 void ControlPanel::InsertTextIntoDocument()
 {
 	const Rect & bounds = m_view.GetBounds();
-	Real xx = bounds.x + bounds.w/Real(2);
+	Real xx = bounds.x;
 	Real yy = bounds.y + bounds.h/Real(2);
 	
 	string msg = m_text_edit->toPlainText().toStdString();
-	Real scale = bounds.w / Real(2);
+	Real scale = bounds.h / Real(2);
 	Debug("Insert \"%s\" at %f, %f, scale %f", msg.c_str(), Float(xx), Float(yy), Float(scale));
-	//m_doc.Add(RECT_OUTLINE, bounds, 0); // debugging; text needs to go in the boujnds
-	m_doc.AddText(msg, xx, yy, scale);
+	m_doc.AddText(msg, scale, xx, yy);
 	m_view.ForceRenderDirty();
 	m_view.ForceBufferDirty();
 	m_view.ForceBoundsDirty();
