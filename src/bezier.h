@@ -48,7 +48,6 @@ namespace IPDF
 		return roots;
 			
 	}
-		
 
 	/** A _cubic_ bezier. **/
 	struct Bezier
@@ -144,6 +143,44 @@ namespace IPDF
 				result.y3 = (y3 - bounds.y)/bounds.h;
 			}
 			return result;
+		}
+
+		Bezier ReParametrise(const Real& t0, const Real& t1)
+		{
+			// This function is very, very ugly, but with luck my derivation is correct (even if it isn't optimal, performance wise)
+			// (Very) rough working for the derivation is at: http://davidgow.net/stuff/cubic_bezier_reparam.pdf
+			Bezier new_bezier;
+			Real tdiff = t1 - t0;
+			Real tdiff_squared = tdiff*tdiff;
+			Real tdiff_cubed = tdiff*tdiff_squared;
+
+			Real t0_squared = t0*t0;
+			Real t0_cubed = t0*t0_squared;
+			
+			// X coordinates
+			Real Dx0 = x0 / tdiff_cubed;
+			Real Dx1 = x1 / (tdiff_squared - tdiff_cubed);
+			Real Dx2 = x2 / (tdiff - Real(2)*tdiff_squared + tdiff_cubed);
+			Real Dx3 = x3 / (Real(1) - Real(3)*tdiff + Real(3)*tdiff_squared - tdiff_cubed);
+
+			new_bezier.x3 = Dx3*t0_cubed + Real(3)*Dx3*t0_squared + Real(3)*Dx3*t0 + Dx3 - Dx2*t0_cubed - Real(2)*Dx2*t0_squared - Dx2*t0 + Dx1*t0_cubed + Dx1*t0_squared - Dx0*t0_cubed;
+			new_bezier.x2 = Real(3)*Dx0*t0_squared - Real(2)*Dx1*t0 - Real(3)*Dx1*t0_squared + Dx2 + Real(4)*Dx2*t0 + Real(3)*Dx2*t0_squared - Real(3)*Dx3 - Real(6)*Dx3*t0 - Real(3)*Dx3*t0_squared + Real(3)*new_bezier.x3;
+			new_bezier.x1 = Real(-3)*Dx0*t0 + Real(3)*Dx1*t0 + Dx1 - Real(2)*Dx2 - Real(3)*Dx2*t0 + Real(3)*Dx3 + Real(3)*Dx3*t0 + Real(2)*new_bezier.x2 - Real(3)*new_bezier.x3;
+			new_bezier.x0 = Dx0 - Dx1 + Dx2 - Dx3 + new_bezier.x1 - new_bezier.x2 + new_bezier.x3;
+
+			// Y coordinates
+			Real Dy0 = y0 / tdiff_cubed;
+			Real Dy1 = y1 / (tdiff_squared - tdiff_cubed);
+			Real Dy2 = y2 / (tdiff - Real(2)*tdiff_squared + tdiff_cubed);
+			Real Dy3 = y3 / (Real(1) - Real(3)*tdiff + Real(3)*tdiff_squared - tdiff_cubed);
+
+			new_bezier.y3 = Dy3*t0_cubed + Real(3)*Dy3*t0_squared + Real(3)*Dy3*t0 + Dy3 - Dy2*t0_cubed - Real(2)*Dy2*t0_squared - Dy2*t0 + Dy1*t0_cubed + Dy1*t0_squared - Dy0*t0_cubed;
+			new_bezier.y2 = Real(3)*Dy0*t0_squared - Real(2)*Dy1*t0 - Real(3)*Dy1*t0_squared + Dy2 + Real(4)*Dy2*t0 + Real(3)*Dy2*t0_squared - Real(3)*Dy3 - Real(6)*Dy3*t0 - Real(3)*Dy3*t0_squared + Real(3)*new_bezier.y3;
+			new_bezier.y1 = Real(-3)*Dy0*t0 + Real(3)*Dy1*t0 + Dy1 - Real(2)*Dy2 - Real(3)*Dy2*t0 + Real(3)*Dy3 + Real(3)*Dy3*t0 + Real(2)*new_bezier.y2 - Real(3)*new_bezier.y3;
+			new_bezier.y0 = Dy0 - Dy1 + Dy2 - Dy3 + new_bezier.y1 - new_bezier.y2 + new_bezier.y3;
+
+
+			return new_bezier;
 		}
 		
 
