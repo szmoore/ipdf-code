@@ -183,6 +183,61 @@ namespace IPDF
 			return new_bezier;
 		}
 		
+		std::vector<Bezier> ClipToRectangle(const Rect& r)
+		{
+			// Find points of intersection with the rectangle.
+
+			// Convert bezier coefficients -> cubic coefficients
+			Real xa = x0-x1+x2-x3;
+			Real xb = x1 - Real(2)*x2 + Real(3)*x3;
+			Real xc = x2 - Real(3)*x3;
+			Real xd = x3 + r.x;
+
+			// Find its roots.
+			std::vector<Real> x_intersection = SolveCubic(xa, xb, xc, xd);
+
+			// And for the other side.
+			xd = x3 + r.x + r.w;
+
+			std::vector<Real> x_intersection_pt2 = SolveCubic(xa, xb, xc, xd);
+			x_intersection.insert(x_intersection.end(), x_intersection_pt2.begin(), x_intersection_pt2.end());
+
+			// Similarly for y-coordinates.
+			// Convert bezier coefficients -> cubic coefficients
+			Real ya = y0-y1+y2-y3;
+			Real yb = y1 - Real(2)*y2 + Real(3)*y3;
+			Real yc = y2 - Real(3)*y3;
+			Real yd = y3 + r.y;
+
+			// Find its roots.
+			std::vector<Real> y_intersection = SolveCubic(ya, yb, yc, yd);
+
+			// And for the other side.
+			yd = y3 + r.y + r.h;
+
+			std::vector<Real> y_intersection_pt2 = SolveCubic(ya, yb, yc, yd);
+			y_intersection.insert(y_intersection.end(), y_intersection_pt2.begin(), y_intersection_pt2.end());
+
+			// Merge and sort.
+			x_intersection.insert(x_intersection.end(), y_intersection.begin(), y_intersection.end());
+
+			Debug("Found %d intersections.\n", x_intersection.size());
+			
+			std::vector<Bezier> all_beziers;
+			if (x_intersection.empty())
+			{
+				all_beziers.push_back(*this);
+				return all_beziers;
+			}
+			Real t0 = *(x_intersection.begin());
+			for (auto it = x_intersection.begin()+1; it != x_intersection.end(); ++it)
+			{
+				Real t1 = *it;
+				all_beziers.push_back(this->ReParametrise(t0, t1));
+				t0 = t1;
+			}
+			return all_beziers;
+		}
 
 		/** Evaluate the Bezier at parametric parameter u, puts resultant point in (x,y) **/
 		void Evaluate(Real & x, Real & y, const Real & u) const

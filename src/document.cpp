@@ -130,8 +130,20 @@ int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 		m_objects.data_indices.push_back(m_objects.data_indices[object_id]);
 		return 1;
 		}
-	case GROUP:
-		break;
+	case BEZIER:
+		{
+		Rect child_node_bounds = TransformFromQuadChild({0,0,1,1}, type);
+		std::vector<Bezier> new_curves = m_objects.beziers[m_objects.data_indices[object_id]].ClipToRectangle(child_node_bounds);
+		Rect obj_bounds = TransformToQuadChild(m_objects.bounds[object_id], type);
+		for (size_t i = 0; i < new_curves.size(); ++i)
+		{
+			unsigned index = AddBezierData(new_curves[i]);
+			m_objects.bounds.push_back(obj_bounds);
+			m_objects.types.push_back(BEZIER);
+			m_objects.data_indices.push_back(index);
+		}
+		return new_curves.size();
+		}
 	default:
 		Debug("Adding %s -> %s", m_objects.bounds[object_id].Str().c_str(), TransformToQuadChild(m_objects.bounds[object_id], type).Str().c_str());
 		m_objects.bounds.push_back(TransformToQuadChild(m_objects.bounds[object_id], type));
