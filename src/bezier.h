@@ -151,43 +151,73 @@ namespace IPDF
 			return result;
 		}
 
+		// Performs one round of De Casteljau subdivision and returns the [t,1] part.
+		Bezier DeCasteljauSubdivideRight(const Real& t)
+		{
+			Real one_minus_t = Real(1) - t;
+
+			// X Coordinates
+			Real x01 = x0*t + x1*one_minus_t;
+			Real x12 = x1*t + x2*one_minus_t;
+			Real x23 = x2*t + x3*one_minus_t;
+
+			Real x012 = x01*t + x12*one_minus_t;
+			Real x123 = x12*t + x23*one_minus_t;
+
+			Real x0123 = x012*t + x123*one_minus_t;
+
+			// Y Coordinates
+			Real y01 = y0*t + y1*one_minus_t;
+			Real y12 = y1*t + y2*one_minus_t;
+			Real y23 = y2*t + y3*one_minus_t;
+
+			Real y012 = y01*t + y12*one_minus_t;
+			Real y123 = y12*t + y23*one_minus_t;
+
+			Real y0123 = y012*t + y123*one_minus_t;
+
+			return Bezier(x0, y0, x01, y01, x012, y012, x0123, y0123);
+		}
+		// Performs one round of De Casteljau subdivision and returns the [0,t] part.
+		Bezier DeCasteljauSubdivideLeft(const Real& t)
+		{
+			Real one_minus_t = Real(1) - t;
+
+			// X Coordinates
+			Real x01 = x0*t + x1*one_minus_t;
+			Real x12 = x1*t + x2*one_minus_t;
+			Real x23 = x2*t + x3*one_minus_t;
+
+			Real x012 = x01*t + x12*one_minus_t;
+			Real x123 = x12*t + x23*one_minus_t;
+
+			Real x0123 = x012*t + x123*one_minus_t;
+
+			// Y Coordinates
+			Real y01 = y0*t + y1*one_minus_t;
+			Real y12 = y1*t + y2*one_minus_t;
+			Real y23 = y2*t + y3*one_minus_t;
+
+			Real y012 = y01*t + y12*one_minus_t;
+			Real y123 = y12*t + y23*one_minus_t;
+
+			Real y0123 = y012*t + y123*one_minus_t;
+
+			return Bezier(x0123, y0123, x123, y123, x23, y23, x3, y3);
+		}
+
 		Bezier ReParametrise(const Real& t0, const Real& t1)
 		{
-			// This function is very, very ugly, but with luck my derivation is correct (even if it isn't optimal, performance wise)
-			// (Very) rough working for the derivation is at: http://davidgow.net/stuff/cubic_bezier_reparam.pdf
 			Debug("Reparametrise: %f -> %f",t0,t1);
 			Bezier new_bezier;
-			Real tdiff = t1 - t0;
-			Real tdiff_squared = tdiff*tdiff;
-			Real tdiff_cubed = tdiff*tdiff_squared;
+			// Subdivide to get from [0,t1]
+			new_bezier = DeCasteljauSubdivideLeft(t1);
+			// Convert t0 from [0,1] range to [0, t1]
+			Real new_t0 = t0 / t1;
+			Debug("New t0 = %f", new_t0);
+			new_bezier = new_bezier.DeCasteljauSubdivideRight(new_t0);
 
-			Real t0_squared = t0*t0;
-			Real t0_cubed = t0*t0_squared;
-			
-			// X coordinates
-			Real Dx0 = x0 / tdiff_cubed;
-			Real Dx1 = x1 / (tdiff_squared - tdiff_cubed);
-			Real Dx2 = x2 / (tdiff - Real(2)*tdiff_squared + tdiff_cubed);
-			Real Dx3 = x3 / (Real(1) - Real(3)*tdiff + Real(3)*tdiff_squared - tdiff_cubed);
-
-			new_bezier.x3 = Dx3*t0_cubed + Real(3)*Dx3*t0_squared + Real(3)*Dx3*t0 + Dx3 - Dx2*t0_cubed - Real(2)*Dx2*t0_squared - Dx2*t0 + Dx1*t0_cubed + Dx1*t0_squared - Dx0*t0_cubed;
-			new_bezier.x2 = Real(3)*Dx0*t0_squared - Real(2)*Dx1*t0 - Real(3)*Dx1*t0_squared + Dx2 + Real(4)*Dx2*t0 + Real(3)*Dx2*t0_squared - Real(3)*Dx3 - Real(6)*Dx3*t0 - Real(3)*Dx3*t0_squared + Real(3)*new_bezier.x3;
-			new_bezier.x1 = Real(-3)*Dx0*t0 + Real(3)*Dx1*t0 + Dx1 - Real(2)*Dx2 - Real(3)*Dx2*t0 + Real(3)*Dx3 + Real(3)*Dx3*t0 + Real(2)*new_bezier.x2 - Real(3)*new_bezier.x3;
-			new_bezier.x0 = Dx0 - Dx1 + Dx2 - Dx3 + new_bezier.x1 - new_bezier.x2 + new_bezier.x3;
-
-			// Y coordinates
-			Real Dy0 = y0 / tdiff_cubed;
-			Real Dy1 = y1 / (tdiff_squared - tdiff_cubed);
-			Real Dy2 = y2 / (tdiff - Real(2)*tdiff_squared + tdiff_cubed);
-			Real Dy3 = y3 / (Real(1) - Real(3)*tdiff + Real(3)*tdiff_squared - tdiff_cubed);
-
-			new_bezier.y3 = Dy3*t0_cubed + Real(3)*Dy3*t0_squared + Real(3)*Dy3*t0 + Dy3 - Dy2*t0_cubed - Real(2)*Dy2*t0_squared - Dy2*t0 + Dy1*t0_cubed + Dy1*t0_squared - Dy0*t0_cubed;
-			new_bezier.y2 = Real(3)*Dy0*t0_squared - Real(2)*Dy1*t0 - Real(3)*Dy1*t0_squared + Dy2 + Real(4)*Dy2*t0 + Real(3)*Dy2*t0_squared - Real(3)*Dy3 - Real(6)*Dy3*t0 - Real(3)*Dy3*t0_squared + Real(3)*new_bezier.y3;
-			new_bezier.y1 = Real(-3)*Dy0*t0 + Real(3)*Dy1*t0 + Dy1 - Real(2)*Dy2 - Real(3)*Dy2*t0 + Real(3)*Dy3 + Real(3)*Dy3*t0 + Real(2)*new_bezier.y2 - Real(3)*new_bezier.y3;
-			new_bezier.y0 = Dy0 - Dy1 + Dy2 - Dy3 + new_bezier.y1 - new_bezier.y2 + new_bezier.y3;
-
-
-			Debug("(%f,%f),(%f,%f),(%f,%f),(%f,%f) -> (%f,%f),(%f,%f),(%f,%f),(%f,%f)", x0, y0, x1, y1, x2, y2, x3, y3, new_bezier.x0, new_bezier.y0, new_bezier.x1, new_bezier.y1, new_bezier.x2, new_bezier.y2, new_bezier.x3, new_bezier.y3);
+			Debug("%s becomes %s", this->Str().c_str(), new_bezier.Str().c_str());
 			return new_bezier;
 		}
 		
@@ -229,6 +259,8 @@ namespace IPDF
 
 			// Merge and sort.
 			x_intersection.insert(x_intersection.end(), y_intersection.begin(), y_intersection.end());
+			x_intersection.push_back(Real(0));
+			x_intersection.push_back(Real(1));
 			std::sort(x_intersection.begin(), x_intersection.end());
 
 			Debug("Found %d intersections.\n", x_intersection.size());
@@ -243,8 +275,14 @@ namespace IPDF
 			for (auto it = x_intersection.begin()+1; it != x_intersection.end(); ++it)
 			{
 				Real t1 = *it;
+				if (t1 == t0) continue;
 				Debug(" -- t0: %f to t1: %f", t0, t1);
-				all_beziers.push_back(this->ReParametrise(t0, t1));
+				Real ptx, pty;
+				Evaluate(ptx, pty, ((t1 + t0) / Real(2)));
+				if (r.PointIn(ptx, pty))
+				{
+					all_beziers.push_back(this->ReParametrise(t0, t1));
+				}
 				t0 = t1;
 			}
 			return all_beziers;

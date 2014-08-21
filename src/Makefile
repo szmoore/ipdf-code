@@ -82,7 +82,7 @@ $(BIN) : $(LINKOBJ) ../obj/$(MAIN)
 -include $(DEPS)
 
 moc_controlpanel.cpp : controlpanel.cpp controlpanel.h
-	moc $(DEF) controlpanel.h -o moc_controlpanel.cpp
+	moc-qt4 $(DEF) controlpanel.h -o moc_controlpanel.cpp
 
 ../obj/%.o : %.cpp main.h
 	@mkdir -p $(dir $@)

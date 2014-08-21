@@ -133,12 +133,19 @@ int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 	case BEZIER:
 		{
 		Rect child_node_bounds = TransformFromQuadChild({0,0,1,1}, type);
-		std::vector<Bezier> new_curves = m_objects.beziers[m_objects.data_indices[object_id]].ClipToRectangle(child_node_bounds);
-		Rect obj_bounds = TransformToQuadChild(m_objects.bounds[object_id], type);
+		Rect clip_bezier_bounds;
+		clip_bezier_bounds.x = (child_node_bounds.x - m_objects.bounds[object_id].x) / m_objects.bounds[object_id].w;
+		clip_bezier_bounds.y = (child_node_bounds.y - m_objects.bounds[object_id].y) / m_objects.bounds[object_id].h;
+		clip_bezier_bounds.w = child_node_bounds.w / m_objects.bounds[object_id].w;
+		clip_bezier_bounds.h = child_node_bounds.h / m_objects.bounds[object_id].h;
+		std::vector<Bezier> new_curves = m_objects.beziers[m_objects.data_indices[object_id]].ClipToRectangle(clip_bezier_bounds);
 		for (size_t i = 0; i < new_curves.size(); ++i)
 		{
+			Rect new_bounds = TransformToQuadChild(m_objects.bounds[object_id], type);
+			//new_bounds = TransformToQuadChild(new_bounds, type);
+			//Bezier new_curve_data = new_curves[i].ToRelative(new_bounds);
 			unsigned index = AddBezierData(new_curves[i]);
-			m_objects.bounds.push_back(obj_bounds);
+			m_objects.bounds.push_back(new_bounds);
 			m_objects.types.push_back(BEZIER);
 			m_objects.data_indices.push_back(index);
 		}

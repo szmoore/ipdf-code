@@ -18,6 +18,14 @@ namespace IPDF
 			s << "{" << Float(x) << ", " << Float(y) << ", " << Float(w) << ", " << Float(h) << "}";
 			return s.str();
 		}
+		inline bool PointIn(Real pt_x, Real pt_y) const
+		{
+			if (pt_x < x) return false;
+			if (pt_y < y) return false;
+			if (pt_x > x + w) return false;
+			if (pt_y > y + h) return false;
+			return true;
+		}
 	};
 }
 
