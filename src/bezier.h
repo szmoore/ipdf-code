@@ -1,6 +1,9 @@
 #ifndef _BEZIER_H
 #define _BEZIER_H
 
+#include <vector>
+#include <algorithm>
+
 #include "real.h"
 #include "rect.h"
 namespace IPDF
@@ -32,18 +35,21 @@ namespace IPDF
 		// discriminant < 0 => 1 real root, 2 complex conjugate roots
 
 		////HACK: We know any roots we care about will be between 0 and 1, so...
+		Debug("Trying to solve %fx^3 + %fx^2 + %fx + %f", a,b,c,d);
 		Real maxi(100);
 		Real prevRes(d);
 		std::vector<Real> roots;
-		for(int i = 0; i <= 100; ++i)
+		for(int i = -1; i <= 100; ++i)
 		{
 			Real x(i);
 			x /= maxi;
 			Real y = a*(x*x*x) + b*(x*x) + c*x + d;
-			if (y == Real(0) || (y < Real(0) && prevRes > Real(0)) || (y > Real(0) && prevRes < Real(0)))
+			if ( ((y < Real(0)) && (prevRes > Real(0))) || ((y > Real(0)) && (prevRes < Real(0))))
 			{
+				Debug("Found root of %fx^3 + %fx^2 + %fx + %f at %f (%f)", a, b, c, d, x, y);
 				roots.push_back(x);
 			}
+			prevRes = y;
 		}
 		return roots;
 			
@@ -149,6 +155,7 @@ namespace IPDF
 		{
 			// This function is very, very ugly, but with luck my derivation is correct (even if it isn't optimal, performance wise)
 			// (Very) rough working for the derivation is at: http://davidgow.net/stuff/cubic_bezier_reparam.pdf
+			Debug("Reparametrise: %f -> %f",t0,t1);
 			Bezier new_bezier;
 			Real tdiff = t1 - t0;
 			Real tdiff_squared = tdiff*tdiff;
@@ -180,24 +187,26 @@ namespace IPDF
 			new_bezier.y0 = Dy0 - Dy1 + Dy2 - Dy3 + new_bezier.y1 - new_bezier.y2 + new_bezier.y3;
 
 
+			Debug("(%f,%f),(%f,%f),(%f,%f),(%f,%f) -> (%f,%f),(%f,%f),(%f,%f),(%f,%f)", x0, y0, x1, y1, x2, y2, x3, y3, new_bezier.x0, new_bezier.y0, new_bezier.x1, new_bezier.y1, new_bezier.x2, new_bezier.y2, new_bezier.x3, new_bezier.y3);
 			return new_bezier;
 		}
 		
 		std::vector<Bezier> ClipToRectangle(const Rect& r)
 		{
 			// Find points of intersection with the rectangle.
+			Debug("Clipping Bezier to Rect %s", r.Str().c_str());
 
 			// Convert bezier coefficients -> cubic coefficients
 			Real xa = x0-x1+x2-x3;
 			Real xb = x1 - Real(2)*x2 + Real(3)*x3;
 			Real xc = x2 - Real(3)*x3;
-			Real xd = x3 + r.x;
+			Real xd = x3 - r.x;
 
 			// Find its roots.
 			std::vector<Real> x_intersection = SolveCubic(xa, xb, xc, xd);
 
 			// And for the other side.
-			xd = x3 + r.x + r.w;
+			xd = x3 - r.x - r.w;
 
 			std::vector<Real> x_intersection_pt2 = SolveCubic(xa, xb, xc, xd);
 			x_intersection.insert(x_intersection.end(), x_intersection_pt2.begin(), x_intersection_pt2.end());
@@ -207,19 +216,20 @@ namespace IPDF
 			Real ya = y0-y1+y2-y3;
 			Real yb = y1 - Real(2)*y2 + Real(3)*y3;
 			Real yc = y2 - Real(3)*y3;
-			Real yd = y3 + r.y;
+			Real yd = y3 - r.y;
 
 			// Find its roots.
 			std::vector<Real> y_intersection = SolveCubic(ya, yb, yc, yd);
 
 			// And for the other side.
-			yd = y3 + r.y + r.h;
+			yd = y3 - r.y - r.h;
 
 			std::vector<Real> y_intersection_pt2 = SolveCubic(ya, yb, yc, yd);
 			y_intersection.insert(y_intersection.end(), y_intersection_pt2.begin(), y_intersection_pt2.end());
 
 			// Merge and sort.
 			x_intersection.insert(x_intersection.end(), y_intersection.begin(), y_intersection.end());
+			std::sort(x_intersection.begin(), x_intersection.end());
 
 			Debug("Found %d intersections.\n", x_intersection.size());
 			
@@ -233,6 +243,7 @@ namespace IPDF
 			for (auto it = x_intersection.begin()+1; it != x_intersection.end(); ++it)
 			{
 				Real t1 = *it;
+				Debug(" -- t0: %f to t1: %f", t0, t1);
 				all_beziers.push_back(this->ReParametrise(t0, t1));
 				t0 = t1;
 			}
