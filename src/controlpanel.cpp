@@ -95,6 +95,16 @@ QMenu * ControlPanel::CreateViewMenu()
 	view->addAction(m_view_set_bounds);
 	connect(m_view_set_bounds, SIGNAL(triggered()), this, SLOT(SetViewBounds()));
 	
+	m_view_show_object_bounds = new QAction("&Show Object Bounds", this);
+	m_view_show_object_bounds->setCheckable(true);
+	view->addAction(m_view_show_object_bounds);
+	connect(m_view_show_object_bounds, SIGNAL(triggered()), this, SLOT(ToggleShowObjectBounds()));
+	
+	m_view_enable_shading = new QAction("&Enable Shading", this);
+	m_view_enable_shading->setCheckable(true);
+	view->addAction(m_view_enable_shading);
+	connect(m_view_enable_shading, SIGNAL(triggered()), this, SLOT(ToggleEnableShading()));
+	
 	return view;
 }
 
@@ -147,6 +157,9 @@ void ControlPanel::UpdateAll()
 	m_screen_cpu_rendering->setChecked(!using_gpu_rendering);	
 	m_screen_show_debug->setChecked(m_screen.DebugFontShown());
 	
+	m_view_show_object_bounds->setChecked(m_view.ShowingObjectBounds());
+	m_view_enable_shading->setChecked(m_view.PerformingShading());
+	
 	// update things based on state
 	const char * title;
 	const char * tooltip;
@@ -185,6 +198,20 @@ void ControlPanel::UpdateAll()
 	setWindowTitle(title);
 	// Tooltip
 	setToolTip(tooltip);
+}
+
+void ControlPanel::ToggleShowObjectBounds()
+{
+	bool state = m_view.ShowingObjectBounds();
+	m_view.ShowObjectBounds(!state);
+	UpdateAll();
+}
+
+void ControlPanel::ToggleEnableShading()
+{
+	bool state = m_view.PerformingShading();
+	m_view.PerformShading(!state);
+	UpdateAll();
 }
 
 void ControlPanel::SetGPURendering()

@@ -4,6 +4,8 @@
 #include "ipdf.h"
 #include "quadtree.h"
 
+#include <map>
+
 #include "../contrib/pugixml-1.4/src/pugixml.hpp"
 #include "stb_truetype.h"
 
@@ -50,17 +52,13 @@ namespace IPDF
 			bool operator==(const Document & equ) const;
 			bool operator!=(const Document & equ) const {return !(this->operator==(equ));}
 
-			unsigned AddGroup(unsigned start_index, unsigned end_index);
+			unsigned AddGroup(unsigned start_index, unsigned end_index, const Colour & shading=Colour(0.1,0.1,0.1,1));
 			unsigned AddBezier(const Bezier & bezier);
 			unsigned Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
 			unsigned AddBezierData(const Bezier & bezier);
-			
+			unsigned AddGroupData(const Group & group);
 
 
-			
-
-			
-			
 			/** SVG Related functions **/
 			
 			/** Load an SVG text file and add to the document **/
@@ -70,10 +68,13 @@ namespace IPDF
 			/** Parse an SVG node or SVG-group node, adding children to the document **/
 			void ParseSVGNode(pugi::xml_node & root, SVGMatrix & transform);
 			/** Parse an SVG path with string **/
-			std::pair<unsigned, unsigned> ParseSVGPathData(const std::string & d, const SVGMatrix & transform);
+			std::pair<unsigned, unsigned> ParseSVGPathData(const std::string & d, const SVGMatrix & transform, bool & closed);
 			
 			/** Modify an SVG transformation matrix **/
 			static void ParseSVGTransform(const std::string & s, SVGMatrix & transform);
+			
+			/** Extract CSS values (shudder) from style **/
+			static void ParseSVGStyleData(const std::string & style, std::map<std::string, std::string> & results);
 
 			/** Font related functions **/
 			void SetFont(const std::string & font_filename);

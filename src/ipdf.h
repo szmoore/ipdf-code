@@ -56,6 +56,8 @@ namespace IPDF
 	
 	struct Group
 	{
+		unsigned start;
+		unsigned end;
 		Colour shading;
 	};
 
@@ -64,14 +66,12 @@ namespace IPDF
 		/** Used by all objects **/
 		std::vector<ObjectType> types; // types of objects
 		std::vector<Rect> bounds; // rectangle bounds of objects
-		
-		/** Used by BEZIER to identify data position in relevant vector **/
+		/** Used by BEZIER and GROUP to identify data position in relevant vector **/
 		std::vector<unsigned> data_indices;
-
 		/** Used by BEZIER only **/
 		std::vector<Bezier> beziers; // bezier curves - look up by data_indices
-		
-		std::vector<std::pair<unsigned, unsigned> > groups;
+		/** Used by GROUP only **/
+		std::vector<Group> groups;
 	};
 
 	class View;
