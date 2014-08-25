@@ -284,7 +284,7 @@ void Document::Load(const string & filename)
 #endif
 }
 
-unsigned Document::AddGroup(unsigned start_index, unsigned end_index, const Colour & shading)
+unsigned Document::AddGroup(unsigned start_index, unsigned end_index, const Colour & fill)
 {
 	Real xmin = 0; Real ymin = 0; 
 	Real xmax = 0; Real ymax = 0;
@@ -306,7 +306,7 @@ unsigned Document::AddGroup(unsigned start_index, unsigned end_index, const Colo
 	
 	Rect bounds(xmin,ymin, xmax-xmin, ymax-ymin);
 	
-	Group group = {start_index, end_index, shading};
+	Group group(start_index, end_index, 0U, fill);
 	
 	unsigned data_index = AddGroupData(group);
 	unsigned result = Add(GROUP, bounds,data_index);

@@ -6,10 +6,7 @@
 #include "bezier.h"
 #include "rect.h"
 
-#define C_RED Colour(1,0,0,1)
-#define C_GREEN Colour(0,1,0,1)
-#define C_BLUE Colour(0,0,1,1)
-#define C_BLACK Colour(0,0,0,1);
+#include "group.h"
 
 namespace IPDF
 {
@@ -41,24 +38,6 @@ namespace IPDF
 		CT_OBJINDICES,
 		CT_OBJBEZIERS,
 		CT_OBJGROUPS
-	};
-
-
-
-	
-	
-	struct Colour
-	{
-		float r; float g; float b; float a;
-		Colour() = default;
-		Colour(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
-	};
-	
-	struct Group
-	{
-		unsigned start;
-		unsigned end;
-		Colour shading;
 	};
 
 	struct Objects
