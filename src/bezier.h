@@ -25,20 +25,36 @@ namespace IPDF
 		// See http://en.wikipedia.org/wiki/Cubic_function#General_formula_for_roots
 
 		// delta = 18abcd - 4 b^3 d + b^2 c^2 - 4ac^3 - 27 a^2 d^2
-		/*
+		
 		Real discriminant = Real(18) * a * b * c * d - Real(4) * (b * b * b) * d 
 				+ (b * b) * (c * c) - Real(4) * a * (c * c * c)
 				- Real(27) * (a * a) * (d * d);
-		*/
+		
+		Debug("Trying to solve %fx^3 + %fx^2 + %fx + %f (Discriminant: %f)", a,b,c,d, discriminant);
 		// discriminant > 0 => 3 distinct, real roots.
 		// discriminant = 0 => a multiple root (1 or 2 real roots)
 		// discriminant < 0 => 1 real root, 2 complex conjugate roots
 
+		Real delta0 = (b*b) - Real(3) * a * c;
+		Real delta1 = Real(2) * (b * b * b) - Real(9) * a * b * c + Real(27) * (a * a) * d;
+
+		std::vector<Real> roots;
+
+		Real C = pow((delta1 + Sqrt((delta1 * delta1) - 4 * (delta0 * delta0 * delta0)) ) / Real(2), 1/3);
+
+		if (false && discriminant < 0)
+		{
+			Real real_root = (Real(-1) / (Real(3) * a)) * (b + C + delta0 / C);
+
+			roots.push_back(real_root);
+
+			return roots;
+
+		}
+
 		////HACK: We know any roots we care about will be between 0 and 1, so...
-		Debug("Trying to solve %fx^3 + %fx^2 + %fx + %f", a,b,c,d);
 		Real maxi(100);
 		Real prevRes(d);
-		std::vector<Real> roots;
 		for(int i = -1; i <= 100; ++i)
 		{
 			Real x(i);
@@ -227,32 +243,32 @@ namespace IPDF
 			Debug("Clipping Bezier to Rect %s", r.Str().c_str());
 
 			// Convert bezier coefficients -> cubic coefficients
-			Real xa = x0-x1+x2-x3;
-			Real xb = x1 - Real(2)*x2 + Real(3)*x3;
-			Real xc = x2 - Real(3)*x3;
-			Real xd = x3 - r.x;
+			Real xd = x0 - r.x;
+			Real xc = Real(3)*(x1 - x0);
+			Real xb = Real(3)*(x2 - x1) - xc;
+			Real xa = x3 - x0 - xc - xb;
 
 			// Find its roots.
 			std::vector<Real> x_intersection = SolveCubic(xa, xb, xc, xd);
 
 			// And for the other side.
-			xd = x3 - r.x - r.w;
+			xd = x0 - r.x - r.w;
 
 			std::vector<Real> x_intersection_pt2 = SolveCubic(xa, xb, xc, xd);
 			x_intersection.insert(x_intersection.end(), x_intersection_pt2.begin(), x_intersection_pt2.end());
 
 			// Similarly for y-coordinates.
 			// Convert bezier coefficients -> cubic coefficients
-			Real ya = y0-y1+y2-y3;
-			Real yb = y1 - Real(2)*y2 + Real(3)*y3;
-			Real yc = y2 - Real(3)*y3;
-			Real yd = y3 - r.y;
+			Real yd = y0 - r.y;
+			Real yc = Real(3)*(y1 - y0);
+			Real yb = Real(3)*(y2 - y1) - yc;
+			Real ya = y3 - y0 - yc - yb;
 
 			// Find its roots.
 			std::vector<Real> y_intersection = SolveCubic(ya, yb, yc, yd);
 
 			// And for the other side.
-			yd = y3 - r.y - r.h;
+			yd = y0 - r.y - r.h;
 
 			std::vector<Real> y_intersection_pt2 = SolveCubic(ya, yb, yc, yd);
 			y_intersection.insert(y_intersection.end(), y_intersection_pt2.begin(), y_intersection_pt2.end());
@@ -282,6 +298,10 @@ namespace IPDF
 				if (r.PointIn(ptx, pty))
 				{
 					all_beziers.push_back(this->ReParametrise(t0, t1));
+				}
+				else
+				{
+					Debug("Segment removed (point at %f, %f)", ptx, pty);
 				}
 				t0 = t1;
 			}
