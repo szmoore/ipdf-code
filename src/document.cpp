@@ -310,7 +310,7 @@ void Document::Load(const string & filename)
 #endif
 }
 
-unsigned Document::AddGroup(unsigned start_index, unsigned end_index)
+unsigned Document::AddGroup(unsigned start_index, unsigned end_index, const Colour & fill)
 {
 	Real xmin = 0; Real ymin = 0; 
 	Real xmax = 0; Real ymax = 0;
@@ -331,9 +331,11 @@ unsigned Document::AddGroup(unsigned start_index, unsigned end_index)
 	}
 	
 	Rect bounds(xmin,ymin, xmax-xmin, ymax-ymin);
-	unsigned result = Add(GROUP, bounds,0);
-	m_objects.groups[m_count-1].first = start_index;
-	m_objects.groups[m_count-1].second = end_index;
+	
+	Group group(start_index, end_index, 0U, fill);
+	
+	unsigned data_index = AddGroupData(group);
+	unsigned result = Add(GROUP, bounds,data_index);
 	return result;
 }
 
@@ -353,7 +355,6 @@ unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index
 	m_objects.types.push_back(type);
 	m_objects.bounds.push_back(bounds);
 	m_objects.data_indices.push_back(data_index);
-	m_objects.groups.push_back(pair<unsigned, unsigned>(data_index, data_index));
 	return (m_count++); // Why can't we just use the size of types or something?
 }
 
@@ -363,6 +364,11 @@ unsigned Document::AddBezierData(const Bezier & bezier)
 	return m_objects.beziers.size()-1;
 }
 
+unsigned Document::AddGroupData(const Group & group)
+{
+	m_objects.groups.push_back(group);
+	return m_objects.groups.size()-1;
+}
 
 void Document::DebugDumpObjects()
 {
@@ -418,6 +424,22 @@ static void GetXYPair(const string & d, Real & x, Real & y, unsigned & i,const s
 		Fatal("Expected \",\" seperating x,y pair");
 	}
 	y = strtod(GetToken(d, token, i, delims).c_str(),NULL);
+}
+
+static bool GetKeyValuePair(const string & d, string & key, string & value, unsigned & i, const string & delims = "()[],{}<>;:=")
+{
+	key = "";
+	string token;
+	while (GetToken(d, token, i, delims) == ":" || token == ";");
+	key = token;
+	if (GetToken(d, token, i, delims) != ":")
+	{
+		Error("Expected \":\" seperating key:value pair");
+		return false;
+	}
+	value = "";
+	GetToken(d, value, i, delims);
+	return true;
 }
 
 static void TransformXYPair(Real & x, Real & y, const SVGMatrix & transform)
@@ -513,6 +535,8 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 			ParseSVGTransform(attrib_trans.as_string(), transform);
 		}
 		
+		
+		
 		if (strcmp(child.name(), "svg") == 0 || strcmp(child.name(),"g") == 0
 			|| strcmp(child.name(), "group") == 0)
 		{
@@ -523,9 +547,64 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 		else if (strcmp(child.name(), "path") == 0)
 		{
 			string d = child.attribute("d").as_string();
-			Debug("Path data attribute is \"%s\"", d.c_str());
-			pair<unsigned, unsigned> range = ParseSVGPathData(d, transform);
-			AddGroup(range.first, range.second);
+			//Debug("Path data attribute is \"%s\"", d.c_str());
+			bool closed = false;
+			pair<unsigned, unsigned> range = ParseSVGPathData(d, transform, closed);
+			if (closed)
+			{
+				Colour c(0,0,0,0);
+				string colour_str("");
+				map<string, string> style;
+				if (child.attribute("style"))
+				{
+					ParseSVGStyleData(child.attribute("style").as_string(), style);
+				}
+				
+				// Determine shading colour
+				if (child.attribute("fill"))
+				{
+					colour_str = child.attribute("fill").as_string();
+				}
+				else if (style.find("fill") != style.end())
+				{
+					colour_str = style["fill"];
+				}
+				if (colour_str == "red")
+					c = {1,0,0,1};
+				else if (colour_str == "blue")
+					c = {0,0,1,1};
+				else if (colour_str == "green")
+					c = {0,1,0,1};
+				else if (colour_str == "black")
+					c = {0,0,0,1};
+				else if (colour_str == "white")
+					c = {1,1,1,1};
+				else if (colour_str.size() == 7 && colour_str[0] == '#')
+				{
+					Debug("Parse colour string: \"%s\"", colour_str.c_str());
+					char comp[2] = {colour_str[1], colour_str[2]};
+					c.r = Real(strtoul(comp, NULL, 16))/Real(255);
+					comp[0] = colour_str[3]; comp[1] = colour_str[4];
+					c.g = Real(strtoul(comp, NULL, 16))/Real(255);
+					comp[0] = colour_str[5]; comp[1] = colour_str[6];
+					c.b = Real(strtoul(comp, NULL, 16))/Real(255);
+					c.a = 1;
+					Debug("Colour is: %f, %f, %f, %f", Float(c.r), Float(c.g), Float(c.b), Float(c.a));
+				}
+				
+				// Determin shading alpha
+				if (child.attribute("fill-opacity"))
+				{
+					c.a = child.attribute("fill-opacity").as_float();
+				}
+				else if (style.find("fill-opacity") != style.end())
+				{
+					c.a = strtod(style["fill-opacity"].c_str(), NULL);
+				}
+				
+					Debug("fill-opacity is %f", Float(c.a));
+				AddGroup(range.first, range.second, c);
+			}
 			
 		}
 		else if (strcmp(child.name(), "line") == 0)
@@ -583,6 +662,17 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 	}
 }
 
+void Document::ParseSVGStyleData(const string & style, map<string, string> & results)
+{
+	unsigned i = 0;
+	string key;
+	string value;
+	while (i < style.size() && GetKeyValuePair(style, key, value, i))
+	{
+		results[key] = value;
+	}
+}
+
 /**
  * Parse an SVG string into a rectangle
  */
@@ -627,8 +717,9 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 
 // Fear the wrath of the tokenizing svg data
 // Seriously this isn't really very DOM-like at all is it?
-pair<unsigned, unsigned> Document::ParseSVGPathData(const string & d, const SVGMatrix & transform)
+pair<unsigned, unsigned> Document::ParseSVGPathData(const string & d, const SVGMatrix & transform, bool & closed)
 {
+	closed = false;
 	Real x[4] = {0,0,0,0};
 	Real y[4] = {0,0,0,0};
 	
@@ -728,7 +819,7 @@ pair<unsigned, unsigned> Document::ParseSVGPathData(const string & d, const SVGM
 		}
 		else if (command == "l" || command == "L" || command == "h" || command == "H" || command == "v" || command == "V")
 		{
-			Debug("Construct lineto command, relative %d", relative);
+			//Debug("Construct lineto command, relative %d", relative);
 		
 			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
 			Real dy;
@@ -789,6 +880,7 @@ pair<unsigned, unsigned> Document::ParseSVGPathData(const string & d, const SVGM
 			x[0] = x3;
 			y[0] = y3;
 			command = "m";
+			closed = true;
 		}
 		else
 		{

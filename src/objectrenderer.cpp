@@ -5,6 +5,7 @@
 
 #include "objectrenderer.h"
 #include "view.h"
+#include <list>
 
 using namespace std;
 
@@ -227,12 +228,13 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 		Bezier control(objects.beziers[objects.data_indices[m_indexes[i]]].ToAbsolute(bounds),CPURenderBounds(Rect(0,0,1,1), view, target));
 		//Debug("%s -> %s via %s", objects.beziers[objects.data_indices[m_indexes[i]]].Str().c_str(), control.Str().c_str(), bounds.Str().c_str());
 		// Draw a rectangle around the bezier for debugging the bounds rectangle calculations
-		/*
-		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, Colour(1,0,0,1));
-		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
-		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, Colour(1,0,0,1));
-		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
-		*/
+		if (view.ShowingObjectBounds())
+		{
+			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, Colour(1,0,0,1));
+			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
+			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, Colour(1,0,0,1));
+			ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
+		}
 		// Draw lines between the control points for debugging
 		//ObjectRenderer::RenderLineOnCPU((int64_t)control.x0, (int64_t)control.y0, (int64_t)control.x1, (int64_t)control.y1,target);
 		//ObjectRenderer::RenderLineOnCPU((int64_t)control.x1, (int64_t)control.y1, (int64_t)control.x2, (int64_t)control.y2,target);
@@ -242,8 +244,7 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 		Real x[2]; Real y[2];
 		control.Evaluate(x[0], y[0], Real(0));
 		//Debug("target is (%lu, %lu)", target.w, target.h);
-		int64_t blen = 100;
-		//blen = min(max((int64_t)2, (int64_t)(target.w/view.GetBounds().w)), (int64_t)100);
+		int64_t blen = min(max((int64_t)2, (int64_t)(target.w/view.GetBounds().w)), (int64_t)100);
 		
 		Real invblen(1); invblen /= blen;
 		//Debug("Using %li lines, inverse %f", blen, Double(invblen));
@@ -331,11 +332,21 @@ void BezierRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(2*first_index*sizeof(uint32_t)));
 }
 
+inline bool IsBlack(uint8_t * pixels, int64_t index)
+{
+	bool result = (pixels[index+0] == 0 && pixels[index+1] == 0 && pixels[index+2] == 0 && pixels[index+3] == 255);
+	//pixels[index+3] = 254; // hax
+	return result;
+}
+
 /**
  * Render Group (shading)
  */
 void GroupRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
+	if (!view.ShowingObjectBounds() && !view.PerformingShading())
+		return;
+		
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
 		if (m_indexes[i] < first_obj_id) continue;
@@ -344,48 +355,79 @@ void GroupRenderer::RenderUsingCPU(const Objects & objects, const View & view, c
 		
 		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		PixelBounds pix_bounds(bounds);
-	
+		
+		const Group & group = objects.groups[objects.data_indices[m_indexes[i]]];
+		if (group.m_fill.a == 0 || !view.PerformingShading())
+			continue;
 
-		Colour c(0.5,0.5,1,1);
 		// make the bounds just a little bit bigger
-		pix_bounds.x--;
-		pix_bounds.w++;
-		pix_bounds.y--;
-		pix_bounds.h++;
-		/*
-		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, c);
-		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
-		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, c);
-		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
-		*/
+		pix_bounds.x-=1;
+		pix_bounds.w+=2;
+		pix_bounds.y-=1;
+		pix_bounds.h+=2;
+		
 		// Attempt to shade the region
 		// Assumes the outline has been drawn first...
+		//#ifdef SHADING_DUMB
 		for (int64_t y = max((int64_t)0, pix_bounds.y); y <= min(pix_bounds.y+pix_bounds.h, target.h-1); ++y)
 		{
-			bool inside = false;
-			bool online = false;
-			for (int64_t x = max((int64_t)0, pix_bounds.x); x <= min(pix_bounds.x+pix_bounds.w, target.w-1); ++x)
+			struct Segment
 			{
-				int64_t index = (x+target.w*y)*4;
-				if (target.pixels[index+0] == 0 && target.pixels[index+1] == 0 && target.pixels[index+2] == 0 && target.pixels[index+3] == 255)
+				int64_t first;
+				int64_t second;
+				bool all_black;
+			};
+			list<Segment> segments;
+			int64_t min_x = max((int64_t)0, pix_bounds.x);
+			int64_t max_x = min(pix_bounds.x+pix_bounds.w, target.w-1);
+			int64_t yy = y*target.w;
+
+			int64_t x = min_x;
+			while (x <= max_x)
+			{
+				bool start_black = IsBlack(target.pixels, 4*(x+yy));
+				bool black = start_black;
+				segments.push_back({x,x,start_black});
+				while (black == start_black && ++x <= max_x)
 				{
-					online = true;
-					continue;
+					black = IsBlack(target.pixels, 4*(x+yy));
 				}
-				else if (online)
+				segments.back().second = x-1;
+			}
+			
+			// Keep only the interior segments
+			list<Segment>::iterator j = segments.begin();
+			//TODO: Magically delete unneeded segments here...
+			
+			// Fill in remaining segments
+			for (j=segments.begin(); j != segments.end(); ++j)
+			{
+				Colour c(group.m_fill);
+				if (j->all_black)
 				{
-					inside = !inside;
-					online = false;
+					c.r = 1;//1; // Change to debug the outline scanning
+					c.g = 0;
+					c.b = 0;
+					c.a = 1;
 				}
-				
-				if (inside)
+				for (x = max(min_x, j->first); x <= min(max_x, j->second); ++x)
 				{
-					target.pixels[index+0] = c.r*255;
-					target.pixels[index+1] = c.g*255;
-					target.pixels[index+2] = c.b*255;
-					target.pixels[index+3] = c.a*255;
+					int64_t index = 4*(x+yy);
+					target.pixels[index+0] = 255*c.r;
+					target.pixels[index+1] = 255*c.g;
+					target.pixels[index+2] = 255*c.b;
+					target.pixels[index+3] = 255*c.a;
 				}
 			}
+		}
+		//#endif //SHADING_DUMB
+		if (view.ShowingObjectBounds())
+		{
+			const Colour & c = group.m_fill;
+			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, c);
+			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
+			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, c);
+			ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
 		}
 		
 	
@@ -472,14 +514,13 @@ void ObjectRenderer::RenderLineOnCPU(int64_t x0, int64_t y0, int64_t x1, int64_t
 
 	// TODO: Avoid extra inner conditionals
 	do
-	{
+	{	
 		if (x >= 0 && x < width && y >= 0 && y < height)
 		{
 			int64_t index = (transpose ? (y + x*target.w)*4 : (x + y*target.w)*4);
 			for (int i = 0; i < 4; ++i)
 				target.pixels[index+i] = rgba[i];
 		}
-		
 		if (p < 0)
 			p += two_dy;
 		else

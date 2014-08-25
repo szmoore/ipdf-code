@@ -78,13 +78,16 @@ namespace IPDF
 		Real x1; Real y1;
 		Real x2; Real y2;
 		Real x3; Real y3;
+		
+		typedef enum {LINE, QUADRATIC, CUSP, LOOP, SERPENTINE} Type;
+		Type type;
+		
 		Bezier() = default; // Needed so we can fread/fwrite this struct... for now.
 		Bezier(Real _x0, Real _y0, Real _x1, Real _y1, Real _x2, Real _y2, Real _x3, Real _y3) : x0(_x0), y0(_y0), x1(_x1), y1(_y1), x2(_x2), y2(_y2), x3(_x3), y3(_y3) 
 		{
-			
+			//TODO: classify the curve
+			type = SERPENTINE;
 		}
-		
-		Bezier(Real _x0, Real _y0, Real _x1, Real _y1, Real _x2, Real _y2) : x0(_x0), y0(_y0), x1(_x1), y1(_y1), x2(_x2), y2(_y2), x3(_x2), y3(_y2) {}
 		
 		std::string Str() const
 		{
@@ -97,7 +100,7 @@ namespace IPDF
 		 * Construct absolute control points using relative control points to a bounding rectangle
 		 * ie: If cpy is relative to bounds rectangle, this will be absolute
 		 */
-		Bezier(const Bezier & cpy, const Rect & t = Rect(0,0,1,1)) : x0(cpy.x0), y0(cpy.y0), x1(cpy.x1), y1(cpy.y1), x2(cpy.x2),y2(cpy.y2), x3(cpy.x3), y3(cpy.y3)
+		Bezier(const Bezier & cpy, const Rect & t = Rect(0,0,1,1)) : x0(cpy.x0), y0(cpy.y0), x1(cpy.x1), y1(cpy.y1), x2(cpy.x2),y2(cpy.y2), x3(cpy.x3), y3(cpy.y3), type(cpy.type)
 		{
 			x0 *= t.w;
 			y0 *= t.h;

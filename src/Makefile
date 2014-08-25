@@ -3,7 +3,7 @@ ARCH := $(shell uname -m)
 # TODO: stb_truetype doesn't compile with some of these warnings.
 CXX = g++ -std=gnu++0x -g -Wall -Werror -Wshadow -pedantic -rdynamic
 MAIN = main.o
-OBJ = log.o real.o bezier.o document.o objectrenderer.o view.o screen.o vfpu.o quadtree.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o add_digits_asm.o sub_digits_asm.o mul_digits_asm.o div_digits_asm.o arbint.o moc_controlpanel.o controlpanel.o
+OBJ = log.o real.o bezier.o document.o objectrenderer.o view.o screen.o vfpu.o quadtree.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o add_digits_asm.o sub_digits_asm.o mul_digits_asm.o div_digits_asm.o arbint.o moc_controlpanel.o controlpanel.o group.o
 
 QT_INCLUDE := -I/usr/share/qt4/mkspecs/linux-g++-64 -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -Itests -I.
 QT_DEF := -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB

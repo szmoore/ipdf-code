@@ -6,10 +6,7 @@
 #include "bezier.h"
 #include "rect.h"
 
-#define C_RED Colour(1,0,0,1)
-#define C_GREEN Colour(0,1,0,1)
-#define C_BLUE Colour(0,0,1,1)
-#define C_BLACK Colour(0,0,0,1);
+#include "group.h"
 
 namespace IPDF
 {
@@ -43,35 +40,17 @@ namespace IPDF
 		CT_OBJGROUPS
 	};
 
-
-
-	
-	
-	struct Colour
-	{
-		float r; float g; float b; float a;
-		Colour() = default;
-		Colour(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
-	};
-	
-	struct Group
-	{
-		Colour shading;
-	};
-
 	struct Objects
 	{
 		/** Used by all objects **/
 		std::vector<ObjectType> types; // types of objects
 		std::vector<Rect> bounds; // rectangle bounds of objects
-		
-		/** Used by BEZIER to identify data position in relevant vector **/
+		/** Used by BEZIER and GROUP to identify data position in relevant vector **/
 		std::vector<unsigned> data_indices;
-
 		/** Used by BEZIER only **/
 		std::vector<Bezier> beziers; // bezier curves - look up by data_indices
-		
-		std::vector<std::pair<unsigned, unsigned> > groups;
+		/** Used by GROUP only **/
+		std::vector<Group> groups;
 	};
 
 	class View;
