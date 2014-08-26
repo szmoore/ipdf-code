@@ -295,8 +295,8 @@ void Document::Load(const string & filename)
 			LoadStructVector<Bezier>(file, chunk_size/sizeof(Bezier), m_objects.beziers);
 			break;
 			
-		case CT_OBJGROUPS:
-			Debug("Group data...");
+		case CT_OBJPATHS:
+			Debug("Path data...");
 			Warn("Not handled because lazy");
 			break;
 		}
@@ -310,32 +310,12 @@ void Document::Load(const string & filename)
 #endif
 }
 
-unsigned Document::AddGroup(unsigned start_index, unsigned end_index, const Colour & fill)
+unsigned Document::AddPath(unsigned start_index, unsigned end_index, const Colour & fill)
 {
-	Real xmin = 0; Real ymin = 0; 
-	Real xmax = 0; Real ymax = 0;
-	
-	for (unsigned i = start_index; i <= end_index; ++i)
-	{
-		Rect & objb = m_objects.bounds[i];
-		
-		if (i == start_index || objb.x < xmin)
-			xmin = objb.x;
-		if (i == start_index || (objb.x+objb.w) > xmax)
-			xmax = (objb.x+objb.w);
-			
-		if (i == start_index || objb.y < ymin)
-			ymin = objb.y;
-		if (i == start_index || (objb.y+objb.h) > ymax)
-			ymax = (objb.y+objb.h);
-	}
-	
-	Rect bounds(xmin,ymin, xmax-xmin, ymax-ymin);
-	
-	Group group(start_index, end_index, 0U, fill);
-	
-	unsigned data_index = AddGroupData(group);
-	unsigned result = Add(GROUP, bounds,data_index);
+	Path path(m_objects, start_index, end_index, fill);
+	unsigned data_index = AddPathData(path);
+	Rect bounds = path.SolveBounds(m_objects);
+	unsigned result = Add(PATH, bounds,data_index);
 	return result;
 }
 
@@ -346,6 +326,12 @@ unsigned Document::AddBezier(const Bezier & bezier)
 {
 	Rect bounds = bezier.SolveBounds();
 	Bezier data = bezier.ToRelative(bounds); // Relative
+	if (data.ToAbsolute(bounds) != bezier)
+	{
+		Error("%s != %s", data.ToAbsolute(Rect(0,0,1,1)).Str().c_str(),
+			bezier.Str().c_str());
+		Fatal("ToAbsolute on ToRelative does not give original Bezier");
+	}
 	unsigned index = AddBezierData(data);
 	return Add(BEZIER, bounds, index);
 }
@@ -364,10 +350,10 @@ unsigned Document::AddBezierData(const Bezier & bezier)
 	return m_objects.beziers.size()-1;
 }
 
-unsigned Document::AddGroupData(const Group & group)
+unsigned Document::AddPathData(const Path & path)
 {
-	m_objects.groups.push_back(group);
-	return m_objects.groups.size()-1;
+	m_objects.paths.push_back(path);
+	return m_objects.paths.size()-1;
 }
 
 void Document::DebugDumpObjects()
@@ -603,7 +589,7 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 				}
 				
 					Debug("fill-opacity is %f", Float(c.a));
-				AddGroup(range.first, range.second, c);
+				AddPath(range.first, range.second, c);
 			}
 			
 		}
@@ -1008,7 +994,7 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 	
 	if (start_index < m_count && end_index < m_count)
 	{
-		AddGroup(start_index, end_index);
+		AddPath(start_index, end_index);
 	}
 	Debug("Added Glyph \"%c\" at %f %f, scale %f", (char)character, Float(x), Float(y), Float(scale));
 

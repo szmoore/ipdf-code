@@ -5,7 +5,7 @@
 
 #include "objectrenderer.h"
 #include "view.h"
-#include <list>
+#include <vector>
 
 using namespace std;
 
@@ -122,6 +122,8 @@ void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & vi
 		if (m_indexes[i] < first_obj_id) continue;
 		if (m_indexes[i] >= last_obj_id) continue;
 		PixelBounds bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
+		FloodFillOnCPU(bounds.x+1, bounds.y+1, bounds, target, Colour(0,0,0,1));
+		/*
 		for (int64_t x = max((int64_t)0, bounds.x); x <= min(bounds.x+bounds.w, target.w-1); ++x)
 		{
 			for (int64_t y = max((int64_t)0, bounds.y); y <= min(bounds.y+bounds.h, target.h-1); ++y)
@@ -133,6 +135,7 @@ void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & vi
 				target.pixels[index+3] = 255;
 			}
 		}
+		*/
 	}
 }
 
@@ -208,6 +211,15 @@ Rect ObjectRenderer::CPURenderBounds(const Rect & bounds, const View & view, con
 	result.w *= Real(target.w);
 	result.h *= Real(target.h);
 	return result;
+}
+
+pair<int64_t, int64_t> ObjectRenderer::CPUPointLocation(const pair<Real, Real> & point, const View & view, const CPURenderTarget & target)
+{
+	// hack...
+	Rect result = view.TransformToViewCoords(Rect(point.first, point.second,1,1));
+	int64_t x = result.x*target.w;
+	int64_t y = result.y*target.h;
+	return pair<int64_t, int64_t>(x,y);
 }
 	
 
@@ -332,17 +344,12 @@ void BezierRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(2*first_index*sizeof(uint32_t)));
 }
 
-inline bool IsBlack(uint8_t * pixels, int64_t index)
-{
-	bool result = (pixels[index+0] == 0 && pixels[index+1] == 0 && pixels[index+2] == 0 && pixels[index+3] == 255);
-	//pixels[index+3] = 254; // hax
-	return result;
-}
+
 
 /**
- * Render Group (shading)
+ * Render Path (shading)
  */
-void GroupRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
+void PathRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
 	if (!view.ShowingObjectBounds() && !view.PerformingShading())
 		return;
@@ -355,75 +362,29 @@ void GroupRenderer::RenderUsingCPU(const Objects & objects, const View & view, c
 		
 		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		PixelBounds pix_bounds(bounds);
-		
-		const Group & group = objects.groups[objects.data_indices[m_indexes[i]]];
-		if (group.m_fill.a == 0 || !view.PerformingShading())
-			continue;
-
-		// make the bounds just a little bit bigger
 		pix_bounds.x-=1;
 		pix_bounds.w+=2;
 		pix_bounds.y-=1;
 		pix_bounds.h+=2;
-		
-		// Attempt to shade the region
-		// Assumes the outline has been drawn first...
-		//#ifdef SHADING_DUMB
-		for (int64_t y = max((int64_t)0, pix_bounds.y); y <= min(pix_bounds.y+pix_bounds.h, target.h-1); ++y)
-		{
-			struct Segment
-			{
-				int64_t first;
-				int64_t second;
-				bool all_black;
-			};
-			list<Segment> segments;
-			int64_t min_x = max((int64_t)0, pix_bounds.x);
-			int64_t max_x = min(pix_bounds.x+pix_bounds.w, target.w-1);
-			int64_t yy = y*target.w;
+		const Path & path = objects.paths[objects.data_indices[m_indexes[i]]];
+		if (path.m_fill.a == 0 || !view.PerformingShading())
+			continue;
 
-			int64_t x = min_x;
-			while (x <= max_x)
-			{
-				bool start_black = IsBlack(target.pixels, 4*(x+yy));
-				bool black = start_black;
-				segments.push_back({x,x,start_black});
-				while (black == start_black && ++x <= max_x)
-				{
-					black = IsBlack(target.pixels, 4*(x+yy));
-				}
-				segments.back().second = x-1;
-			}
-			
-			// Keep only the interior segments
-			list<Segment>::iterator j = segments.begin();
-			//TODO: Magically delete unneeded segments here...
-			
-			// Fill in remaining segments
-			for (j=segments.begin(); j != segments.end(); ++j)
-			{
-				Colour c(group.m_fill);
-				if (j->all_black)
-				{
-					c.r = 1;//1; // Change to debug the outline scanning
-					c.g = 0;
-					c.b = 0;
-					c.a = 1;
-				}
-				for (x = max(min_x, j->first); x <= min(max_x, j->second); ++x)
-				{
-					int64_t index = 4*(x+yy);
-					target.pixels[index+0] = 255*c.r;
-					target.pixels[index+1] = 255*c.g;
-					target.pixels[index+2] = 255*c.b;
-					target.pixels[index+3] = 255*c.a;
-				}
-			}
-		}
-		//#endif //SHADING_DUMB
+
+		pair<int64_t,int64_t> top(CPUPointLocation(path.m_top, view, target));
+		pair<int64_t,int64_t> bottom(CPUPointLocation(path.m_bottom, view, target));
+		pair<int64_t,int64_t> left(CPUPointLocation(path.m_left, view, target));
+		pair<int64_t,int64_t> right(CPUPointLocation(path.m_right, view, target));
+		FloodFillOnCPU(top.first, top.second+1, pix_bounds, target, path.m_fill);
+		FloodFillOnCPU(bottom.first, bottom.second-1, pix_bounds, target, path.m_fill);
+		FloodFillOnCPU(left.first+1, left.second, pix_bounds, target, path.m_fill);
+		FloodFillOnCPU(right.first-1, right.second, pix_bounds, target, path.m_fill);
+		
 		if (view.ShowingObjectBounds())
 		{
-			const Colour & c = group.m_fill;
+			Colour c(0,0,1,1);
+			RenderLineOnCPU(top.first, top.second, bottom.first, bottom.second, target, c);
+			RenderLineOnCPU(left.first, left.second, right.first, right.second, target, c);
 			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, c);
 			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
 			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, c);
@@ -529,6 +490,24 @@ void ObjectRenderer::RenderLineOnCPU(int64_t x0, int64_t y0, int64_t x1, int64_t
 			p += two_dxdy;
 		}
 	} while (++x <= x_end);
+}
+
+void ObjectRenderer::FloodFillOnCPU(int64_t x, int64_t y, const PixelBounds & bounds, const CPURenderTarget & target, const Colour & fill)
+{
+	if (x < 0 || x < bounds.x || x > bounds.x+bounds.w || x >= target.w)
+		return;
+	if (y < 0 || y < bounds.y || y > bounds.y+bounds.h || y >= target.h)
+		return;
+		
+	if (GetColour(target, x, y) != Colour(1,1,1,1))
+		return;
+		
+	SetColour(target, x, y, fill);
+	FloodFillOnCPU(x-1, y, bounds, target, fill);
+	FloodFillOnCPU(x+1, y, bounds, target, fill);
+	FloodFillOnCPU(x,y-1,bounds,target,fill);
+	FloodFillOnCPU(x,y+1,bounds,target,fill);
+	
 }
 
 }

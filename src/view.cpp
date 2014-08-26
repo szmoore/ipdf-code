@@ -33,7 +33,7 @@ View::View(Document & document, Screen & screen, const Rect & bounds, const Colo
 	m_object_renderers[RECT_OUTLINE] = new RectOutlineRenderer();
 	m_object_renderers[CIRCLE_FILLED] = new CircleFilledRenderer();
 	m_object_renderers[BEZIER] = new BezierRenderer();
-	m_object_renderers[GROUP] = new GroupRenderer();
+	m_object_renderers[PATH] = new PathRenderer();
 
 	// To add rendering for a new type of object;
 	// 1. Add enum to ObjectType in ipdf.h

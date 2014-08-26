@@ -47,7 +47,29 @@ namespace IPDF
 				uint8_t * pixels;
 				int64_t w;
 				int64_t h;
+				
+				
+				
 			};
+			
+			static Colour GetColour(const CPURenderTarget & target, int64_t x, int64_t y)
+			{
+				int64_t index = 4*(x+y*target.w);
+				return Colour(Real(target.pixels[index+0])/Real(255),
+					Real(target.pixels[index+1])/Real(255),
+					Real(target.pixels[index+2])/Real(255),
+					Real(target.pixels[index+3])/Real(255));
+			}
+			
+			static void SetColour(const CPURenderTarget & target, int64_t x, int64_t y, const Colour & c)
+			{
+				int64_t index = 4*(x+y*target.w);
+				target.pixels[index+0] = c.r*255;
+				target.pixels[index+1] = c.g*255;
+				target.pixels[index+2] = c.b*255;
+				target.pixels[index+3] = c.a*255;
+			}
+			
 			struct PixelBounds
 			{
 				int64_t x; int64_t y; int64_t w; int64_t h;
@@ -55,7 +77,7 @@ namespace IPDF
 			};
 
 			static Rect CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target);
-
+			static std::pair<int64_t, int64_t> CPUPointLocation(const std::pair<Real, Real> & point, const View & view, const CPURenderTarget & target);
 
 			static void SaveBMP(const CPURenderTarget & target, const char * filename);
 
@@ -73,6 +95,8 @@ namespace IPDF
 		
 			/** Helper for CPU rendering that will render a line using Bresenham's algorithm. Do not use the transpose argument. **/
 			static void RenderLineOnCPU(int64_t x0, int64_t y0, int64_t x1, int64_t y1, const CPURenderTarget & target, const Colour & colour = Colour(0,0,0,1), bool transpose = false);
+			
+			static void FloodFillOnCPU(int64_t x0, int64_t y0, const PixelBounds & bounds, const CPURenderTarget & target, const Colour & fill);
 
 			ShaderProgram m_shader_program; /** GLSL shaders for GPU **/
 			GraphicsBuffer m_ibo; /** Index Buffer Object for GPU rendering **/
@@ -130,12 +154,12 @@ namespace IPDF
 
 	};
 	
-		/** Renderer for filled circles **/
-	class GroupRenderer : public ObjectRenderer
+	/** Renderer for filled paths **/
+	class PathRenderer : public ObjectRenderer
 	{
 		public:
-			GroupRenderer() : ObjectRenderer(GROUP, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
-			virtual ~GroupRenderer() {}
+			PathRenderer() : ObjectRenderer(PATH, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
+			virtual ~PathRenderer() {}
 			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 			// do nothing on GPU
 			virtual void RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id) {}

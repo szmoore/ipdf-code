@@ -11,6 +11,7 @@ namespace IPDF
 	extern int Factorial(int n);
 	extern int BinomialCoeff(int n, int k);
 	extern Real Bernstein(int k, int n, const Real & u);
+	extern std::pair<Real,Real> BezierTurningPoints(const Real & p0, const Real & p1, const Real & p2, const Real & p3);
 	
 	inline std::pair<Real,Real> SolveQuadratic(const Real & a, const Real & b, const Real & c)
 	{
@@ -121,6 +122,11 @@ namespace IPDF
 		}
 
 		Rect SolveBounds() const;
+		
+		std::pair<Real,Real> GetTop() const;
+		std::pair<Real,Real> GetBottom() const;
+		std::pair<Real,Real> GetLeft() const;
+		std::pair<Real,Real> GetRight() const;
 		
 		Bezier ToAbsolute(const Rect & bounds) const
 		{
@@ -320,6 +326,15 @@ namespace IPDF
 			x = x0*coeff[0] + x1*coeff[1] + x2*coeff[2] + x3*coeff[3];
 			y = y0*coeff[0] + y1*coeff[1] + y2*coeff[2] + y3*coeff[3];
 		}
+		
+		bool operator==(const Bezier & equ) const
+		{
+			return (x0 == equ.x0 && y0 == equ.y0
+				&&  x1 == equ.x1 && y1 == equ.y1
+				&&	x2 == equ.x2 && y2 == equ.y2
+				&&	x3 == equ.x3 && y3 == equ.y3);
+		}
+		bool operator!=(const Bezier & equ) const {return !this->operator==(equ);}
 
 	};
 

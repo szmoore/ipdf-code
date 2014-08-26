@@ -52,7 +52,7 @@ Real Bernstein(int k, int n, const Real & u)
  * In one coordinate direction
  */
 
-static pair<Real, Real> BezierTurningPoints(const Real & p0, const Real & p1, const Real & p2, const Real & p3)
+pair<Real, Real> BezierTurningPoints(const Real & p0, const Real & p1, const Real & p2, const Real & p3)
 {
 	// straight line
 	if (p1 == p2 && p2 == p3)
@@ -88,6 +88,155 @@ static pair<Real, Real> BezierTurningPoints(const Real & p0, const Real & p1, co
 inline bool CompRealByPtr(const Real * a, const Real * b) 
 {
 	return (*a) < (*b);
+}
+
+/**
+ * Get top most *point* on Bezier curve
+ */
+pair<Real,Real> Bezier::GetTop() const
+{
+	pair<Real, Real> tsols = BezierTurningPoints(y0,y1,y2,y3);
+	Real tx0; Real ty0;
+	Real tx1; Real ty1;
+	Evaluate(tx0, ty0, tsols.first);
+	Evaluate(tx1, ty1, tsols.second);
+	vector<const Real*> v(4);
+	v[0] = &y0;
+	v[1] = &y3;
+	v[2] = &ty0;
+	v[3] = &ty1;
+	sort(v.begin(), v.end(), CompRealByPtr);
+	pair<Real,Real> result;
+	result.second = *v[0];
+	if (v[0] == &y0)
+	{
+		result.first = x0;
+	}
+	else if (v[0] == &y3)
+	{
+		result.first = x3;
+	}
+	else if (v[0] == &ty0)
+	{
+		result.first = tx0;
+	}
+	else if (v[0] == &ty1)
+	{
+		result.first = tx1;
+	}
+	return result;
+}
+
+/**
+ * Get bottom most *point* on Bezier curve
+ */
+pair<Real,Real> Bezier::GetBottom() const
+{
+	pair<Real, Real> tsols = BezierTurningPoints(y0,y1,y2,y3);
+	Real tx0; Real ty0;
+	Real tx1; Real ty1;
+	Evaluate(tx0, ty0, tsols.first);
+	Evaluate(tx1, ty1, tsols.second);
+	vector<const Real*> v(4);
+	v[0] = &y0;
+	v[1] = &y3;
+	v[2] = &ty0;
+	v[3] = &ty1;
+	sort(v.begin(), v.end(), CompRealByPtr);
+	pair<Real,Real> result;
+	result.second = *v[3];
+	if (v[3] == &y0)
+	{
+		result.first = x0;
+	}
+	else if (v[3] == &y3)
+	{
+		result.first = x3;
+	}
+	else if (v[3] == &ty0)
+	{
+		result.first = tx0;
+	}
+	else if (v[3] == &ty1)
+	{
+		result.first = tx1;
+	}
+	return result;
+}
+
+/**
+ * Get left most *point* on Bezier curve
+ */
+pair<Real,Real> Bezier::GetLeft() const
+{
+	pair<Real, Real> tsols = BezierTurningPoints(x0,x1,x2,x3);
+	Real tx0; Real ty0;
+	Real tx1; Real ty1;
+	Evaluate(tx0, ty0, tsols.first);
+	Evaluate(tx1, ty1, tsols.second);
+	vector<const Real*> v(4);
+	v[0] = &x0;
+	v[1] = &x3;
+	v[2] = &tx0;
+	v[3] = &tx1;
+	sort(v.begin(), v.end(), CompRealByPtr);
+	pair<Real,Real> result;
+	result.first = *v[0];
+	if (v[0] == &x0)
+	{
+		result.second = y0;
+	}
+	else if (v[0] == &x3)
+	{
+		result.second = y3;
+	}
+	else if (v[0] == &tx0)
+	{
+		result.second = ty0;
+	}
+	else if (v[0] == &tx1)
+	{
+		result.second = ty1;
+	}
+	return result;
+}
+
+
+/**
+ * Get left most *point* on Bezier curve
+ */
+pair<Real,Real> Bezier::GetRight() const
+{
+	pair<Real, Real> tsols = BezierTurningPoints(x0,x1,x2,x3);
+	Real tx0; Real ty0;
+	Real tx1; Real ty1;
+	Evaluate(tx0, ty0, tsols.first);
+	Evaluate(tx1, ty1, tsols.second);
+	vector<const Real*> v(4);
+	v[0] = &x0;
+	v[1] = &x3;
+	v[2] = &tx0;
+	v[3] = &tx1;
+	sort(v.begin(), v.end(), CompRealByPtr);
+	pair<Real,Real> result;
+	result.first = *v[3];
+	if (v[3] == &x0)
+	{
+		result.second = y0;
+	}
+	else if (v[3] == &x3)
+	{
+		result.second = y3;
+	}
+	else if (v[3] == &tx0)
+	{
+		result.second = ty0;
+	}
+	else if (v[3] == &tx1)
+	{
+		result.second = ty1;
+	}
+	return result;
 }
 
 /**

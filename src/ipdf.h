@@ -6,7 +6,7 @@
 #include "bezier.h"
 #include "rect.h"
 
-#include "group.h"
+#include "path.h"
 
 namespace IPDF
 {
@@ -26,7 +26,7 @@ namespace IPDF
 		RECT_FILLED,
 		RECT_OUTLINE,
 		BEZIER,
-		GROUP,
+		PATH,
 		NUMBER_OF_OBJECT_TYPES
 	} ObjectType;
 
@@ -37,7 +37,7 @@ namespace IPDF
 		CT_OBJBOUNDS,
 		CT_OBJINDICES,
 		CT_OBJBEZIERS,
-		CT_OBJGROUPS
+		CT_OBJPATHS
 	};
 
 	struct Objects
@@ -49,8 +49,8 @@ namespace IPDF
 		std::vector<unsigned> data_indices;
 		/** Used by BEZIER only **/
 		std::vector<Bezier> beziers; // bezier curves - look up by data_indices
-		/** Used by GROUP only **/
-		std::vector<Group> groups;
+		/** Used by PATH only **/
+		std::vector<Path> paths;
 	};
 
 	class View;

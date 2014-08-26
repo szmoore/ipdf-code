@@ -52,11 +52,11 @@ namespace IPDF
 			bool operator==(const Document & equ) const;
 			bool operator!=(const Document & equ) const {return !(this->operator==(equ));}
 
-			unsigned AddGroup(unsigned start_index, unsigned end_index, const Colour & shading=Colour(0.6,0.6,0.6,1));
+			unsigned AddPath(unsigned start_index, unsigned end_index, const Colour & shading=Colour(0.6,0.6,0.6,1));
 			unsigned AddBezier(const Bezier & bezier);
 			unsigned Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
 			unsigned AddBezierData(const Bezier & bezier);
-			unsigned AddGroupData(const Group & group);
+			unsigned AddPathData(const Path & path);
 
 
 			/** SVG Related functions **/
