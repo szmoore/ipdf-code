@@ -82,7 +82,31 @@ namespace IPDF
 		return r;
 	}
 	
+	struct Vec2
+	{
+		Real x;
+		Real y;
+		Vec2() : x(0), y(0) {}
+		Vec2(Real _x, Real _y) : x(_x), y(_y) {}
 	
+		bool operator==(const Vec2& other) const { return (x == other.x) && (y == other.y); }
+		bool operator!=(const Vec2& other) const { return !(*this == other); }
+		
+		Vec2& operator=(const Vec2& other) { x = other.x; y = other.y; return *this; }
+		Vec2& operator+=(const Vec2& other) { x += other.x; y += other.y; return *this; }
+		Vec2& operator-=(const Vec2& other) { x -= other.x; y -= other.y; return *this; }
+		Vec2& operator*=(const Real& lambda) { x *= lambda; y *= lambda; return *this; }
+		Vec2& operator/=(const Real& lambda) { x /= lambda; y /= lambda; return *this; }
+
+		Vec2 operator+(const Vec2& other) const { return Vec2(x + other.x, y + other.y); }
+		Vec2 operator-(const Vec2& other) const { return Vec2(x - other.x, y - other.y); }
+		Vec2 operator*(const Real& lambda) const { return Vec2(x * lambda, y * lambda); }
+		Vec2 operator/(const Real& lambda) const { return Vec2(x / lambda, y / lambda); }
+
+		const Real SquareLength() const { return (x*x + y*y); }
+	
+	};
+
 
 }
 

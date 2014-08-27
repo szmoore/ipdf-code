@@ -6,8 +6,8 @@
 #include "framebuffer.h"
 #include "objectrenderer.h"
 
-#define USE_GPU_TRANSFORM false
-#define USE_GPU_RENDERING false
+#define USE_GPU_TRANSFORM true 
+#define USE_GPU_RENDERING true
 #define USE_SHADING !(USE_GPU_RENDERING) && true
 
 namespace IPDF

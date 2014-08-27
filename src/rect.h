@@ -27,6 +27,26 @@ namespace IPDF
 			return true;
 		}
 	};
+
+	inline Rect TransformRectCoordinates(const Rect& view, const Rect& r)
+	{
+		Rect out;
+		out.x = (r.x - view.x) / view.w;
+		out.y = (r.y - view.y) / view.h;
+		out.w = r.w / view.w;
+		out.h = r.h / view.h;
+		return out;
+	}
+
+	inline Vec2 TransformPointCoordinates(const Rect& view, const Vec2& v)
+	{
+		Vec2 out;
+		out.x = (v.x - view.x) / view.w;
+		out.y = (v.y - view.y) / view.h;
+		return out;
+	}
+
+
 }
 
 #endif //_RECT_H
