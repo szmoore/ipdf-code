@@ -132,7 +132,14 @@ int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 		}
 	case BEZIER:
 		{
-//		Rect child_node_bounds = m_objects.bounds[object_id];
+		// If we're entirely within the quadtree node, no clipping need occur.
+		if (ContainedInQuadChild(m_objects.bounds[object_id], type))
+		{
+			m_objects.bounds.push_back(TransformToQuadChild(m_objects.bounds[object_id], type));
+			m_objects.types.push_back(m_objects.types[object_id]);
+			m_objects.data_indices.push_back(m_objects.data_indices[object_id]);
+			return 1;
+		}
 		Rect clip_bezier_bounds = TransformRectCoordinates(m_objects.bounds[object_id], TransformFromQuadChild(Rect{0,0,1,1}, type)); 
 		std::vector<Bezier> new_curves = m_objects.beziers[m_objects.data_indices[object_id]].ClipToRectangle(clip_bezier_bounds);
 		for (size_t i = 0; i < new_curves.size(); ++i)

@@ -305,7 +305,7 @@ namespace IPDF
 				Debug(" -- t0: %f to t1: %f", t0, t1);
 				Real ptx, pty;
 				Evaluate(ptx, pty, ((t1 + t0) / Real(2)));
-				if (r.PointIn(ptx, pty))
+				if (true || r.PointIn(ptx, pty))
 				{
 					all_beziers.push_back(this->ReParametrise(t0, t1));
 				}
