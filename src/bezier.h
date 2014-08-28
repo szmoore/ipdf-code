@@ -13,65 +13,9 @@ namespace IPDF
 	extern Real Bernstein(int k, int n, const Real & u);
 	extern std::pair<Real,Real> BezierTurningPoints(const Real & p0, const Real & p1, const Real & p2, const Real & p3);
 	
-	inline std::pair<Real,Real> SolveQuadratic(const Real & a, const Real & b, const Real & c)
-	{
-		Real x0((-b + Sqrt(b*b - Real(4)*a*c))/(Real(2)*a));
-		Real x1((-b - Sqrt(b*b - Real(4)*a*c))/(Real(2)*a));
-		return std::pair<Real,Real>(x0,x1);
-	}
+	extern std::vector<Real> SolveQuadratic(const Real & a, const Real & b, const Real & c, const Real & min = 0, const Real & max = 1);
 
-	inline std::vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d)
-	{
-		// This is going to be a big one...
-		// See http://en.wikipedia.org/wiki/Cubic_function#General_formula_for_roots
-
-		std::vector<Real> roots;
-		// delta = 18abcd - 4 b^3 d + b^2 c^2 - 4ac^3 - 27 a^2 d^2
-		
-#if 0
-		Real discriminant = Real(18) * a * b * c * d - Real(4) * (b * b * b) * d 
-				+ (b * b) * (c * c) - Real(4) * a * (c * c * c)
-				- Real(27) * (a * a) * (d * d);
-		
-		Debug("Trying to solve %fx^3 + %fx^2 + %fx + %f (Discriminant: %f)", a,b,c,d, discriminant);
-		// discriminant > 0 => 3 distinct, real roots.
-		// discriminant = 0 => a multiple root (1 or 2 real roots)
-		// discriminant < 0 => 1 real root, 2 complex conjugate roots
-
-		Real delta0 = (b*b) - Real(3) * a * c;
-		Real delta1 = Real(2) * (b * b * b) - Real(9) * a * b * c + Real(27) * (a * a) * d;
-
-
-		Real C = pow((delta1 + Sqrt((delta1 * delta1) - 4 * (delta0 * delta0 * delta0)) ) / Real(2), 1/3);
-
-		if (false && discriminant < 0)
-		{
-			Real real_root = (Real(-1) / (Real(3) * a)) * (b + C + delta0 / C);
-
-			roots.push_back(real_root);
-
-			return roots;
-
-		}
-#endif
-		////HACK: We know any roots we care about will be between 0 and 1, so...
-		Real maxi(100);
-		Real prevRes(d);
-		for(int i = 0; i <= 100; ++i)
-		{
-			Real x(i);
-			x /= maxi;
-			Real y = a*(x*x*x) + b*(x*x) + c*x + d;
-			if (((y < Real(0)) && (prevRes > Real(0))) || ((y > Real(0)) && (prevRes < Real(0))))
-			{
-				Debug("Found root of %fx^3 + %fx^2 + %fx + %f at %f (%f)", a, b, c, d, x, y);
-				roots.push_back(x);
-			}
-			prevRes = y;
-		}
-		return roots;
-			
-	}
+	extern std::vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d, const Real & min = 0, const Real & max = 1, const Real & delta = 1e-4);
 
 	/** A _cubic_ bezier. **/
 	struct Bezier
@@ -326,6 +270,21 @@ namespace IPDF
 				coeff[i] = Bernstein(i,3,u);
 			x = x0*coeff[0] + x1*coeff[1] + x2*coeff[2] + x3*coeff[3];
 			y = y0*coeff[0] + y1*coeff[1] + y2*coeff[2] + y3*coeff[3];
+		}
+		std::vector<Vec2> Evaluate(const std::vector<Real> & u) const;
+		
+		std::vector<Real> SolveXParam(const Real & x) const;
+		std::vector<Real> SolveYParam(const Real & x) const;
+		
+		// Get points with same X
+		inline std::vector<Vec2> SolveX(const Real & x) const
+		{
+			return Evaluate(SolveXParam(x));
+		}
+		// Get points with same Y
+		inline std::vector<Vec2> SolveY(const Real & y) const
+		{
+			return Evaluate(SolveYParam(y));
 		}
 		
 		bool operator==(const Bezier & equ) const

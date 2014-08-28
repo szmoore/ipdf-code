@@ -313,9 +313,9 @@ unsigned Document::AddBezier(const Bezier & bezier)
 	Bezier data = bezier.ToRelative(bounds); // Relative
 	if (data.ToAbsolute(bounds) != bezier)
 	{
-		Error("%s != %s", data.ToAbsolute(Rect(0,0,1,1)).Str().c_str(),
+		Warn("%s != %s", data.ToAbsolute(Rect(0,0,1,1)).Str().c_str(),
 			bezier.Str().c_str());
-		Fatal("ToAbsolute on ToRelative does not give original Bezier");
+		Warn("ToAbsolute on ToRelative does not give original Bezier");
 	}
 	unsigned index = AddBezierData(data);
 	return Add(BEZIER, bounds, index);

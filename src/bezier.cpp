@@ -9,6 +9,113 @@ using namespace std;
 namespace IPDF
 {
 
+vector<Real> SolveQuadratic(const Real & a, const Real & b, const Real & c, const Real & min, const Real & max)
+{
+	vector<Real> roots; roots.reserve(2);
+	if (a == 0 && b != 0)
+	{
+		roots.push_back(-c/b);
+		return roots;
+	}
+	Real disc(b*b - Real(4)*a*c);
+	if (disc < 0)
+	{
+		return roots;
+	}
+	else if (disc == 0)
+	{
+		Real x(-b/Real(2)*a);
+		if (x >= min && x <= max)
+			roots.push_back(x);
+		return roots;
+	}
+	
+	Real x0((-b - Sqrt(b*b - Real(4)*a*c))/(Real(2)*a));
+	Real x1((-b + Sqrt(b*b - Real(4)*a*c))/(Real(2)*a));
+	if (x0 > x1)
+	{
+		Real tmp(x0);
+		x0 = x1;
+		x1 = tmp;
+	}
+	if (x0 >= min && x0 <= max)
+		roots.push_back(x0);
+	if (x1 >= min && x1 <= max)
+		roots.push_back(x1);
+	return roots;
+}
+
+/**
+ * Finds the root (if it exists) in a monotonicly in(de)creasing segment of a Cubic
+ */
+
+static void CubicSolveSegment(vector<Real> & roots, const Real & a, const Real & b, const Real & c, const Real & d, Real & tl, Real & tu, const Real & delta)
+{
+	Real l = a*tl*tl*tl + b*tl*tl + c*tl + d;
+	Real u = a*tu*tu*tu + b*tu*tu + c*tu + d;
+	if ((l < 0 && u < 0) || (l > 0 && u > 0))
+		return;
+	
+	bool negative = (u < l); // lower point > 0, upper point < 0
+	while (tu - tl > delta)
+	{
+		Real t(tu+tl);
+		t /= 2;
+		Real m = a*t*t*t + b*t*t + c*t + d;
+		if (m > 0)
+		{
+			if (negative)
+				tl = t;
+			else
+				tu = t;
+		}
+		else if (negative)
+		{
+			tu = t;
+		}
+		else
+		{
+			tl = t;
+		}
+		//Debug("Delta is %f (%f - %f -> %f)", tu-tl, tu, tl, t);
+	}
+	roots.push_back(tl);
+}
+vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d, const Real & min, const Real & max, const Real & delta)
+{
+	vector<Real> roots; roots.reserve(3);
+	Real tu(max);
+	Real tl(min);
+	vector<Real> turns(SolveQuadratic(a*3, b*2, c));
+	//Debug("%u turning points", turns.size());
+	for (unsigned i = 1; i < turns.size(); ++i)
+	{
+		tu = turns[i];
+		CubicSolveSegment(roots, a, b, c, d, tl, tu,delta);
+		tl = turns[i];
+	}
+	tu = max;
+	CubicSolveSegment(roots, a, b, c, d, tl, tu,delta);
+	return roots;
+	/*
+		Real maxi(100);
+		Real prevRes(d);
+		for(int i = 0; i <= 100; ++i)
+		{
+			Real x(i);
+			x /= maxi;
+			Real y = a*(x*x*x) + b*(x*x) + c*x + d;
+			if (((y < Real(0)) && (prevRes > Real(0))) || ((y > Real(0)) && (prevRes < Real(0))))
+			{
+				//Debug("Found root of %fx^3 + %fx^2 + %fx + %f at %f (%f)", a, b, c, d, x, y);
+				roots.push_back(x);
+			}
+			prevRes = y;
+		}
+		return roots;
+	*/
+}
+
 /**
  * Factorial
  * Use dynamic programming / recursion
@@ -77,12 +184,14 @@ pair<Real, Real> BezierTurningPoints(const Real & p0, const Real & p1, const Rea
 		//Debug("No real roots");
 		return pair<Real, Real>(0,1);
 	}
-	pair<Real, Real> tsols = SolveQuadratic(a, b, c);
-	if (tsols.first > 1) tsols.first = 1;
-	if (tsols.first < 0) tsols.first = 0;
-	if (tsols.second > 1) tsols.second = 1;
-	if (tsols.second < 0) tsols.second = 0;
-	return tsols;
+	vector<Real> tsols = SolveQuadratic(a, b, c);
+	if (tsols.size() == 1)
+		return pair<Real,Real>(tsols[0], tsols[0]);
+	else if (tsols.size() == 0)
+		return pair<Real, Real>(0,1);
+	
+	return pair<Real,Real>(tsols[0], tsols[1]);
+	
 }
 
 inline bool CompRealByPtr(const Real * a, const Real * b) 
@@ -235,6 +344,47 @@ pair<Real,Real> Bezier::GetRight() const
 	else if (v[3] == &tx1)
 	{
 		result.second = ty1;
+	}
+	return result;
+}
+
+vector<Real> Bezier::SolveXParam(const Real & x) const
+{
+	Real d(x0 - x);
+	Real c((x1 - x0)*Real(3));
+	Real b((x2 - x1)*Real(3) - c);
+	Real a(x3 -x0 - c - b);
+	vector<Real> results(SolveCubic(a, b, c, d));
+	for (unsigned i = 0; i < results.size(); ++i)
+	{
+		Vec2 p;
+		Evaluate(p.x, p.y, results[i]);
+	}
+	return results;
+}
+
+
+vector<Real> Bezier::SolveYParam(const Real & y) const
+{
+	Real d(y0 - y);
+	Real c((y1 - y0)*Real(3));
+	Real b((y2 - y1)*Real(3) - c);
+	Real a(y3 -y0 - c - b);
+	vector<Real> results(SolveCubic(a, b, c, d));
+	for (unsigned i = 0; i < results.size(); ++i)
+	{
+		Vec2 p;
+		Evaluate(p.x, p.y, results[i]);
+	}
+	return results;
+}
+
+vector<Vec2> Bezier::Evaluate(const vector<Real> & u) const
+{
+	vector<Vec2> result(u.size());
+	for (unsigned i = 0; i < u.size(); ++i)
+	{
+		Evaluate(result[i].x, result[i].y, u[i]);
 	}
 	return result;
 }

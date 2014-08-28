@@ -75,9 +75,11 @@ namespace IPDF
 				int64_t x; int64_t y; int64_t w; int64_t h;
 				PixelBounds(const Rect & bounds) : x(Double(bounds.x)), y(Double(bounds.y)), w(Double(bounds.w)), h(Double(bounds.h)) {}
 			};
+			
+			typedef std::pair<int64_t, int64_t> PixelPoint;
 
 			static Rect CPURenderBounds(const Rect & bounds, const View & view, const CPURenderTarget & target);
-			static std::pair<int64_t, int64_t> CPUPointLocation(const std::pair<Real, Real> & point, const View & view, const CPURenderTarget & target);
+			static PixelPoint CPUPointLocation(const Vec2 & point, const View & view, const CPURenderTarget & target);
 
 			static void SaveBMP(const CPURenderTarget & target, const char * filename);
 

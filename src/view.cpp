@@ -253,7 +253,7 @@ void View::Render(int width, int height)
 	{
 		m_screen.RenderPixels(0,0,width, height, m_cpu_rendering_pixels); //TODO: Make this work :(
 		// Debug for great victory (do something similar for GPU and compare?)
-		ObjectRenderer::SaveBMP({m_cpu_rendering_pixels, width, height}, "cpu_rendering_last_frame.bmp");
+		//ObjectRenderer::SaveBMP({m_cpu_rendering_pixels, width, height}, "cpu_rendering_last_frame.bmp");
 	}
 	m_cached_display.UnBind(); // resets render target to the screen
 	m_cached_display.Blit(); // blit FrameBuffer to screen

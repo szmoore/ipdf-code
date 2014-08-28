@@ -29,16 +29,19 @@ namespace IPDF
 		
 		Rect SolveBounds(const Objects & objects) const;
 		
-		
+		// Is point inside shape?
+		bool PointInside(const Objects & objects, const Vec2 & pt, bool debug=false) const;
 		
 		unsigned m_start; // First bounding Bezier index
 		unsigned m_end; // Last (inclusive) '' ''
 		unsigned m_index; // index into Objects array
 		
-		std::pair<Real,Real> m_top;
-		std::pair<Real,Real> m_bottom;
-		std::pair<Real,Real> m_left;
-		std::pair<Real,Real> m_right;
+		Vec2 m_top;
+		Vec2 m_bottom;
+		Vec2 m_left;
+		Vec2 m_right;
+		
+		std::vector<Vec2> m_fill_points;
 		
 		Colour m_fill;	// colour to fill with	
 	};

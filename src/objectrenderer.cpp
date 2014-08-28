@@ -6,6 +6,7 @@
 #include "objectrenderer.h"
 #include "view.h"
 #include <vector>
+#include <queue>
 
 using namespace std;
 
@@ -213,13 +214,13 @@ Rect ObjectRenderer::CPURenderBounds(const Rect & bounds, const View & view, con
 	return result;
 }
 
-pair<int64_t, int64_t> ObjectRenderer::CPUPointLocation(const pair<Real, Real> & point, const View & view, const CPURenderTarget & target)
+ObjectRenderer::PixelPoint ObjectRenderer::CPUPointLocation(const Vec2 & point, const View & view, const CPURenderTarget & target)
 {
 	// hack...
-	Rect result = view.TransformToViewCoords(Rect(point.first, point.second,1,1));
+	Rect result = view.TransformToViewCoords(Rect(point.x, point.y,1,1));
 	int64_t x = result.x*target.w;
 	int64_t y = result.y*target.h;
-	return pair<int64_t, int64_t>(x,y);
+	return PixelPoint(x,y);
 }
 	
 
@@ -263,7 +264,7 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 		for (int64_t j = 1; j <= blen; ++j)
 		{
 			control.Evaluate(x[j % 2],y[j % 2], invblen*j);
-			ObjectRenderer::RenderLineOnCPU((int64_t)Double(x[0]),(int64_t)Double(y[0]), (int64_t)Double(x[1]),(int64_t)Double(y[1]), target);
+			ObjectRenderer::RenderLineOnCPU((int64_t)Double(x[0]),(int64_t)Double(y[0]), (int64_t)Double(x[1]),(int64_t)Double(y[1]), target, Colour(0,0,0,!view.PerformingShading()));
 		}
 		
 		/*
@@ -362,35 +363,27 @@ void PathRenderer::RenderUsingCPU(const Objects & objects, const View & view, co
 		
 		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		PixelBounds pix_bounds(bounds);
-		pix_bounds.x-=1;
-		pix_bounds.w+=2;
-		pix_bounds.y-=1;
-		pix_bounds.h+=2;
 		const Path & path = objects.paths[objects.data_indices[m_indexes[i]]];
 		if (path.m_fill.a == 0 || !view.PerformingShading())
 			continue;
-
-
-		pair<int64_t,int64_t> top(CPUPointLocation(path.m_top, view, target));
-		pair<int64_t,int64_t> bottom(CPUPointLocation(path.m_bottom, view, target));
-		pair<int64_t,int64_t> left(CPUPointLocation(path.m_left, view, target));
-		pair<int64_t,int64_t> right(CPUPointLocation(path.m_right, view, target));
-		FloodFillOnCPU(top.first, top.second+1, pix_bounds, target, path.m_fill);
-		FloodFillOnCPU(bottom.first, bottom.second-1, pix_bounds, target, path.m_fill);
-		FloodFillOnCPU(left.first+1, left.second, pix_bounds, target, path.m_fill);
-		FloodFillOnCPU(right.first-1, right.second, pix_bounds, target, path.m_fill);
 		
-		if (view.ShowingObjectBounds())
+		for (unsigned f = 0; f < path.m_fill_points.size(); ++f)
 		{
-			Colour c(0,0,1,1);
-			RenderLineOnCPU(top.first, top.second, bottom.first, bottom.second, target, c);
-			RenderLineOnCPU(left.first, left.second, right.first, right.second, target, c);
-			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, c);
-			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
-			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, c);
-			ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, c);
+			PixelPoint fill_point(CPUPointLocation(path.m_fill_points[f], view, target));
+			FloodFillOnCPU(fill_point.first, fill_point.second, pix_bounds, target, path.m_fill);
 		}
 		
+		/*if (true)//(view.ShowingObjectBounds())
+		{
+			
+			PixelPoint start(CPUPointLocation((path.m_top+path.m_left+path.m_right+path.m_bottom)/4, view, target));
+			for (unsigned f = 0; f < path.m_fill_points.size(); ++f)
+			{
+				PixelPoint end(CPUPointLocation(path.m_fill_points[f], view, target));
+				RenderLineOnCPU(start.first, start.second, end.first, end.second, target, Colour(0,0,1,1));
+			}
+		}
+		*/
 	
 	}	
 }
@@ -494,20 +487,28 @@ void ObjectRenderer::RenderLineOnCPU(int64_t x0, int64_t y0, int64_t x1, int64_t
 
 void ObjectRenderer::FloodFillOnCPU(int64_t x, int64_t y, const PixelBounds & bounds, const CPURenderTarget & target, const Colour & fill)
 {
-	if (x < 0 || x < bounds.x || x > bounds.x+bounds.w || x >= target.w)
+	if (fill == Colour(1,1,1,1))
 		return;
-	if (y < 0 || y < bounds.y || y > bounds.y+bounds.h || y >= target.h)
-		return;
+	queue<PixelPoint > traverse;
+	traverse.push(PixelPoint(x,y));
+	// now with 100% less stack overflows!
+	while (traverse.size() > 0)
+	{
+		PixelPoint cur(traverse.front());
+		traverse.pop();
+		if (cur.first < 0 || cur.first < bounds.x || cur.first >= bounds.x+bounds.w || cur.first >= target.w ||
+			cur.second < 0 || cur.second < bounds.y || cur.second >= bounds.y+bounds.h || cur.second >= target.h)
+			continue;
+		if (GetColour(target, cur.first, cur.second) != Colour(1,1,1,1))
+			continue;
+		SetColour(target, cur.first, cur.second, fill);
 		
-	if (GetColour(target, x, y) != Colour(1,1,1,1))
-		return;
-		
-	SetColour(target, x, y, fill);
-	FloodFillOnCPU(x-1, y, bounds, target, fill);
-	FloodFillOnCPU(x+1, y, bounds, target, fill);
-	FloodFillOnCPU(x,y-1,bounds,target,fill);
-	FloodFillOnCPU(x,y+1,bounds,target,fill);
-	
+
+		traverse.push(PixelPoint(cur.first+1, cur.second));
+		traverse.push(PixelPoint(cur.first-1, cur.second));
+		traverse.push(PixelPoint(cur.first, cur.second-1));
+		traverse.push(PixelPoint(cur.first, cur.second+1)); 
+	}
 }
 
 }
