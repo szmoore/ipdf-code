@@ -3,6 +3,10 @@
 
 #include "controlpanel.h"
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <fenv.h>
 
 
 int main(int argc, char ** argv)
@@ -11,6 +15,8 @@ int main(int argc, char ** argv)
        	Warn("__STDC_IEC_559__ not defined. IEEE 754 floating point not fully supported.\n");
 	#endif
 
+	// We want to crash if we ever get a NaN.
+	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
 	Debug("Compiled with REAL = %d => \"%s\" sizeof(Real) == %d bytes", REAL, g_real_name[REAL], sizeof(Real));
 
