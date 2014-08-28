@@ -31,10 +31,12 @@ namespace IPDF
 	inline Rect TransformRectCoordinates(const Rect& view, const Rect& r)
 	{
 		Rect out;
-		out.x = (r.x - view.x) / view.w;
-		out.y = (r.y - view.y) / view.h;
-		out.w = r.w / view.w;
-		out.h = r.h / view.h;
+		Real w = (view.w == Real(0))?Real(1):view.w;
+		Real h = (view.h == Real(0))?Real(1):view.h;
+		out.x = (r.x - view.x) / w;
+		out.y = (r.y - view.y) / h;
+		out.w = r.w / w;
+		out.h = r.h / h;
 		return out;
 	}
 

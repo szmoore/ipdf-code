@@ -25,8 +25,10 @@ namespace IPDF
 		// This is going to be a big one...
 		// See http://en.wikipedia.org/wiki/Cubic_function#General_formula_for_roots
 
+		std::vector<Real> roots;
 		// delta = 18abcd - 4 b^3 d + b^2 c^2 - 4ac^3 - 27 a^2 d^2
 		
+#if 0
 		Real discriminant = Real(18) * a * b * c * d - Real(4) * (b * b * b) * d 
 				+ (b * b) * (c * c) - Real(4) * a * (c * c * c)
 				- Real(27) * (a * a) * (d * d);
@@ -39,7 +41,6 @@ namespace IPDF
 		Real delta0 = (b*b) - Real(3) * a * c;
 		Real delta1 = Real(2) * (b * b * b) - Real(9) * a * b * c + Real(27) * (a * a) * d;
 
-		std::vector<Real> roots;
 
 		Real C = pow((delta1 + Sqrt((delta1 * delta1) - 4 * (delta0 * delta0 * delta0)) ) / Real(2), 1/3);
 
@@ -52,16 +53,16 @@ namespace IPDF
 			return roots;
 
 		}
-
+#endif
 		////HACK: We know any roots we care about will be between 0 and 1, so...
 		Real maxi(100);
 		Real prevRes(d);
-		for(int i = -1; i <= 100; ++i)
+		for(int i = 0; i <= 100; ++i)
 		{
 			Real x(i);
 			x /= maxi;
 			Real y = a*(x*x*x) + b*(x*x) + c*x + d;
-			if ( ((y < Real(0)) && (prevRes > Real(0))) || ((y > Real(0)) && (prevRes < Real(0))))
+			if (((y < Real(0)) && (prevRes > Real(0))) || ((y > Real(0)) && (prevRes < Real(0))))
 			{
 				Debug("Found root of %fx^3 + %fx^2 + %fx + %f at %f (%f)", a, b, c, d, x, y);
 				roots.push_back(x);
@@ -304,7 +305,7 @@ namespace IPDF
 				Debug(" -- t0: %f to t1: %f", t0, t1);
 				Real ptx, pty;
 				Evaluate(ptx, pty, ((t1 + t0) / Real(2)));
-				if (true || r.PointIn(ptx, pty))
+				if (r.PointIn(ptx, pty))
 				{
 					all_beziers.push_back(this->ReParametrise(t0, t1));
 				}
