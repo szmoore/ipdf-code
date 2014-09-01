@@ -77,6 +77,8 @@ struct Rational
 	{
 		Simplify();
 	}
+	
+
 
 	Rational(const T & _P, const T & _Q) : P(_P), Q(_Q)
 	{
@@ -174,7 +176,7 @@ struct Rational
 	double ToDouble() const 
 	{
 		T num = P, denom = Q;
-		while (Tabs(num) > T(DBL_MAX))
+		while (Tabs(num) > T(1e10))
 		{
 			num /= T(16);
 			denom /= T(16);
@@ -203,8 +205,6 @@ struct Rational
 	T P;
 	T Q;
 };
-
-
 
 
 

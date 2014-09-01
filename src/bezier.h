@@ -25,15 +25,71 @@ namespace IPDF
 		Real x2; Real y2;
 		Real x3; Real y3;
 		
-		typedef enum {LINE, QUADRATIC, CUSP, LOOP, SERPENTINE} Type;
+		typedef enum {UNKNOWN, LINE, QUADRATIC, CUSP, LOOP, SERPENTINE} Type;
 		Type type;
 		
 		Bezier() = default; // Needed so we can fread/fwrite this struct... for now.
-		Bezier(Real _x0, Real _y0, Real _x1, Real _y1, Real _x2, Real _y2, Real _x3, Real _y3) : x0(_x0), y0(_y0), x1(_x1), y1(_y1), x2(_x2), y2(_y2), x3(_x3), y3(_y3) 
+		Bezier(Real _x0, Real _y0, Real _x1, Real _y1, Real _x2, Real _y2, Real _x3, Real _y3) : x0(_x0), y0(_y0), x1(_x1), y1(_y1), x2(_x2), y2(_y2), x3(_x3), y3(_y3), type(UNKNOWN)
 		{
-			//TODO: classify the curve
-			type = SERPENTINE;
+
 		}
+		
+		const Type & GetType()
+		{
+			if (type != Bezier::UNKNOWN)
+				return type;
+			// From Loop-Blinn 2005, with w0 == w1 == w2 == w3 = 1
+			// Transformed control points: (a0 = x0, b0 = y0)
+			Real a1 = (x1-x0)*3;
+			Real a2 = (x0- x1*2 +x2)*3;
+			Real a3 = (x3 - x0 + (x1 - x2)*3);
+			
+			Real b1 = (y1-y0)*3;
+			Real b2 = (y0- y1*2 +y2)*3;
+			Real b3 = (y3 - y0 + (y1 - y2)*3);
+			
+			// d vector (d0 = 0 since all w = 1)
+			Real d1 = a2*b3 - a3*b2;
+			Real d2 = a3*b1 - a1*b3;
+			Real d3 = a1*b2 - a2*b1;
+			
+			if (d1 == d2 && d2 == d3 && d3 == 0)
+			{
+				type = LINE;
+				//Debug("LINE %s", Str().c_str());
+				return type;
+			}
+			
+			Real delta1 = -d1*d1;
+			Real delta2 = d1*d2;
+			Real delta3 = d1*d3 -d2*d2;
+			if (delta1 == delta2 && delta2 == delta3 && delta3 == 0)
+			{
+				type = QUADRATIC;
+				
+				//Debug("QUADRATIC %s", Str().c_str());
+				return type;
+			}
+			
+			Real discriminant = d1*d3*4 -d2*d2;
+			if (discriminant == 0)
+			{
+				type = CUSP;
+				//Debug("CUSP %s", Str().c_str());
+			}
+			else if (discriminant > 0)
+			{
+				type = SERPENTINE;
+				//Debug("SERPENTINE %s", Str().c_str());
+			}
+			else
+			{
+				type = LOOP;
+				//Debug("LOOP %s", Str().c_str());
+			}
+			return type;
+		}
+		
 		
 		std::string Str() const
 		{
@@ -46,7 +102,7 @@ namespace IPDF
 		 * Construct absolute control points using relative control points to a bounding rectangle
 		 * ie: If cpy is relative to bounds rectangle, this will be absolute
 		 */
-		Bezier(const Bezier & cpy, const Rect & t = Rect(0,0,1,1)) : x0(cpy.x0), y0(cpy.y0), x1(cpy.x1), y1(cpy.y1), x2(cpy.x2),y2(cpy.y2), x3(cpy.x3), y3(cpy.y3), type(cpy.type)
+		Bezier(const Bezier & cpy, const Rect & t = Rect(0,0,1,1)) : x0(cpy.x0), y0(cpy.y0), x1(cpy.x1), y1(cpy.y1), x2(cpy.x2),y2(cpy.y2), x3(cpy.x3), y3(cpy.y3), type(UNKNOWN)
 		{
 			x0 *= t.w;
 			y0 *= t.h;

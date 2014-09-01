@@ -81,7 +81,6 @@ namespace IPDF
 			r *= a;
 		return r;
 	}
-	
 	struct Vec2
 	{
 		Real x;
@@ -89,6 +88,7 @@ namespace IPDF
 		Vec2() : x(0), y(0) {}
 		Vec2(Real _x, Real _y) : x(_x), y(_y) {}
 		Vec2(const std::pair<Real, Real> & p) : x(p.first), y(p.second) {}
+		Vec2(const std::pair<int64_t, int64_t> & p) : x(p.first), y(p.second) {}
 	
 		bool operator==(const Vec2& other) const { return (x == other.x) && (y == other.y); }
 		bool operator!=(const Vec2& other) const { return !(*this == other); }

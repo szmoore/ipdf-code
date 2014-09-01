@@ -166,8 +166,8 @@ pair<Real, Real> BezierTurningPoints(const Real & p0, const Real & p1, const Rea
 	{
 		return pair<Real,Real>(0, 1);
 	}
-	Real a = (3*(p1-p2) + p3 - p0);
-	Real b = 2*(p2 - 2*p1 + p0);
+	Real a = ((p1-p2)*3 + p3 - p0);
+	Real b = (p2 - p1*2 + p0)*2;
 	Real c = (p1-p0);
 	if (a == 0)
 	{
@@ -179,7 +179,7 @@ pair<Real, Real> BezierTurningPoints(const Real & p0, const Real & p1, const Rea
 		return pair<Real, Real>(t, t);
 	}
 	//Debug("a, b, c are %f, %f, %f", Float(a), Float(b), Float(c));
-	if (b*b - 4*a*c < 0)
+	if (b*b - a*c*4 < 0)
 	{
 		//Debug("No real roots");
 		return pair<Real, Real>(0,1);

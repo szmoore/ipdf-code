@@ -7,6 +7,7 @@
 #include "view.h"
 #include <vector>
 #include <queue>
+#include <stack>
 
 using namespace std;
 
@@ -254,36 +255,50 @@ void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, 
 										
 
 		
-		Real x[2]; Real y[2];
-		control.Evaluate(x[0], y[0], Real(0));
-		//Debug("target is (%lu, %lu)", target.w, target.h);
-		int64_t blen = min(max((int64_t)2, (int64_t)(target.w/view.GetBounds().w)), (int64_t)100);
+	
+		unsigned blen =	min(max(2U, (unsigned)(target.w/view.GetBounds().w)), min((unsigned)(pix_bounds.w+pix_bounds.h)/4 + 1, 100U));
 		
+		// DeCasteljau Divide the Bezier
+		queue<Bezier> divisions;
+		divisions.push(control);
+		while(divisions.size() < blen)
+		{
+			Bezier & current = divisions.front();
+			if (current.GetType() == Bezier::LINE)
+			{
+				--blen;
+				continue;
+			}
+			divisions.push(current.DeCasteljauSubdivideRight(Real(1)/Real(2)));	
+			divisions.push(current.DeCasteljauSubdivideLeft(Real(1)/Real(2)));
+			divisions.pop();
+			
+			//Debug("divisions %u", divisions.size());
+		}
+		while (divisions.size() > 0)
+		{
+			Bezier & current = divisions.front();
+			RenderLineOnCPU(current.x0, current.y0, current.x3, current.y3, target, Colour(0,0,0,!view.PerformingShading()));
+			divisions.pop();
+		}
+		
+		/* Draw the Bezier by sampling
 		Real invblen(1); invblen /= blen;
-		//Debug("Using %li lines, inverse %f", blen, Double(invblen));
+		Real t(invblen);
+		Vec2 v0;
+		Vec2 v1;
+		control.Evaluate(v0.x, v0.y, 0);
 		for (int64_t j = 1; j <= blen; ++j)
 		{
-			control.Evaluate(x[j % 2],y[j % 2], invblen*j);
-			ObjectRenderer::RenderLineOnCPU((int64_t)Double(x[0]),(int64_t)Double(y[0]), (int64_t)Double(x[1]),(int64_t)Double(y[1]), target, Colour(0,0,0,!view.PerformingShading()));
-		}
-		
-		/*
-		Real u(0);
-		while (u < Real(1))
-		{
-			u += Real(1e-6);
-			Real x; Real y; control.Evaluate(x,y,u);
-			int64_t index = ((int64_t)x + (int64_t)y*target.w)*4;
-			if (index >= 0 && index < 4*(target.w*target.h))
-			{
-				target.pixels[index+0] = 0;
-				target.pixels[index+1] = 0;
-				target.pixels[index+2] = 0;
-				target.pixels[index+3] = 255;
-			}	
+			control.Evaluate(v1.x, v1.y, t);
+			
+			ObjectRenderer::RenderLineOnCPU(v0.x, v0.y, v1.x, v1.y, target, Colour(0,0,0,!view.PerformingShading()));
+			//ObjectRenderer::SetColour(target, x[0], y[0], Colour(1,0,0,1));
+			//ObjectRenderer::SetColour(target, x[1], y[1], Colour(0,0,1,1));
+			t += invblen;
+			v0 = v1;
 		}
 		*/
-		
 	}
 }
 
