@@ -295,9 +295,9 @@ void Document::Load(const string & filename)
 #endif
 }
 
-unsigned Document::AddPath(unsigned start_index, unsigned end_index, const Colour & fill)
+unsigned Document::AddPath(unsigned start_index, unsigned end_index, const Colour & fill, const Colour & stroke)
 {
-	Path path(m_objects, start_index, end_index, fill);
+	Path path(m_objects, start_index, end_index, fill, stroke);
 	unsigned data_index = AddPathData(path);
 	Rect bounds = path.SolveBounds(m_objects);
 	unsigned result = Add(PATH, bounds,data_index);
@@ -492,6 +492,34 @@ void Document::ParseSVGTransform(const string & s, SVGMatrix & transform)
 	}
 }
 
+inline Colour ParseColourString(const string & colour_str)
+{
+	Colour c(0,0,0,0);
+	if (colour_str == "red")
+		c = {255,0,0,255};
+	else if (colour_str == "blue")
+		c = {0,0,255,255};
+	else if (colour_str == "green")
+		c = {0,255,0,255};
+	else if (colour_str == "black")
+		c = {0,0,0,255};
+	else if (colour_str == "white")
+		c = {255,255,255,255};
+	else if (colour_str.size() == 7 && colour_str[0] == '#')
+	{
+		Debug("Parse colour string: \"%s\"", colour_str.c_str());
+		char comp[3] = {colour_str[1], colour_str[2], '\0'};
+		c.r = strtoul(comp, NULL, 16);
+		comp[0] = colour_str[3]; comp[1] = colour_str[4];
+		c.g = strtoul(comp, NULL, 16);
+		comp[0] = colour_str[5]; comp[1] = colour_str[6];
+		c.b = strtoul(comp, NULL, 16);
+		c.a = 255;
+		Debug("Colour is: %u, %u, %u, %u", c.r, c.g, c.b, c.a);
+	}
+	return c;
+}
+
 void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 {
 	//Debug("Parse node <%s>", root.name());
@@ -521,9 +549,9 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 			//Debug("Path data attribute is \"%s\"", d.c_str());
 			bool closed = false;
 			pair<unsigned, unsigned> range = ParseSVGPathData(d, transform, closed);
-			if (closed)
+			if (true)//(closed)
 			{
-				Colour c(0,0,0,0);
+				
 				string colour_str("");
 				map<string, string> style;
 				if (child.attribute("style"))
@@ -540,41 +568,39 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 				{
 					colour_str = style["fill"];
 				}
-				if (colour_str == "red")
-					c = {1,0,0,1};
-				else if (colour_str == "blue")
-					c = {0,0,1,1};
-				else if (colour_str == "green")
-					c = {0,1,0,1};
-				else if (colour_str == "black")
-					c = {0,0,0,1};
-				else if (colour_str == "white")
-					c = {1,1,1,1};
-				else if (colour_str.size() == 7 && colour_str[0] == '#')
+				Colour fill = ParseColourString(colour_str);
+				Colour stroke = fill;
+			
+				if (child.attribute("stroke"))
 				{
-					Debug("Parse colour string: \"%s\"", colour_str.c_str());
-					char comp[2] = {colour_str[1], colour_str[2]};
-					c.r = Real(strtoul(comp, NULL, 16))/Real(255);
-					comp[0] = colour_str[3]; comp[1] = colour_str[4];
-					c.g = Real(strtoul(comp, NULL, 16))/Real(255);
-					comp[0] = colour_str[5]; comp[1] = colour_str[6];
-					c.b = Real(strtoul(comp, NULL, 16))/Real(255);
-					c.a = 1;
-					Debug("Colour is: %f, %f, %f, %f", Float(c.r), Float(c.g), Float(c.b), Float(c.a));
+					colour_str = child.attribute("stroke").as_string();
+					stroke = ParseColourString(colour_str);
 				}
+				else if (style.find("stroke") != style.end())
+				{
+					colour_str = style["stroke"];
+					stroke = ParseColourString(colour_str);
+				}
+				
 				
 				// Determin shading alpha
 				if (child.attribute("fill-opacity"))
 				{
-					c.a = child.attribute("fill-opacity").as_float();
+					fill.a = 255*child.attribute("fill-opacity").as_float();
 				}
 				else if (style.find("fill-opacity") != style.end())
 				{
-					c.a = strtod(style["fill-opacity"].c_str(), NULL);
+					fill.a = 255*strtod(style["fill-opacity"].c_str(), NULL);
 				}
-				
-					Debug("fill-opacity is %f", Float(c.a));
-				AddPath(range.first, range.second, c);
+				if (child.attribute("stroke-opacity"))
+				{
+					stroke.a = 255*child.attribute("stroke-opacity").as_float();
+				}
+				else if (style.find("stroke-opacity") != style.end())
+				{
+					stroke.a = 255*strtod(style["stroke-opacity"].c_str(), NULL);
+				}
+				AddPath(range.first, range.second, fill, stroke);
 			}
 			
 		}

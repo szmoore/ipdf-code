@@ -34,7 +34,7 @@ namespace IPDF
 
 		}
 		
-		const Type & GetType()
+		Type GetType()
 		{
 			if (type != Bezier::UNKNOWN)
 				return type;
@@ -53,17 +53,17 @@ namespace IPDF
 			Real d2 = a3*b1 - a1*b3;
 			Real d3 = a1*b2 - a2*b1;
 			
-			if (d1 == d2 && d2 == d3 && d3 == 0)
+			if (fabs(d1+d2+d3) < 1e-6)
 			{
 				type = LINE;
 				//Debug("LINE %s", Str().c_str());
 				return type;
 			}
 			
-			Real delta1 = -d1*d1;
+			Real delta1 = -(d1*d1);
 			Real delta2 = d1*d2;
-			Real delta3 = d1*d3 -d2*d2;
-			if (delta1 == delta2 && delta2 == delta3 && delta3 == 0)
+			Real delta3 = d1*d3 -(d2*d2);
+			if (fabs(delta1+delta2+delta3) < 1e-6)
 			{
 				type = QUADRATIC;
 				
@@ -72,7 +72,7 @@ namespace IPDF
 			}
 			
 			Real discriminant = d1*d3*4 -d2*d2;
-			if (discriminant == 0)
+			if (fabs(discriminant) < 1e-6)
 			{
 				type = CUSP;
 				//Debug("CUSP %s", Str().c_str());
@@ -87,6 +87,7 @@ namespace IPDF
 				type = LOOP;
 				//Debug("LOOP %s", Str().c_str());
 			}
+			//Debug("disc %.30f", discriminant);
 			return type;
 		}
 		
@@ -102,7 +103,7 @@ namespace IPDF
 		 * Construct absolute control points using relative control points to a bounding rectangle
 		 * ie: If cpy is relative to bounds rectangle, this will be absolute
 		 */
-		Bezier(const Bezier & cpy, const Rect & t = Rect(0,0,1,1)) : x0(cpy.x0), y0(cpy.y0), x1(cpy.x1), y1(cpy.y1), x2(cpy.x2),y2(cpy.y2), x3(cpy.x3), y3(cpy.y3), type(UNKNOWN)
+		Bezier(const Bezier & cpy, const Rect & t = Rect(0,0,1,1)) : x0(cpy.x0), y0(cpy.y0), x1(cpy.x1), y1(cpy.y1), x2(cpy.x2),y2(cpy.y2), x3(cpy.x3), y3(cpy.y3), type(cpy.type)
 		{
 			x0 *= t.w;
 			y0 *= t.h;

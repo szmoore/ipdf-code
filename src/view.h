@@ -42,8 +42,14 @@ namespace IPDF
 			
 			void SetGPURendering(bool state) {m_use_gpu_rendering = state; m_bounds_dirty = true; m_buffer_dirty = true;}
 
-			bool ShowingObjectBounds() const {return m_show_object_bounds;} // render bounds rectangles
-			void ShowObjectBounds(bool state) {m_show_object_bounds = state; m_bounds_dirty = true; m_buffer_dirty = true;}
+			bool ShowingBezierBounds() const {return m_show_bezier_bounds;} // render bounds rectangles
+			void ShowBezierBounds(bool state) {m_show_bezier_bounds = state; m_bounds_dirty = true; m_buffer_dirty = true;}
+			bool ShowingBezierType() const {return m_show_bezier_type;}
+			void ShowBezierType(bool state) {m_show_bezier_type = state; m_bounds_dirty = true; m_buffer_dirty = true;}
+			bool ShowingFillPoints() const {return m_show_fill_points;}
+			void ShowFillPoints(bool state) {m_show_fill_points = state; m_bounds_dirty = true; m_buffer_dirty = true;}
+			bool ShowingFillBounds() const {return m_show_fill_bounds;}
+			void ShowFillBounds(bool state) {m_show_fill_bounds = true;}
 			
 			bool PerformingShading() const {return m_perform_shading;}
 			void PerformShading(bool state) {m_perform_shading = state; m_bounds_dirty = true; m_buffer_dirty = true;}
@@ -84,10 +90,17 @@ namespace IPDF
 			// Trust me it will be easier to generalise things this way. Even though there are pointers.
 			std::vector<ObjectRenderer*> m_object_renderers; 
 			uint8_t * m_cpu_rendering_pixels; // pixels to be used for CPU rendering
+
+			
+			// shading
+			bool m_perform_shading;
 			
 			// Debug rendering
-			bool m_show_object_bounds;
-			bool m_perform_shading;
+			bool m_show_bezier_bounds;
+			bool m_show_bezier_type;
+			bool m_show_fill_points;
+			bool m_show_fill_bounds;
+
 
 #ifndef QUADTREE_DISABLED
 			QuadTreeIndex m_current_quadtree_node;	// The highest node we will traverse.

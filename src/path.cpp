@@ -5,8 +5,8 @@ using namespace std;
 namespace IPDF
 {
 
-Path::Path(const Objects & objects, unsigned start, unsigned end, const Colour & fill)
-	: m_start(start), m_end(end), m_fill(fill)
+Path::Path(const Objects & objects, unsigned start, unsigned end, const Colour & fill, const Colour & stroke)
+	: m_start(start), m_end(end), m_fill(fill), m_stroke(stroke)
 {
 	Real xmin = 0; Real ymin = 0; 
 	Real xmax = 0; Real ymax = 0;

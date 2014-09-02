@@ -11,9 +11,9 @@ namespace IPDF
 	
 	struct Colour
 	{
-		float r; float g; float b; float a;
+		uint8_t r; uint8_t g; uint8_t b; uint8_t a;
 		Colour() = default;
-		Colour(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
+		Colour(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a) : r(_r), g(_g), b(_b), a(_a) {}
 		bool operator==(const Colour & c) const
 		{
 			return (r == c.r && g == c.g && b == c.b && a == c.a);
@@ -25,7 +25,7 @@ namespace IPDF
 	
 	struct Path
 	{
-		Path(const Objects & objects, unsigned _start, unsigned _end, const Colour & _fill = Colour(0.8,0.8,0.8,1));
+		Path(const Objects & objects, unsigned _start, unsigned _end, const Colour & _fill = Colour(128,128,128,255), const Colour & _stroke = Colour(0,0,0,0));
 		
 		Rect SolveBounds(const Objects & objects) const;
 		
@@ -44,6 +44,7 @@ namespace IPDF
 		std::vector<Vec2> m_fill_points;
 		
 		Colour m_fill;	// colour to fill with	
+		Colour m_stroke; // colour to outline with
 	};
 
 }

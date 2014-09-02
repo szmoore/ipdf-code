@@ -95,10 +95,25 @@ QMenu * ControlPanel::CreateViewMenu()
 	view->addAction(m_view_set_bounds);
 	connect(m_view_set_bounds, SIGNAL(triggered()), this, SLOT(SetViewBounds()));
 	
-	m_view_show_object_bounds = new QAction("&Show Object Bounds", this);
-	m_view_show_object_bounds->setCheckable(true);
-	view->addAction(m_view_show_object_bounds);
-	connect(m_view_show_object_bounds, SIGNAL(triggered()), this, SLOT(ToggleShowObjectBounds()));
+	m_view_show_bezier_bounds = new QAction("&Show Bezier Bounds", this);
+	m_view_show_bezier_bounds->setCheckable(true);
+	view->addAction(m_view_show_bezier_bounds);
+	connect(m_view_show_bezier_bounds, SIGNAL(triggered()), this, SLOT(ToggleShowBezierBounds()));
+	
+	m_view_show_bezier_type = new QAction("&Show Bezier Type", this);
+	m_view_show_bezier_type->setCheckable(true);
+	view->addAction(m_view_show_bezier_type);
+	connect(m_view_show_bezier_type, SIGNAL(triggered()), this, SLOT(ToggleShowBezierType()));
+	
+	m_view_show_fill_bounds = new QAction("&Show Fill Bounds", this);
+	m_view_show_fill_bounds->setCheckable(true);
+	view->addAction(m_view_show_fill_bounds);
+	connect(m_view_show_fill_bounds, SIGNAL(triggered()), this, SLOT(ToggleShowFillBounds()));
+	
+	m_view_show_fill_points = new QAction("&Show Fill Points", this);
+	m_view_show_fill_points->setCheckable(true);
+	view->addAction(m_view_show_fill_points);
+	connect(m_view_show_fill_bounds, SIGNAL(triggered()), this, SLOT(ToggleShowFillPoints()));
 	
 	m_view_enable_shading = new QAction("&Enable Shading", this);
 	m_view_enable_shading->setCheckable(true);
@@ -157,8 +172,12 @@ void ControlPanel::UpdateAll()
 	m_screen_cpu_rendering->setChecked(!using_gpu_rendering);	
 	m_screen_show_debug->setChecked(m_screen.DebugFontShown());
 	
-	m_view_show_object_bounds->setChecked(m_view.ShowingObjectBounds());
+	m_view_show_bezier_bounds->setChecked(m_view.ShowingBezierBounds());
+	m_view_show_bezier_type->setChecked(m_view.ShowingBezierType());
+	m_view_show_fill_bounds->setChecked(m_view.ShowingFillBounds());
+	m_view_show_fill_points->setChecked(m_view.ShowingFillPoints());
 	m_view_enable_shading->setChecked(m_view.PerformingShading());
+	
 	
 	// update things based on state
 	const char * title;
@@ -200,10 +219,29 @@ void ControlPanel::UpdateAll()
 	setToolTip(tooltip);
 }
 
-void ControlPanel::ToggleShowObjectBounds()
+void ControlPanel::ToggleShowBezierBounds()
 {
-	bool state = m_view.ShowingObjectBounds();
-	m_view.ShowObjectBounds(!state);
+	bool state = m_view.ShowingBezierBounds();
+	m_view.ShowBezierBounds(!state);
+	UpdateAll();
+}
+void ControlPanel::ToggleShowBezierType()
+{
+	bool state = m_view.ShowingBezierType();
+	m_view.ShowBezierType(!state);
+	UpdateAll();
+}
+void ControlPanel::ToggleShowFillBounds()
+{
+	bool state = m_view.ShowingFillBounds();
+	m_view.ShowFillBounds(!state);
+	UpdateAll();
+}
+
+void ControlPanel::ToggleShowFillPoints()
+{
+	bool state = m_view.ShowingFillPoints();
+	m_view.ShowFillPoints(!state);
 	UpdateAll();
 }
 

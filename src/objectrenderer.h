@@ -55,19 +55,21 @@ namespace IPDF
 			static Colour GetColour(const CPURenderTarget & target, int64_t x, int64_t y)
 			{
 				int64_t index = 4*(x+y*target.w);
-				return Colour(Real(target.pixels[index+0])/Real(255),
-					Real(target.pixels[index+1])/Real(255),
-					Real(target.pixels[index+2])/Real(255),
-					Real(target.pixels[index+3])/Real(255));
+				if (index < 0 || index >= 4*(target.w*target.h))
+					return Colour(0,0,0,0);
+				return Colour(target.pixels[index+0],target.pixels[index+1],target.pixels[index+2],target.pixels[index+3]);
 			}
 			
 			static void SetColour(const CPURenderTarget & target, int64_t x, int64_t y, const Colour & c)
 			{
 				int64_t index = 4*(x+y*target.w);
-				target.pixels[index+0] = c.r*255;
-				target.pixels[index+1] = c.g*255;
-				target.pixels[index+2] = c.b*255;
-				target.pixels[index+3] = c.a*255;
+				if (index < 0 || index >= 4*(target.w*target.h))
+					return;
+				
+				target.pixels[index+0] = c.r;
+				target.pixels[index+1] = c.g;
+				target.pixels[index+2] = c.b;
+				target.pixels[index+3] = c.a;
 			}
 			
 			struct PixelBounds
@@ -84,7 +86,7 @@ namespace IPDF
 			static void SaveBMP(const CPURenderTarget & target, const char * filename);
 
 
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id) = 0;
+			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id) = 0;
 			
 			
 			
@@ -98,7 +100,7 @@ namespace IPDF
 			/** Helper for CPU rendering that will render a line using Bresenham's algorithm. Do not use the transpose argument. **/
 			static void RenderLineOnCPU(int64_t x0, int64_t y0, int64_t x1, int64_t y1, const CPURenderTarget & target, const Colour & colour = Colour(0,0,0,1), bool transpose = false);
 			
-			static void FloodFillOnCPU(int64_t x0, int64_t y0, const PixelBounds & bounds, const CPURenderTarget & target, const Colour & fill);
+			static void FloodFillOnCPU(int64_t x0, int64_t y0, const PixelBounds & bounds, const CPURenderTarget & target, const Colour & fill, const Colour & stroke=Colour(0,0,0,0));
 
 			ShaderProgram m_shader_program; /** GLSL shaders for GPU **/
 			GraphicsBuffer m_ibo; /** Index Buffer Object for GPU rendering **/
@@ -112,7 +114,7 @@ namespace IPDF
 		public:
 			RectFilledRenderer() : ObjectRenderer(RECT_FILLED, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl","shaders/rect_filled_geom.glsl") {}
 			virtual ~RectFilledRenderer() {}
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
+			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 	};
 	/** Renderer for outlined rectangles **/
 	class RectOutlineRenderer : public ObjectRenderer
@@ -120,7 +122,7 @@ namespace IPDF
 		public:
 			RectOutlineRenderer() : ObjectRenderer(RECT_OUTLINE, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
 			virtual ~RectOutlineRenderer() {}
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
+			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 	};
 	/** Renderer for filled circles **/
 	class CircleFilledRenderer : public ObjectRenderer
@@ -128,7 +130,7 @@ namespace IPDF
 		public:
 			CircleFilledRenderer() : ObjectRenderer(CIRCLE_FILLED, "shaders/rect_vert.glsl", "shaders/circle_frag.glsl", "shaders/circle_filled_geom.glsl") {}
 			virtual ~CircleFilledRenderer() {}
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
+			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 	};
 
 	/** Renderer for bezier curves **/
@@ -138,8 +140,11 @@ namespace IPDF
 			BezierRenderer() : ObjectRenderer(BEZIER, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/bezier_texbuf_geom.glsl") {}
 			virtual ~BezierRenderer() {}
 			virtual void RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id); 
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
-			void PrepareBezierGPUBuffer(const Objects & objects);
+			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
+			void PrepareBezierGPUBuffer(Objects & objects);
+			
+			static void RenderBezierOnCPU(unsigned index, Objects & objects, const View & view, const CPURenderTarget & target, const Colour & c=Colour(0,0,0,255));
+			
 		private:
 			GraphicsBuffer m_bezier_coeffs;
 			GraphicsBuffer m_bezier_ids;
@@ -162,7 +167,7 @@ namespace IPDF
 		public:
 			PathRenderer() : ObjectRenderer(PATH, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
 			virtual ~PathRenderer() {}
-			virtual void RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
+			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 			// do nothing on GPU
 			virtual void RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id) {}
 	};

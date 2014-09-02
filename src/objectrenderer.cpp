@@ -52,7 +52,7 @@ void ObjectRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 /**
  * Default implementation for rendering using CPU
  */
-void ObjectRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
+void ObjectRenderer::RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
 	Error("Cannot render objects of type %d on CPU", m_type);
 	//TODO: Render a rect or something instead?
@@ -117,7 +117,7 @@ void ObjectRenderer::FinaliseBuffers()
 /**
  * Rectangle (filled)
  */
-void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
+void RectFilledRenderer::RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
@@ -144,7 +144,7 @@ void RectFilledRenderer::RenderUsingCPU(const Objects & objects, const View & vi
 /**
  * Rectangle (outine)
  */
-void RectOutlineRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
+void RectOutlineRenderer::RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
 	//Debug("Render %u outlined rectangles on CPU", m_indexes.size());
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
@@ -172,7 +172,7 @@ void RectOutlineRenderer::RenderUsingCPU(const Objects & objects, const View & v
 /**
  * Circle (filled)
  */
-void CircleFilledRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
+void CircleFilledRenderer::RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
@@ -224,85 +224,92 @@ ObjectRenderer::PixelPoint ObjectRenderer::CPUPointLocation(const Vec2 & point, 
 	return PixelPoint(x,y);
 }
 	
+	
+void BezierRenderer::RenderBezierOnCPU(unsigned i, Objects & objects, const View & view, const CPURenderTarget & target, const Colour & c)
+{
+	const Rect & bounds = objects.bounds[i];
+	PixelBounds pix_bounds(CPURenderBounds(bounds,view,target));
+	Bezier control(objects.beziers[objects.data_indices[i]].ToAbsolute(bounds),CPURenderBounds(Rect(0,0,1,1), view, target));
+
+	if (view.ShowingBezierBounds())
+	{
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, Colour(255,0,0,0));
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,255,0,0));
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, Colour(255,0,0,0));
+		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,255,0,0));
+	}
+	
+	unsigned blen =	min(max(2U, (unsigned)(target.w/view.GetBounds().w)), 
+			min((unsigned)(pix_bounds.w+pix_bounds.h)/4 + 1, 100U));
+		
+		// DeCasteljau Divide the Bezier
+	queue<Bezier> divisions;
+	divisions.push(control);
+	while(divisions.size() < blen)
+	{
+		Bezier & current = divisions.front();
+		if (current.GetType() == Bezier::LINE)
+		{
+			--blen;
+			continue;
+		}
+		divisions.push(current.DeCasteljauSubdivideRight(Real(1)/Real(2)));	
+		divisions.push(current.DeCasteljauSubdivideLeft(Real(1)/Real(2)));
+		divisions.pop();
+	}
+	while (divisions.size() > 0)
+	{
+		Bezier & current = divisions.front();
+		RenderLineOnCPU(current.x0, current.y0, current.x3, current.y3, target, c);
+		divisions.pop();
+	}		
+}
 
 /**
  * Bezier curve
  * Not sure how to apply De'Casteljau, will just use a bunch of Bresnham lines for now.
  */
-void BezierRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
+void BezierRenderer::RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
+	if (view.PerformingShading())
+		return;
+		
 	//Warn("Rendering Beziers on CPU. Things may explode.");
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
 		if (m_indexes[i] < first_obj_id) continue;
 		if (m_indexes[i] >= last_obj_id) continue;
-		const Rect & bounds = objects.bounds[m_indexes[i]];
-		PixelBounds pix_bounds(CPURenderBounds(bounds,view,target));
-
-		Bezier control(objects.beziers[objects.data_indices[m_indexes[i]]].ToAbsolute(bounds),CPURenderBounds(Rect(0,0,1,1), view, target));
-		//Debug("%s -> %s via %s", objects.beziers[objects.data_indices[m_indexes[i]]].Str().c_str(), control.Str().c_str(), bounds.Str().c_str());
-		// Draw a rectangle around the bezier for debugging the bounds rectangle calculations
-		if (view.ShowingObjectBounds())
+		Colour c(0,0,0,255);
+		if (view.ShowingBezierType())
 		{
-			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y, target, Colour(1,0,0,1));
-			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y+pix_bounds.h, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
-			ObjectRenderer::RenderLineOnCPU(pix_bounds.x, pix_bounds.y, pix_bounds.x, pix_bounds.y+pix_bounds.h, target, Colour(1,0,0,1));
-			ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,1,0,1));
-		}
-		// Draw lines between the control points for debugging
-		//ObjectRenderer::RenderLineOnCPU((int64_t)control.x0, (int64_t)control.y0, (int64_t)control.x1, (int64_t)control.y1,target);
-		//ObjectRenderer::RenderLineOnCPU((int64_t)control.x1, (int64_t)control.y1, (int64_t)control.x2, (int64_t)control.y2,target);
-										
-
-		
-	
-		unsigned blen =	min(max(2U, (unsigned)(target.w/view.GetBounds().w)), min((unsigned)(pix_bounds.w+pix_bounds.h)/4 + 1, 100U));
-		
-		// DeCasteljau Divide the Bezier
-		queue<Bezier> divisions;
-		divisions.push(control);
-		while(divisions.size() < blen)
-		{
-			Bezier & current = divisions.front();
-			if (current.GetType() == Bezier::LINE)
+			switch (objects.beziers[objects.data_indices[m_indexes[i]]].GetType())
 			{
-				--blen;
-				continue;
+				case Bezier::LINE:
+					break;
+				case Bezier::QUADRATIC:
+					c.b = 255;
+					break;
+				case Bezier::SERPENTINE:
+					c.r = 255;
+					break;
+				case Bezier::CUSP:
+					c.g = 255;
+					break;
+				case Bezier::LOOP:
+					c.r = 128;
+					c.b = 128;
+					break;
+				default:
+					c.r = 128;
+					c.g = 128;
+					break;
 			}
-			divisions.push(current.DeCasteljauSubdivideRight(Real(1)/Real(2)));	
-			divisions.push(current.DeCasteljauSubdivideLeft(Real(1)/Real(2)));
-			divisions.pop();
-			
-			//Debug("divisions %u", divisions.size());
 		}
-		while (divisions.size() > 0)
-		{
-			Bezier & current = divisions.front();
-			RenderLineOnCPU(current.x0, current.y0, current.x3, current.y3, target, Colour(0,0,0,!view.PerformingShading()));
-			divisions.pop();
-		}
-		
-		/* Draw the Bezier by sampling
-		Real invblen(1); invblen /= blen;
-		Real t(invblen);
-		Vec2 v0;
-		Vec2 v1;
-		control.Evaluate(v0.x, v0.y, 0);
-		for (int64_t j = 1; j <= blen; ++j)
-		{
-			control.Evaluate(v1.x, v1.y, t);
-			
-			ObjectRenderer::RenderLineOnCPU(v0.x, v0.y, v1.x, v1.y, target, Colour(0,0,0,!view.PerformingShading()));
-			//ObjectRenderer::SetColour(target, x[0], y[0], Colour(1,0,0,1));
-			//ObjectRenderer::SetColour(target, x[1], y[1], Colour(0,0,1,1));
-			t += invblen;
-			v0 = v1;
-		}
-		*/
+		RenderBezierOnCPU(m_indexes[i], objects, view, target, c);
 	}
 }
 
-void BezierRenderer::PrepareBezierGPUBuffer(const Objects& objects)
+void BezierRenderer::PrepareBezierGPUBuffer(Objects & objects)
 {
 	m_bezier_coeffs.SetType(GraphicsBuffer::BufferTypeTexture);
 	m_bezier_coeffs.SetUsage(GraphicsBuffer::BufferUsageDynamicDraw);
@@ -365,10 +372,9 @@ void BezierRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 /**
  * Render Path (shading)
  */
-void PathRenderer::RenderUsingCPU(const Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
+void PathRenderer::RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
-	if (!view.ShowingObjectBounds() && !view.PerformingShading())
-		return;
+
 		
 	for (unsigned i = 0; i < m_indexes.size(); ++i)
 	{
@@ -379,27 +385,57 @@ void PathRenderer::RenderUsingCPU(const Objects & objects, const View & view, co
 		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		PixelBounds pix_bounds(bounds);
 		const Path & path = objects.paths[objects.data_indices[m_indexes[i]]];
-		if (path.m_fill.a == 0 || !view.PerformingShading())
-			continue;
 		
-		for (unsigned f = 0; f < path.m_fill_points.size(); ++f)
-		{
-			PixelPoint fill_point(CPUPointLocation(path.m_fill_points[f], view, target));
-			FloodFillOnCPU(fill_point.first, fill_point.second, pix_bounds, target, path.m_fill);
-		}
-		
-		/*if (true)//(view.ShowingObjectBounds())
+		if (view.ShowingFillPoints())
 		{
 			
 			PixelPoint start(CPUPointLocation((path.m_top+path.m_left+path.m_right+path.m_bottom)/4, view, target));
 			for (unsigned f = 0; f < path.m_fill_points.size(); ++f)
 			{
 				PixelPoint end(CPUPointLocation(path.m_fill_points[f], view, target));
-				RenderLineOnCPU(start.first, start.second, end.first, end.second, target, Colour(0,0,1,1));
+				RenderLineOnCPU(start.first, start.second, end.first, end.second, target, Colour(0,0,255,0));
 			}
 		}
-		*/
-	
+		
+		if (!view.PerformingShading())
+			continue;
+		
+		for (unsigned b = path.m_start; b <= path.m_end; ++b)
+		{
+			BezierRenderer::RenderBezierOnCPU(b,objects,view,target,path.m_stroke);
+		}
+		
+		if (pix_bounds.w*pix_bounds.h > 100)
+		{
+			Debug("High resolution; use fill points %u,%u", pix_bounds.w, pix_bounds.h);
+			for (unsigned f = 0; f < path.m_fill_points.size(); ++f)
+			{
+				PixelPoint fill_point(CPUPointLocation(path.m_fill_points[f], view, target));
+				
+				FloodFillOnCPU(fill_point.first, fill_point.second, pix_bounds, target, path.m_fill, path.m_stroke);
+			}
+		}
+		else
+		{
+			Debug("Low resolution; use brute force %u,%u",pix_bounds.w, pix_bounds.h);
+			int64_t y_min = max((int64_t)0, pix_bounds.y);
+			int64_t y_max = min(pix_bounds.y+pix_bounds.h, target.h);
+			int64_t x_min = max((int64_t)0, pix_bounds.x);
+			int64_t x_max = min(pix_bounds.x+pix_bounds.w, target.w);
+			for (int64_t y = y_min; y < y_max; ++y)
+			{
+				for (int64_t x = x_min; x < x_max; ++x)
+				{
+					Rect pb(path.SolveBounds(objects));
+					Vec2 pt(pb.x + (Real(x-pix_bounds.x)/Real(pix_bounds.w))*pb.w, 
+							pb.y + (Real(y-pix_bounds.y)/Real(pix_bounds.h))*pb.h);
+					if (path.PointInside(objects, pt))
+					{
+						FloodFillOnCPU(x, y, pix_bounds, target, path.m_fill, path.m_stroke);
+					}
+				}
+			}
+		}
 	}	
 }
 
@@ -449,12 +485,6 @@ void ObjectRenderer::RenderLineOnCPU(int64_t x0, int64_t y0, int64_t x1, int64_t
 	int64_t width = (transpose ? target.h : target.w);
 	int64_t height = (transpose ? target.w : target.h);
 
-	uint8_t rgba[4];
-	rgba[0] = 255*colour.r;
-	rgba[1] = 255*colour.g;
-	rgba[2] = 255*colour.b;
-	rgba[3] = 255*colour.a;
-
 	if (x0 > x1)
 	{
 		x = x1;
@@ -487,8 +517,10 @@ void ObjectRenderer::RenderLineOnCPU(int64_t x0, int64_t y0, int64_t x1, int64_t
 		if (x >= 0 && x < width && y >= 0 && y < height)
 		{
 			int64_t index = (transpose ? (y + x*target.w)*4 : (x + y*target.w)*4);
-			for (int i = 0; i < 4; ++i)
-				target.pixels[index+i] = rgba[i];
+			target.pixels[index+0] = colour.r;
+			target.pixels[index+1] = colour.g;
+			target.pixels[index+2] = colour.b;
+			target.pixels[index+3] = colour.a;
 		}
 		if (p < 0)
 			p += two_dy;
@@ -500,10 +532,27 @@ void ObjectRenderer::RenderLineOnCPU(int64_t x0, int64_t y0, int64_t x1, int64_t
 	} while (++x <= x_end);
 }
 
-void ObjectRenderer::FloodFillOnCPU(int64_t x, int64_t y, const PixelBounds & bounds, const CPURenderTarget & target, const Colour & fill)
+
+void ObjectRenderer::FloodFillOnCPU(int64_t x, int64_t y, const PixelBounds & bounds, const CPURenderTarget & target, const Colour & fill, const Colour & stroke)
 {
-	if (fill == Colour(1,1,1,1))
+	// HACK to prevent overflooding (when the fill points for a path round to the pixel outside the boundary)
+	// (I totally just made that term up...)
+	Colour c = GetColour(target, x+1, y);
+	if (c == fill || c == stroke)
 		return;
+	c = GetColour(target, x-1, y);
+	if (c == fill || c == stroke)
+		return;
+	c = GetColour(target, x, y+1);
+	if (c == fill || c == stroke)
+		return;
+	c = GetColour(target, x, y-1);
+	if (c == fill || c == stroke)
+		return;
+		
+	// The hack works but now we get underflooding, or, "droughts".
+	
+		
 	queue<PixelPoint > traverse;
 	traverse.push(PixelPoint(x,y));
 	// now with 100% less stack overflows!
@@ -514,10 +563,14 @@ void ObjectRenderer::FloodFillOnCPU(int64_t x, int64_t y, const PixelBounds & bo
 		if (cur.first < 0 || cur.first < bounds.x || cur.first >= bounds.x+bounds.w || cur.first >= target.w ||
 			cur.second < 0 || cur.second < bounds.y || cur.second >= bounds.y+bounds.h || cur.second >= target.h)
 			continue;
-		if (GetColour(target, cur.first, cur.second) != Colour(1,1,1,1))
+		c = GetColour(target, cur.first, cur.second);
+		if (c == fill || c == stroke)
 			continue;
+
 		SetColour(target, cur.first, cur.second, fill);
 		
+		//Debug("c is {%u,%u,%u,%u} fill is {%u,%u,%u,%u}, stroke is {%u,%u,%u,%u}",
+		//	c.r,c.g,c.b,c.a, fill.r,fill.g,fill.b,fill.a, stroke.r,stroke.g,stroke.b,stroke.a);
 
 		traverse.push(PixelPoint(cur.first+1, cur.second));
 		traverse.push(PixelPoint(cur.first-1, cur.second));

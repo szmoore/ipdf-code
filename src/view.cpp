@@ -21,7 +21,8 @@ View::View(Document & document, Screen & screen, const Rect & bounds, const Colo
 	: m_use_gpu_transform(USE_GPU_TRANSFORM), m_use_gpu_rendering(USE_GPU_RENDERING), m_bounds_dirty(true), m_buffer_dirty(true), 
 		m_render_dirty(true), m_document(document), m_screen(screen), m_cached_display(), m_bounds(bounds), m_colour(colour), m_bounds_ubo(), 
 		m_objbounds_vbo(), m_object_renderers(NUMBER_OF_OBJECT_TYPES), m_cpu_rendering_pixels(NULL),
-		m_show_object_bounds(false), m_perform_shading(USE_SHADING)
+		m_perform_shading(USE_SHADING), m_show_bezier_bounds(false), m_show_bezier_type(false),
+		m_show_fill_points(false), m_show_fill_bounds(false)
 {
 	Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
 

@@ -61,7 +61,10 @@ namespace IPDF
 		private slots:
 			void SetGPURendering();
 			void SetCPURendering();
-			void ToggleShowObjectBounds();
+			void ToggleShowBezierBounds();
+			void ToggleShowBezierType();
+			void ToggleShowFillBounds();
+			void ToggleShowFillPoints();
 			void ToggleScreenDebugFont();
 			void ToggleEnableShading();
 			void SetViewBounds();
@@ -107,8 +110,12 @@ namespace IPDF
 			QAction * m_document_parse_svg;
 			QAction * m_document_load_svg;
 			QAction * m_view_set_bounds;
-			QAction * m_view_show_object_bounds;
+			QAction * m_view_show_bezier_bounds;
+			QAction * m_view_show_bezier_type;
+			QAction * m_view_show_fill_bounds;
+			QAction * m_view_show_fill_points;
 			QAction * m_view_enable_shading;
+			
 			
 		
 			QTextEdit * m_text_edit;
