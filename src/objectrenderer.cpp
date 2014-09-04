@@ -219,8 +219,8 @@ ObjectRenderer::PixelPoint ObjectRenderer::CPUPointLocation(const Vec2 & point, 
 {
 	// hack...
 	Rect result = view.TransformToViewCoords(Rect(point.x, point.y,1,1));
-	int64_t x = result.x*target.w;
-	int64_t y = result.y*target.h;
+	int64_t x = Int64(result.x*target.w);
+	int64_t y = Int64(result.y*target.h);
 	return PixelPoint(x,y);
 }
 	
@@ -239,7 +239,7 @@ void BezierRenderer::RenderBezierOnCPU(unsigned i, Objects & objects, const View
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,255,0,0));
 	}
 	
-	unsigned blen =	min(max(2U, (unsigned)(target.w/view.GetBounds().w)), 
+	unsigned blen =	min(max(2U, (unsigned)Int64(Real(target.w)/view.GetBounds().w)), 
 			min((unsigned)(pix_bounds.w+pix_bounds.h)/4 + 1, 100U));
 		
 		// DeCasteljau Divide the Bezier
@@ -260,7 +260,7 @@ void BezierRenderer::RenderBezierOnCPU(unsigned i, Objects & objects, const View
 	while (divisions.size() > 0)
 	{
 		Bezier & current = divisions.front();
-		RenderLineOnCPU(current.x0, current.y0, current.x3, current.y3, target, c);
+		RenderLineOnCPU(Int64(current.x0), Int64(current.y0), Int64(current.x3), Int64(current.y3), target, c);
 		divisions.pop();
 	}		
 }

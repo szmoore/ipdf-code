@@ -23,6 +23,7 @@ template <class T> T Tabs(const T & a)
 template <> Arbint Tabs(const Arbint & a);
 template <> Gmpint Tabs(const Gmpint & a);
 
+
 /* Recursive version  of GCD
 template <class T>
 T gcd(const T & a, const T & b)
@@ -172,6 +173,15 @@ struct Rational
 	Rational & operator-=(const Rational & r) {this->operator=(*this-r); return *this;}
 	Rational & operator*=(const Rational & r) {this->operator=(*this*r); return *this;}
 	Rational & operator/=(const Rational & r) {this->operator=(*this/r); return *this;}
+	Rational Sqrt() const
+	{
+		return Rational(sqrt(ToDouble()));
+	}
+
+	int64_t ToInt64() const
+	{
+		return (int64_t)ToDouble();
+	}
 
 	double ToDouble() const 
 	{
@@ -207,6 +217,11 @@ struct Rational
 };
 
 
+template <class P>
+Rational<P> Abs(const Rational<P> & a)
+{
+	return Rational<P>(Tabs(a.P), a.Q);
+}
 
 }
 

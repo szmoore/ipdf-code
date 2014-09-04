@@ -54,6 +54,8 @@ namespace IPDF
 	typedef Rational<ARBINT> Real;
 	inline float Float(const Real & r) {return (float)r.ToDouble();}
 	inline double Double(const Real & r) {return r.ToDouble();}
+	inline int64_t Int64(const Real & r) {return r.ToInt64();}
+	inline Rational<ARBINT> Sqrt(const Rational<ARBINT> & r) {return r.Sqrt();}
 
 #else
 	#error "Type of Real unspecified."
@@ -69,6 +71,8 @@ namespace IPDF
 	inline double Double(double f) {return (double)f;}
 	inline double Double(long double f) {return (double)(f);}
 	inline double Sqrt(double f) {return sqrt(f);}
+	inline double Abs(double a) {return fabs(a);}
+	inline int64_t Int64(double a){return (int64_t)a;}
 	
 	inline Real Power(const Real & a, int n)
 	{

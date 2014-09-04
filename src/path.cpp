@@ -126,7 +126,7 @@ bool Path::PointInside(const Objects & objects, const Vec2 & pt, bool debug) con
 	for (unsigned i = 0; i < x_ints.size(); ++i)
 	{
 		if (debug)
-				Debug("X Intersection %u at %f,%f vs %f,%f", i,x_ints[i].x, x_ints[i].y, pt.x, pt.y);
+				Debug("X Intersection %u at %f,%f vs %f,%f", i,Double(x_ints[i].x), Double(x_ints[i].y), Double(pt.x), Double(pt.y));
 		if (x_ints[i].y >= pt.y)
 		{
 			
@@ -147,7 +147,7 @@ bool Path::PointInside(const Objects & objects, const Vec2 & pt, bool debug) con
 	for (unsigned i = 0; i < y_ints.size(); ++i)
 	{
 		if (debug)
-				Debug("Y Intersection %u at %f,%f vs %f,%f", i,x_ints[i].x, x_ints[i].y, pt.x, pt.y);
+				Debug("Y Intersection %u at %f,%f vs %f,%f", i,Double(y_ints[i].x), Double(y_ints[i].y), Double(pt.x), Double(pt.y));
 		if (y_ints[i].x >= pt.x)
 		{
 			

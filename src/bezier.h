@@ -53,7 +53,7 @@ namespace IPDF
 			Real d2 = a3*b1 - a1*b3;
 			Real d3 = a1*b2 - a2*b1;
 			
-			if (fabs(d1+d2+d3) < 1e-6)
+			if (Abs(d1+d2+d3) < 1e-6)
 			{
 				type = LINE;
 				//Debug("LINE %s", Str().c_str());
@@ -63,7 +63,7 @@ namespace IPDF
 			Real delta1 = -(d1*d1);
 			Real delta2 = d1*d2;
 			Real delta3 = d1*d3 -(d2*d2);
-			if (fabs(delta1+delta2+delta3) < 1e-6)
+			if (Abs(delta1+delta2+delta3) < 1e-6)
 			{
 				type = QUADRATIC;
 				
@@ -72,7 +72,7 @@ namespace IPDF
 			}
 			
 			Real discriminant = d1*d3*4 -d2*d2;
-			if (fabs(discriminant) < 1e-6)
+			if (Abs(discriminant) < 1e-6)
 			{
 				type = CUSP;
 				//Debug("CUSP %s", Str().c_str());
@@ -235,13 +235,13 @@ namespace IPDF
 
 		Bezier ReParametrise(const Real& t0, const Real& t1)
 		{
-			Debug("Reparametrise: %f -> %f",t0,t1);
+			Debug("Reparametrise: %f -> %f",Double(t0),Double(t1));
 			Bezier new_bezier;
 			// Subdivide to get from [0,t1]
 			new_bezier = DeCasteljauSubdivideLeft(t1);
 			// Convert t0 from [0,1] range to [0, t1]
 			Real new_t0 = t0 / t1;
-			Debug("New t0 = %f", new_t0);
+			Debug("New t0 = %f", Double(new_t0));
 			new_bezier = new_bezier.DeCasteljauSubdivideRight(new_t0);
 
 			Debug("%s becomes %s", this->Str().c_str(), new_bezier.Str().c_str());
@@ -293,7 +293,7 @@ namespace IPDF
 			{
 				Real t1 = *it;
 				if (t1 == t0) continue;
-				Debug(" -- t0: %f to t1: %f", t0, t1);
+				Debug(" -- t0: %f to t1: %f", Double(t0), Double(t1));
 				Real ptx, pty;
 				Evaluate(ptx, pty, ((t1 + t0) / Real(2)));
 				if (r.PointIn(ptx, pty))
@@ -302,7 +302,7 @@ namespace IPDF
 				}
 				else
 				{
-					Debug("Segment removed (point at %f, %f)", ptx, pty);
+					Debug("Segment removed (point at %f, %f)", Double(ptx), Double(pty));
 				}
 				t0 = t1;
 			}
