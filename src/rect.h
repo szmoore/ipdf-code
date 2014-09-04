@@ -15,7 +15,7 @@ namespace IPDF
 		{
 			std::stringstream s;
 			// float conversion needed because it is fucking impossible to get ostreams working with template classes
-			s << "{" << Float(x) << ", " << Float(y) << ", " << Float(w) << ", " << Float(h) << "}";
+			s << "{" << Float(x) << ", " << Float(y) << ", " << Float(x + w) << ", " << Float(y + h) << " (w: " << Float(w) <<", h: " << Float(h) <<")}";
 			return s.str();
 		}
 		inline bool PointIn(Real pt_x, Real pt_y) const

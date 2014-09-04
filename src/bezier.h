@@ -15,7 +15,7 @@ namespace IPDF
 	
 	extern std::vector<Real> SolveQuadratic(const Real & a, const Real & b, const Real & c, const Real & min = 0, const Real & max = 1);
 
-	extern std::vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d, const Real & min = 0, const Real & max = 1, const Real & delta = 1e-4);
+	extern std::vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d, const Real & min = 0, const Real & max = 1, const Real & delta = 1e-9);
 
 	/** A _cubic_ bezier. **/
 	struct Bezier
@@ -179,56 +179,56 @@ namespace IPDF
 		}
 
 		// Performs one round of De Casteljau subdivision and returns the [t,1] part.
-		Bezier DeCasteljauSubdivideRight(const Real& t)
-		{
-			Real one_minus_t = Real(1) - t;
-
-			// X Coordinates
-			Real x01 = x0*t + x1*one_minus_t;
-			Real x12 = x1*t + x2*one_minus_t;
-			Real x23 = x2*t + x3*one_minus_t;
-
-			Real x012 = x01*t + x12*one_minus_t;
-			Real x123 = x12*t + x23*one_minus_t;
-
-			Real x0123 = x012*t + x123*one_minus_t;
-
-			// Y Coordinates
-			Real y01 = y0*t + y1*one_minus_t;
-			Real y12 = y1*t + y2*one_minus_t;
-			Real y23 = y2*t + y3*one_minus_t;
-
-			Real y012 = y01*t + y12*one_minus_t;
-			Real y123 = y12*t + y23*one_minus_t;
-
-			Real y0123 = y012*t + y123*one_minus_t;
-
-			return Bezier(x0, y0, x01, y01, x012, y012, x0123, y0123);
-		}
-		// Performs one round of De Casteljau subdivision and returns the [0,t] part.
 		Bezier DeCasteljauSubdivideLeft(const Real& t)
 		{
 			Real one_minus_t = Real(1) - t;
 
 			// X Coordinates
-			Real x01 = x0*t + x1*one_minus_t;
-			Real x12 = x1*t + x2*one_minus_t;
-			Real x23 = x2*t + x3*one_minus_t;
+			Real x01 = x1*t + x0*one_minus_t;
+			Real x12 = x2*t + x1*one_minus_t;
+			Real x23 = x3*t + x2*one_minus_t;
 
-			Real x012 = x01*t + x12*one_minus_t;
-			Real x123 = x12*t + x23*one_minus_t;
+			Real x012 = x12*t + x01*one_minus_t;
+			Real x123 = x23*t + x12*one_minus_t;
 
-			Real x0123 = x012*t + x123*one_minus_t;
+			Real x0123 = x123*t + x012*one_minus_t;
 
 			// Y Coordinates
-			Real y01 = y0*t + y1*one_minus_t;
-			Real y12 = y1*t + y2*one_minus_t;
-			Real y23 = y2*t + y3*one_minus_t;
+			Real y01 = y1*t + y0*one_minus_t;
+			Real y12 = y2*t + y1*one_minus_t;
+			Real y23 = y3*t + y2*one_minus_t;
 
-			Real y012 = y01*t + y12*one_minus_t;
-			Real y123 = y12*t + y23*one_minus_t;
+			Real y012 = y12*t + y01*one_minus_t;
+			Real y123 = y23*t + y12*one_minus_t;
 
-			Real y0123 = y012*t + y123*one_minus_t;
+			Real y0123 = y123*t + y012*one_minus_t;
+
+			return Bezier(x0, y0, x01, y01, x012, y012, x0123, y0123);
+		}
+		// Performs one round of De Casteljau subdivision and returns the [t,1] part.
+		Bezier DeCasteljauSubdivideRight(const Real& t)
+		{
+			Real one_minus_t = Real(1) - t;
+
+			// X Coordinates
+			Real x01 = x1*t + x0*one_minus_t;
+			Real x12 = x2*t + x1*one_minus_t;
+			Real x23 = x3*t + x2*one_minus_t;
+
+			Real x012 = x12*t + x01*one_minus_t;
+			Real x123 = x23*t + x12*one_minus_t;
+
+			Real x0123 = x123*t + x012*one_minus_t;
+
+			// Y Coordinates
+			Real y01 = y1*t + y0*one_minus_t;
+			Real y12 = y2*t + y1*one_minus_t;
+			Real y23 = y3*t + y2*one_minus_t;
+
+			Real y012 = y12*t + y01*one_minus_t;
+			Real y123 = y23*t + y12*one_minus_t;
+
+			Real y0123 = y123*t + y012*one_minus_t;
 
 			return Bezier(x0123, y0123, x123, y123, x23, y23, x3, y3);
 		}
@@ -253,35 +253,19 @@ namespace IPDF
 			// Find points of intersection with the rectangle.
 			Debug("Clipping Bezier to Rect %s", r.Str().c_str());
 
-			// Convert bezier coefficients -> cubic coefficients
-			Real xd = x0 - r.x;
-			Real xc = Real(3)*(x1 - x0);
-			Real xb = Real(3)*(x2 - x1) - xc;
-			Real xa = x3 - x0 - xc - xb;
 
 			// Find its roots.
-			std::vector<Real> x_intersection = SolveCubic(xa, xb, xc, xd);
+			std::vector<Real> x_intersection = SolveXParam(r.x);
 
 			// And for the other side.
-			xd = x0 - r.x - r.w;
 
-			std::vector<Real> x_intersection_pt2 = SolveCubic(xa, xb, xc, xd);
+			std::vector<Real> x_intersection_pt2 = SolveXParam(r.x + r.w);
 			x_intersection.insert(x_intersection.end(), x_intersection_pt2.begin(), x_intersection_pt2.end());
 
-			// Similarly for y-coordinates.
-			// Convert bezier coefficients -> cubic coefficients
-			Real yd = y0 - r.y;
-			Real yc = Real(3)*(y1 - y0);
-			Real yb = Real(3)*(y2 - y1) - yc;
-			Real ya = y3 - y0 - yc - yb;
-
 			// Find its roots.
-			std::vector<Real> y_intersection = SolveCubic(ya, yb, yc, yd);
+			std::vector<Real> y_intersection = SolveYParam(r.y);
 
-			// And for the other side.
-			yd = y0 - r.y - r.h;
-
-			std::vector<Real> y_intersection_pt2 = SolveCubic(ya, yb, yc, yd);
+			std::vector<Real> y_intersection_pt2 = SolveYParam(r.y+r.h);
 			y_intersection.insert(y_intersection.end(), y_intersection_pt2.begin(), y_intersection_pt2.end());
 
 			// Merge and sort.
@@ -291,6 +275,12 @@ namespace IPDF
 			std::sort(x_intersection.begin(), x_intersection.end());
 
 			Debug("Found %d intersections.\n", x_intersection.size());
+			for(auto t : x_intersection)
+			{
+				Real ptx, pty;
+				Evaluate(ptx, pty, t);
+				Debug("Root: t = %f, (%f,%f)", t, ptx, pty);
+			}
 			
 			std::vector<Bezier> all_beziers;
 			if (x_intersection.size() <= 2)
@@ -306,7 +296,7 @@ namespace IPDF
 				Debug(" -- t0: %f to t1: %f", t0, t1);
 				Real ptx, pty;
 				Evaluate(ptx, pty, ((t1 + t0) / Real(2)));
-				if (true || r.PointIn(ptx, pty))
+				if (r.PointIn(ptx, pty))
 				{
 					all_beziers.push_back(this->ReParametrise(t0, t1));
 				}

@@ -4,7 +4,7 @@ uniform samplerBuffer bezier_buffer_texture;
 uniform isamplerBuffer bezier_id_buffer_texture; 
 
 layout(lines) in;
-layout(line_strip, max_vertices = 101) out;
+layout(line_strip, max_vertices = 105) out;
 
 in int objectid[];
 in vec2 pixsize[];
@@ -40,5 +40,14 @@ void main()
 		
 	}
 	EndPrimitive();
+/*	gl_Position = vec4(coeff0 * boundssize + gl_in[0].gl_Position.xy, 0.0, 1.0);
+	EmitVertex();
+	gl_Position = vec4(coeff1 * boundssize + gl_in[0].gl_Position.xy, 0.0, 1.0);
+	EmitVertex();
+	gl_Position = vec4(coeff2 * boundssize + gl_in[0].gl_Position.xy, 0.0, 1.0);
+	EmitVertex();
+	gl_Position = vec4(coeff3 * boundssize + gl_in[0].gl_Position.xy, 0.0, 1.0);
+	EmitVertex();
+	EndPrimitive();*/
 }
 

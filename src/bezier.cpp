@@ -97,23 +97,6 @@ vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Re
 	tu = max;
 	CubicSolveSegment(roots, a, b, c, d, tl, tu,delta);
 	return roots;
-	/*
-		Real maxi(100);
-		Real prevRes(d);
-		for(int i = 0; i <= 100; ++i)
-		{
-			Real x(i);
-			x /= maxi;
-			Real y = a*(x*x*x) + b*(x*x) + c*x + d;
-			if (((y < Real(0)) && (prevRes > Real(0))) || ((y > Real(0)) && (prevRes < Real(0))))
-			{
-				//Debug("Found root of %fx^3 + %fx^2 + %fx + %f at %f (%f)", a, b, c, d, x, y);
-				roots.push_back(x);
-			}
-			prevRes = y;
-		}
-		return roots;
-	*/
 }
 
 /**
