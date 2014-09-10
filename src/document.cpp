@@ -105,6 +105,7 @@ int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 	{
 	case RECT_FILLED:
 	case RECT_OUTLINE:
+	case PATH:
 		{
 		Rect obj_bounds = TransformToQuadChild(m_objects.bounds[object_id], type);
 		if (obj_bounds.x < 0)
@@ -147,6 +148,7 @@ int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 			Rect new_bounds = TransformToQuadChild(m_objects.bounds[object_id], type);
 			Bezier new_curve_data = new_curves[i].ToAbsolute(TransformToQuadChild(m_objects.bounds[object_id],type));
 			new_bounds = new_curve_data.SolveBounds();
+			Debug("New bounds: %s", new_bounds.Str().c_str());
 			new_curve_data = new_curve_data.ToRelative(new_bounds);
 			unsigned index = AddBezierData(new_curve_data);
 			m_objects.bounds.push_back(new_bounds);

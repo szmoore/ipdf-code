@@ -229,6 +229,15 @@ void View::Render(int width, int height)
 	}
 	m_screen.DebugFontPrintF("Current View QuadTree Node: %d (objs: %d -> %d)\n", m_current_quadtree_node, m_document.GetQuadTree().nodes[m_current_quadtree_node].object_begin,
 				m_document.GetQuadTree().nodes[m_current_quadtree_node].object_end);
+
+	Rect view_top_bounds = m_bounds;
+	QuadTreeIndex tmp = m_current_quadtree_node;
+	while (tmp != -1)
+	{
+		view_top_bounds = TransformFromQuadChild(view_top_bounds, m_document.GetQuadTree().nodes[tmp].child_type);
+		tmp = m_document.GetQuadTree().nodes[tmp].parent;
+	}
+	m_screen.DebugFontPrintF("Equivalent View Bounds: %s\n", view_top_bounds.Str().c_str());
 #endif
 
 	if (!m_use_gpu_rendering)
