@@ -23,6 +23,7 @@ inline void OverlayBMP(Document & doc, const char * input, const char * output, 
 }
 
 // It is the only way.
+// Dear god what have I done
 void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 {
 	static bool oldButtonDown = false;
@@ -52,7 +53,7 @@ void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 	}
 	if (buttons)
 	{
-		#if REAL >= REAL_RATIONAL
+		#if REAL == REAL_RATIONAL
 			view->Translate(Real(oldx, scr->ViewportWidth()) -Real(x,scr->ViewportWidth()), Real(oldy, scr->ViewportHeight()) - Real(y,scr->ViewportHeight()));
 		#else			
 			view->Translate(Real(oldx-x)/Real(scr->ViewportWidth()), Real(oldy-y)/Real(scr->ViewportHeight()));
@@ -68,7 +69,7 @@ void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 		
 	if (wheel)
 	{
-		#if REAL >= REAL_RATIONAL
+		#if REAL == REAL_RATIONAL
 			view->ScaleAroundPoint(Real(x,scr->ViewportWidth()), Real(y,scr->ViewportHeight()), Real(20-wheel, 20));
 		#else
 			view->ScaleAroundPoint(Real(x)/Real(scr->ViewportWidth()),Real(y)/Real(scr->ViewportHeight()), Real(expf(-wheel/20.f)));

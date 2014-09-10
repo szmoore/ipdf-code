@@ -17,7 +17,7 @@ int main(int argc, char ** argv)
 	Debug("FLT_MIN = %.40f", FLT_MIN);
 	Debug("FLT_EPSILON = %.40f", FLT_EPSILON);
 	
-	while (true)
+	while (cin.good())
 	{
 		float a; float b;
 		char op;

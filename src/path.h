@@ -22,12 +22,14 @@ namespace IPDF
 	};
 	
 	class Objects;
+	class View;
 	
 	struct Path
 	{
 		Path(const Objects & objects, unsigned _start, unsigned _end, const Colour & _fill = Colour(128,128,128,255), const Colour & _stroke = Colour(0,0,0,0));
 		
 		Rect SolveBounds(const Objects & objects) const;
+		std::vector<Vec2> & FillPoints(const Objects & objects, const View & view);
 		
 		// Is point inside shape?
 		bool PointInside(const Objects & objects, const Vec2 & pt, bool debug=false) const;

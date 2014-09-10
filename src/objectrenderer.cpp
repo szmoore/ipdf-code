@@ -384,7 +384,7 @@ void PathRenderer::RenderUsingCPU(Objects & objects, const View & view, const CP
 		
 		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
 		PixelBounds pix_bounds(bounds);
-		const Path & path = objects.paths[objects.data_indices[m_indexes[i]]];
+		Path & path = objects.paths[objects.data_indices[m_indexes[i]]];
 		
 		if (view.ShowingFillPoints())
 		{
@@ -407,10 +407,11 @@ void PathRenderer::RenderUsingCPU(Objects & objects, const View & view, const CP
 		
 		if (pix_bounds.w*pix_bounds.h > 100)
 		{
+			vector<Vec2> & fill_points = path.FillPoints(objects, view);
 			Debug("High resolution; use fill points %u,%u", pix_bounds.w, pix_bounds.h);
-			for (unsigned f = 0; f < path.m_fill_points.size(); ++f)
+			for (unsigned f = 0; f < fill_points.size(); ++f)
 			{
-				PixelPoint fill_point(CPUPointLocation(path.m_fill_points[f], view, target));
+				PixelPoint fill_point(CPUPointLocation(fill_points[f], view, target));
 				
 				FloodFillOnCPU(fill_point.first, fill_point.second, pix_bounds, target, path.m_fill, path.m_stroke);
 			}

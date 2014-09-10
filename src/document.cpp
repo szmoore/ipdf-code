@@ -301,6 +301,7 @@ unsigned Document::AddPath(unsigned start_index, unsigned end_index, const Colou
 	unsigned data_index = AddPathData(path);
 	Rect bounds = path.SolveBounds(m_objects);
 	unsigned result = Add(PATH, bounds,data_index);
+	//Debug("Added path %u -> %u (%u objects) colour {%u,%u,%u,%u}, stroke {%u,%u,%u,%u}", start_index, end_index, (end_index - start_index), fill.r, fill.g, fill.b, fill.a, stroke.r, stroke.g, stroke.b, stroke.a);
 	return result;
 }
 
@@ -1008,7 +1009,7 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 	{
 		AddPath(start_index, end_index);
 	}
-	Debug("Added Glyph \"%c\" at %f %f, scale %f", (char)character, Float(x), Float(y), Float(scale));
+	//Debug("Added Glyph \"%c\" at %f %f, scale %f", (char)character, Float(x), Float(y), Float(scale));
 
 	stbtt_FreeShape(font, instructions);
 }

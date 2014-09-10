@@ -43,68 +43,14 @@ Path::Path(const Objects & objects, unsigned start, unsigned end, const Colour &
 		{
 			ymax = (objb.y+objb.h);
 			bottom = i;
-		}
-		
-		// find fill points
-		Vec2 pt;
-		// left
-		pt = Vec2(objb.x, objb.y+objb.h/Real(2));
-		if (PointInside(objects, pt))
-			m_fill_points.push_back(pt);
-		// right
-		pt = Vec2(objb.x+objb.w, objb.y+objb.h/Real(2));
-		if (PointInside(objects, pt))
-			m_fill_points.push_back(pt);
-		// bottom
-		pt = Vec2(objb.x+objb.w/Real(2), objb.y+objb.h);
-		if (PointInside(objects, pt))
-			m_fill_points.push_back(pt);
-		// top
-		pt = Vec2(objb.x+objb.w/Real(2), objb.y);
-		if (PointInside(objects, pt))
-			m_fill_points.push_back(pt);
-			
-		// topleft
-		pt = Vec2(objb.x, objb.y);
-		if (PointInside(objects, pt))
-			m_fill_points.push_back(pt);
-		// topright
-		pt = Vec2(objb.x+objb.w, objb.y);
-		if (PointInside(objects, pt))
-			m_fill_points.push_back(pt);
-		// bottom left
-		pt = Vec2(objb.x, objb.y+objb.h);
-		if (PointInside(objects, pt))
-			m_fill_points.push_back(pt);
-		// bottom right
-		pt = Vec2(objb.x+objb.w, objb.y);
-		if (PointInside(objects, pt))
-			m_fill_points.push_back(pt);
-			
-		// mid
-		pt = Vec2(objb.x+objb.w/Real(2), objb.y+objb.h/Real(2));
-		if (PointInside(objects, pt))
-			m_fill_points.push_back(pt);
-		
-		
+		}	
 	}
 	
 	// Get actual turning point coords of the 4 edge case beziers
 	m_top = objects.beziers[objects.data_indices[top]].ToAbsolute(objects.bounds[top]).GetTop();
 	m_bottom = objects.beziers[objects.data_indices[bottom]].ToAbsolute(objects.bounds[bottom]).GetBottom();
 	m_left = objects.beziers[objects.data_indices[left]].ToAbsolute(objects.bounds[left]).GetLeft();
-	m_right = objects.beziers[objects.data_indices[right]].ToAbsolute(objects.bounds[right]).GetRight();
-	
-	Vec2 pt = (m_top + m_bottom)/2;
-	if (PointInside(objects, pt))
-		m_fill_points.push_back(pt);
-	pt = (m_left + m_right)/2;
-	if (PointInside(objects, pt))
-		m_fill_points.push_back(pt);
-	pt = (m_left + m_right + m_top + m_bottom)/4;
-	if (PointInside(objects, pt))
-		m_fill_points.push_back(pt);
-		
+	m_right = objects.beziers[objects.data_indices[right]].ToAbsolute(objects.bounds[right]).GetRight();	
 }
 
 
@@ -164,6 +110,73 @@ bool Path::PointInside(const Objects & objects, const Vec2 & pt, bool debug) con
 		
 		
 	return true;
+}
+
+vector<Vec2> & Path::FillPoints(const Objects & objects, const View & view)
+{
+	if (m_fill_points.size() != 0)
+		return m_fill_points;
+		
+	
+	for (unsigned i = m_start; i <= m_end; ++i)
+	{
+		const Rect & objb = objects.bounds[i];
+		// find fill points
+		Vec2 pt;
+		// left
+		pt = Vec2(objb.x, objb.y+objb.h/Real(2));
+		if (PointInside(objects, pt))
+			m_fill_points.push_back(pt);
+		// right
+		pt = Vec2(objb.x+objb.w, objb.y+objb.h/Real(2));
+		if (PointInside(objects, pt))
+			m_fill_points.push_back(pt);
+		// bottom
+		pt = Vec2(objb.x+objb.w/Real(2), objb.y+objb.h);
+		if (PointInside(objects, pt))
+			m_fill_points.push_back(pt);
+		// top
+		pt = Vec2(objb.x+objb.w/Real(2), objb.y);
+		if (PointInside(objects, pt))
+			m_fill_points.push_back(pt);
+			
+		// topleft
+		pt = Vec2(objb.x, objb.y);
+		if (PointInside(objects, pt))
+			m_fill_points.push_back(pt);
+		// topright
+		pt = Vec2(objb.x+objb.w, objb.y);
+		if (PointInside(objects, pt))
+			m_fill_points.push_back(pt);
+		// bottom left
+		pt = Vec2(objb.x, objb.y+objb.h);
+		if (PointInside(objects, pt))
+			m_fill_points.push_back(pt);
+		// bottom right
+		pt = Vec2(objb.x+objb.w, objb.y);
+		if (PointInside(objects, pt))
+			m_fill_points.push_back(pt);
+			
+		// mid
+		pt = Vec2(objb.x+objb.w/Real(2), objb.y+objb.h/Real(2));
+		if (PointInside(objects, pt))
+			m_fill_points.push_back(pt);
+		
+		
+	}
+	
+	// 4 extrema
+	Vec2 pt = (m_top + m_bottom)/2;
+	if (PointInside(objects, pt))
+		m_fill_points.push_back(pt);
+	pt = (m_left + m_right)/2;
+	if (PointInside(objects, pt))
+		m_fill_points.push_back(pt);
+	pt = (m_left + m_right + m_top + m_bottom)/4;
+	if (PointInside(objects, pt))
+		m_fill_points.push_back(pt);
+		
+	return m_fill_points;
 }
 
 Rect Path::SolveBounds(const Objects & objects) const

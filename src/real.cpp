@@ -9,7 +9,8 @@ namespace IPDF
 		"long double",
 		"VFPU",
 		"Rational<int64_t>", 
-		"Rational<Arbint>"
+		"Rational<Arbint>",
+		"mpfrc++ real"
 	};
 	
 #if REAL == REAL_RATIONAL_ARBINT

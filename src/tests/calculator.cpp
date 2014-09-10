@@ -11,7 +11,7 @@ using namespace IPDF;
 
 int main(int argc, char ** argv)
 {
-	while (true)
+	while (cin.good())
 	{
 		double da; double db;
 		char op;

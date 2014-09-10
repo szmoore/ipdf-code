@@ -19,17 +19,29 @@ int main(int argc, char ** argv)
 	Debug("FLT_EPSILON = %.40f", FLT_EPSILON);
 	
 	ParanoidNumber a("0.3");
-	Debug("start at %s", a.Str().c_str());
+	Debug("start at {%s} = %lf", a.Str().c_str(), a.ToDouble());
 	cout << "0.3 ";
 	float fa = 0.3;
 	double da = 0.3;
 	while (cin.good())
 	{
 		char op;
-		double db;
-		cin >> op >> db;
-		float fb(db);
-		ParanoidNumber b(fb);
+		cin >> op;
+		string token("");
+		for (char c = cin.peek(); cin.good() && !iswspace(c); c = cin.peek())
+		{
+			if (c == '+' || c == '-' || c == '*' || c == '/')
+			{
+				break;
+			}
+			token += c;
+			c = cin.get();
+		}
+		Debug("String is %s", token.c_str());
+		float fb = strtof(token.c_str(), NULL);
+		double db = strtod(token.c_str(), NULL);
+		ParanoidNumber b(token.c_str());
+		Debug("b is {%s} %lf", b.Str().c_str(), b.ToDouble());
 		switch (op)
 		{
 			case '+':

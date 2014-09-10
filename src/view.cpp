@@ -264,6 +264,7 @@ void View::Render(int width, int height)
 #ifndef CONTROLPANEL_DISABLED
 	ControlPanel::Update();
 #endif //CONTROLPANEL_DISABLED
+	//Debug("Completed Render");
 	
 }
 

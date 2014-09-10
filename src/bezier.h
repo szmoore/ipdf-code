@@ -279,7 +279,7 @@ namespace IPDF
 			{
 				Real ptx, pty;
 				Evaluate(ptx, pty, t);
-				Debug("Root: t = %f, (%f,%f)", t, ptx, pty);
+				Debug("Root: t = %f, (%f,%f)", Double(t), Double(ptx), Double(pty));
 			}
 			
 			std::vector<Bezier> all_beziers;

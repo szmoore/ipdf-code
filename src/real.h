@@ -11,6 +11,7 @@
 #define REAL_VFPU 3
 #define REAL_RATIONAL 4
 #define REAL_RATIONAL_ARBINT 5
+#define REAL_MPFRCPP 6
 
 #ifndef REAL
 	#error "REAL was not defined!"
@@ -28,6 +29,10 @@
 	#include "rational.h"
 	#include "arbint.h"
 	#include "gmpint.h"
+#endif //REAL
+
+#if REAL == REAL_MPFRCPP
+	#include <mpreal.h>
 #endif //REAL
 
 namespace IPDF
@@ -56,7 +61,13 @@ namespace IPDF
 	inline double Double(const Real & r) {return r.ToDouble();}
 	inline int64_t Int64(const Real & r) {return r.ToInt64();}
 	inline Rational<ARBINT> Sqrt(const Rational<ARBINT> & r) {return r.Sqrt();}
-
+#elif REAL == REAL_MPFRCPP
+	typedef mpfr::mpreal Real;
+	inline double Double(const Real & r) {return r.toDouble();}
+	inline float Float(const Real & r) {return r.toDouble();}
+	inline int64_t Int64(const Real & r) {return r.toLong();}
+	inline Real Sqrt(const Real & r) {return mpfr::sqrt(r, mpfr::mpreal::get_default_rnd());}
+	inline Real Abs(const Real & r) {return mpfr::abs(r, mpfr::mpreal::get_default_rnd());}
 #else
 	#error "Type of Real unspecified."
 #endif //REAL
