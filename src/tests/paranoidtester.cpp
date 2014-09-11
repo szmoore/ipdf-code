@@ -116,6 +116,7 @@ int main(int argc, char ** argv)
 			Error("As PN: %lf %c %lf", olda.ToDouble(), opch[op], b.ToDouble());
 			Error("PN String: %s", a.Str().c_str());
 			Error("Diff is %.40lf", diff);
+			Error("LONG double gives %.40llf", lda);
 			Fatal("%.40lf, expected aboout %.40lf", a.ToDouble(), da);
 			
 			

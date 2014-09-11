@@ -8,7 +8,7 @@
 #include "log.h"
 #include <fenv.h>
 
-#define PARANOID_DIGIT_T int8_t // we could theoretically replace this with a template
+#define PARANOID_DIGIT_T float // we could theoretically replace this with a template
 								// but let's not do that...
 
 namespace IPDF
@@ -42,6 +42,7 @@ namespace IPDF
 		T a(aa); T b(bb); T c(cc); T d(dd);
 		if (aop == MULTIPLY && cop == MULTIPLY) // a*b + c*d
 		{
+
 			if ((ParanoidOp<T>(c, b, DIVIDE) || ParanoidOp(d, b, DIVIDE))
 				&& TrustingOp<T>(c, d, MULTIPLY) && TrustingOp<T>(a,c,ADD)
 				&& TrustingOp<T>(a, b, MULTIPLY)) // (a + (cd)/b) * b
@@ -66,6 +67,8 @@ namespace IPDF
 		}
 		else if (aop == DIVIDE && cop == DIVIDE)
 		{
+
+	
 			if (TrustingOp<T>(a, d, MULTIPLY) && TrustingOp<T>(c, b, MULTIPLY)
 				&& TrustingOp<T>(a, c, ADD) && TrustingOp<T>(b, d, MULTIPLY))
 			{

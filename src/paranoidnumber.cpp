@@ -68,7 +68,6 @@ ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
 
 ParanoidNumber & ParanoidNumber::operator+=(const ParanoidNumber & a)
 {
-	
 	if (m_next_factor == NULL && a.Floating())
 	{
 		if (ParanoidOp<digit_t>(m_value, a.m_value, ADD))
@@ -237,7 +236,7 @@ void ParanoidNumber::SimplifyTerms()
 	for (ParanoidNumber * a = this; a != NULL; a = a->m_next_term)
 	{
 		ParanoidNumber * b = a->m_next_term;
-		if (a->m_next_factor != NULL)
+		if (a->m_next_factor != NULL && !a->m_next_factor->Floating())
 		{
 			continue;
 		}
@@ -247,14 +246,40 @@ void ParanoidNumber::SimplifyTerms()
 		{
 			//Debug("Simplify factors of %s", b->Str().c_str());
 			b->SimplifyFactors();
-			if (b->m_next_factor != NULL)
+			if (b->m_next_factor != NULL && !b->m_next_factor->Floating())
 			{
 				bprev = b;
 				b = b->m_next_term;
 				continue;
 			}
+			
 			bool simplify = false;
-			simplify = ParanoidOp<digit_t>(a->m_value, b->Head<digit_t>(), ADD);
+			if (a->m_next_factor != NULL || b->m_next_factor != NULL)
+			{
+				digit_t aa(a->Head<digit_t>());
+				digit_t ab = (a->m_next_factor != NULL) ? a->m_next_factor->Head<digit_t>() : 1;
+				digit_t bc(b->Head<digit_t>());
+				digit_t bd = (b->m_next_factor != NULL) ? b->m_next_factor->Head<digit_t>() : 1;
+				Optype aop = (a->m_next_factor != NULL) ? a->m_next_factor->m_op : DIVIDE;
+				Optype cop = (b->m_next_factor != NULL) ? b->m_next_factor->m_op : DIVIDE;
+				simplify = CombineTerms<digit_t>(aa, aop, ab, bc, cop, bd);
+				if (simplify)
+				{
+					a->m_value = aa;
+					if (a->m_next_factor != NULL)
+						a->m_next_factor->m_value = ab;
+					else if (ab != 1)
+					{
+						a->m_next_factor = b->m_next_factor;
+						b->m_next_factor = NULL;
+						a->m_next_factor->m_value = ab;
+					}
+				}
+			}
+			else
+			{
+				simplify = ParanoidOp<digit_t>(a->m_value, b->Head<digit_t>(), ADD);
+			}
 			if (simplify)
 			{
 				bprev->m_next_term = b->m_next_term;

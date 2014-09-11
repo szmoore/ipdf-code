@@ -19,6 +19,8 @@ int main(int argc, char ** argv)
 	Debug("FLT_EPSILON = %.40f", FLT_EPSILON);
 	Debug("Sizeof ParanoidNumber::digit_t is %u", sizeof(ParanoidNumber::digit_t));
 	Debug("Sizeof ParanoidNumber is %u", sizeof(ParanoidNumber));
+	Debug("Sizeof double is %u", sizeof(double));
+	Debug("Sizeof ParanoidNumber* %u", sizeof(ParanoidNumber*));
 
 	string token("");
 	cin >> token;	
@@ -70,6 +72,8 @@ int main(int argc, char ** argv)
 			
 		Debug("a is: %s", a.Str().c_str());
 		Debug("a as double: %.40f\n", a.ToDouble());
+		Debug("a as float: %.40f\n", a.ToFloat());
+		Debug("a as int64_t: %ld\n", a.Convert<int64_t>());
 		Debug("floats give: %.40f\n", fa);
 		Debug("double gives: %.40f\n", da);
 		

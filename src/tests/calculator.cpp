@@ -40,7 +40,8 @@ int main(int argc, char ** argv)
 				break;
 		}
 		
-		cout << Double(c) << '\n';
+		//cout << Double(c) << '\n';
+		printf("%.40lf\n", Double(c));
 		
 	}
 }
