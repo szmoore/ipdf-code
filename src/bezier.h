@@ -15,7 +15,7 @@ namespace IPDF
 	
 	extern std::vector<Real> SolveQuadratic(const Real & a, const Real & b, const Real & c, const Real & min = 0, const Real & max = 1);
 
-	extern std::vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d, const Real & min = 0, const Real & max = 1, const Real & delta = 1e-9);
+	extern std::vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d, const Real & min = 0, const Real & max = 1, const Real & delta = 1e-4);
 
 	/** A _cubic_ bezier. **/
 	struct Bezier
@@ -293,11 +293,12 @@ namespace IPDF
 			{
 				Real t1 = *it;
 				if (t1 == t0) continue;
-				Debug(" -- t0: %f to t1: %f", Double(t0), Double(t1));
+				Debug(" -- t0: %f to t1: %f: %f", Double(t0), Double(t1), (t1 + t0)/Real(2));
 				Real ptx, pty;
 				Evaluate(ptx, pty, ((t1 + t0) / Real(2)));
 				if (r.PointIn(ptx, pty))
 				{
+					Debug("Adding segment: (point at %f, %f)", Double(ptx), Double(pty));
 					all_beziers.push_back(this->ReParametrise(t0, t1));
 				}
 				else

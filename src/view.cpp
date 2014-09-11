@@ -173,7 +173,7 @@ void View::Render(int width, int height)
 #ifndef QUADTREE_DISABLED
 	if (m_bounds_dirty)
 	{
-		if (false && (m_bounds.x > 1.0 || m_bounds.x < 0.0 || m_bounds.y > 1.0 || m_bounds.y < 0.0 || m_bounds.w > 1.0 || m_bounds.h > 1.0))
+		if ( (m_bounds.x > 1.0 || m_bounds.x < 0.0 || m_bounds.y > 1.0 || m_bounds.y < 0.0 || m_bounds.w > 1.0 || m_bounds.h > 1.0))
 		{
 			//TODO: Generate a new parent node.
 			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].parent != QUADTREE_EMPTY)
