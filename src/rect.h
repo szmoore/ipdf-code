@@ -26,6 +26,15 @@ namespace IPDF
 			if (pt_y >= y + h) return false;
 			return true;
 		}
+
+		inline bool Intersects(const Rect& other) const
+		{
+			if (x + w < other.x) return false;
+			if (y + h < other.y) return false;
+			if (x > other.x + other.w) return false;
+			if (y > other.y + other.h) return false;
+			return true;
+		}
 	};
 
 	inline Rect TransformRectCoordinates(const Rect& view, const Rect& r)
