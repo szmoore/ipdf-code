@@ -46,6 +46,9 @@ namespace IPDF
 		QuadTree() : root_id(QUADTREE_EMPTY) {}
 		QuadTreeIndex root_id;
 		std::vector<QuadTreeNode> nodes;
+
+		QuadTreeIndex GetNeighbour(QuadTreeIndex start, int xdir, int ydir);
+
 	};
 
 	Rect TransformToQuadChild(const Rect& src, QuadTreeNodeChildren child_type);

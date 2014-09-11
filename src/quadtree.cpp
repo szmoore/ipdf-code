@@ -63,6 +63,126 @@ bool ContainedInQuadChild(const Rect& src, QuadTreeNodeChildren child_type)
 	return true;
 }
 
+
+
+QuadTreeIndex QuadTree::GetNeighbour(QuadTreeIndex start, int xdir, int ydir)
+{
+	if (!xdir && !ydir) return start;
+
+	// Try moving to the right if that's easy.
+	if (xdir > 0)
+	{
+		switch (nodes[start].child_type)
+		{
+		case QTC_TOP_LEFT:
+		case QTC_BOTTOM_LEFT:
+			QuadTreeIndex newNode;
+			if (nodes[start].child_type == QTC_TOP_LEFT)
+				newNode = node[nodes[start].parent].top_right;
+			else
+				newNode = node[nodes[start].parent].bottom_right;
+				
+			return GetNeighbour(newNode, xdir - 1, ydir);
+		case QTC_TOP_RIGHT:
+		case QTC_BOTTOM_RIGHT:
+			QuadTreeIndex right_parent = GetNeighbour(nodes[start].parent, 1, 0);
+			if (right_parent == -1) return -1;
+			QuadTreeIndex newNode;
+			if (nodes[start].child_type == QTC_TOP_RIGHT)
+				newNode = node[right_parent].top_left;
+			else
+				newNode = node[right_parent].bottom_left;
+			return GetNeighbour(newNode, xdir - 1, ydir);
+
+		}
+	}
+
+	// Try moving to the left.
+	if (xdir < 0)
+	{
+		switch (nodes[start].child_type)
+		{
+		case QTC_TOP_RIGHT:
+		case QTC_BOTTOM_RIGHT:
+			QuadTreeIndex newNode;
+			if (nodes[start].child_type == QTC_TOP_RIGHT)
+				newNode = node[nodes[start].parent].top_left;
+			else
+				newNode = node[nodes[start].parent].bottom_left;
+				
+			return GetNeighbour(newNode, xdir + 1, ydir);
+		case QTC_TOP_LEFT:
+		case QTC_BOTTOM_LEFT:
+			QuadTreeIndex left_parent = GetNeighbour(nodes[start].parent, -1, 0);
+			if (left_parent == -1) return -1;
+			QuadTreeIndex newNode;
+			if (nodes[start].child_type == QTC_TOP_LEFT)
+				newNode = node[left_parent].top_right;
+			else
+				newNode = node[left_parent].bottom_right;
+			return GetNeighbour(newNode, xdir + 1, ydir);
+
+		}
+	}
+	
+	// Try moving to the bottom.
+	if (ydir > 0)
+	{
+		switch (nodes[start].child_type)
+		{
+		case QTC_TOP_LEFT:
+		case QTC_TOP_RIGHT:
+			QuadTreeIndex newNode;
+			if (nodes[start].child_type == QTC_TOP_LEFT)
+				newNode = node[nodes[start].parent].bottom_left;
+			else
+				newNode = node[nodes[start].parent].bottom_right;
+				
+			return GetNeighbour(newNode, xdir, ydir - 1);
+		case QTC_BOTTOM_LEFT:
+		case QTC_BOTTOM_RIGHT:
+			QuadTreeIndex bottom_parent = GetNeighbour(nodes[start].parent, 0, 1);
+			if (bottom_parent == -1) return -1;
+			QuadTreeIndex newNode;
+			if (nodes[start].child_type == QTC_BOTTOM_LEFT)
+				newNode = node[bottom__parent].top_left;
+			else
+				newNode = node[bottom_parent].top_right;
+			return GetNeighbour(newNode, xdir, ydir - 1);
+
+		}
+	}
+
+	// Try moving up, towards the sky.
+	if (ydir < 0)
+	{
+		switch (nodes[start].child_type)
+		{
+		case QTC_BOTTOM_LEFT:
+		case QTC_BOTTOM_RIGHT:
+			QuadTreeIndex newNode;
+			if (nodes[start].child_type == QTC_BOTTOM_LEFT)
+				newNode = node[nodes[start].parent].top_left;
+			else
+				newNode = node[nodes[start].parent].top_right;
+				
+			return GetNeighbour(newNode, xdir, ydir + 1);
+		case QTC_TOP_LEFT:
+		case QTC_BOTTOM_LEFT:
+			QuadTreeIndex top_parent = GetNeighbour(nodes[start].parent, 0, -1);
+			if (top_parent == -1) return -1;
+			QuadTreeIndex newNode;
+			if (nodes[start].child_type == QTC_TOP_LEFT)
+				newNode = node[top_parent].bottom_left;
+			else
+				newNode = node[top_parent].bottom_right;
+			return GetNeighbour(newNode, xdir, ydir + 1);
+
+		}
+	}
+	return -1;
+}
+
 }
 
 #endif
