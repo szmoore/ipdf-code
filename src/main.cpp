@@ -11,6 +11,10 @@
 
 int main(int argc, char ** argv)
 {	
+	#if REALTYPE == REAL_IRRAM
+	  iRRAM_initialize(argc,argv);
+	#endif
+	
 	#ifndef __STDC_IEC_559__
        	Warn("__STDC_IEC_559__ not defined. IEEE 754 floating point not fully supported.\n");
 	#endif
@@ -18,7 +22,7 @@ int main(int argc, char ** argv)
 	// We want to crash if we ever get a NaN.
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
-	Debug("Compiled with REAL = %d => \"%s\" sizeof(Real) == %d bytes", REAL, g_real_name[REAL], sizeof(Real));
+	Debug("Compiled with REAL = %d => \"%s\" sizeof(Real) == %d bytes", REALTYPE, g_real_name[REALTYPE], sizeof(Real));
 
 	Document doc("","fonts/ComicSans.ttf");
 	srand(time(NULL));

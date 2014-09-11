@@ -8,7 +8,7 @@
 using namespace std;
 namespace IPDF
 {
-	
+int64_t ParanoidNumber::g_count = 0;
 
 ParanoidNumber::ParanoidNumber(const char * str) : m_value(0), m_op(ADD), m_next_term(NULL), m_next_factor(NULL)
 {
@@ -46,7 +46,7 @@ ParanoidNumber::ParanoidNumber(const char * str) : m_value(0), m_op(ADD), m_next
 		//Debug("Now at %s", Str().c_str());
 
 	}
-	Debug("Constructed {%s} from %s (%f)", Str().c_str(), str, ToDouble());	
+	//Debug("Constructed {%s} from %s (%f)", Str().c_str(), str, ToDouble());	
 }
 
 ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
@@ -68,9 +68,15 @@ ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
 
 ParanoidNumber & ParanoidNumber::operator+=(const ParanoidNumber & a)
 {
-	// this = v + t + (a)
-	// -> v + (a) + t
 	
+	if (m_next_factor == NULL && a.Floating())
+	{
+		if (ParanoidOp<digit_t>(m_value, a.m_value, ADD))
+		{
+			Simplify();
+			return *this;
+		}
+	}
 	ParanoidNumber * nt = m_next_term;
 	ParanoidNumber * nf = m_next_factor;
 	
@@ -109,7 +115,15 @@ ParanoidNumber & ParanoidNumber::operator-=(const ParanoidNumber & a)
 {
 	// this = v + t + (a)
 	// -> v + (a) + t
-	
+	if (m_next_factor == NULL && a.Floating())
+	{
+		if (ParanoidOp<digit_t>(m_value, a.m_value, ADD))
+		{
+			Simplify();
+			return *this;
+		}
+	}
+
 	ParanoidNumber * nt = m_next_term;
 	ParanoidNumber * nf = m_next_factor;
 	
@@ -151,35 +165,59 @@ ParanoidNumber & ParanoidNumber::operator-=(const ParanoidNumber & a)
 
 ParanoidNumber & ParanoidNumber::operator*=(const ParanoidNumber & a)
 {
-	Debug("{%s} *= {%s}", Str().c_str(), a.Str().c_str());
+
+	//if (m_value == 0)
+	//		return *this;
+	//Debug("{%s} *= {%s}", Str().c_str(), a.Str().c_str());
 	// this = (vf + t) * (a)
-	ParanoidNumber * nf = m_next_factor;
-	m_next_factor = new ParanoidNumber(a, MULTIPLY);
-	ParanoidNumber * t = m_next_factor;
+	if (a.Floating() && ParanoidOp<digit_t>(m_value, a.m_value, MULTIPLY))
+	{
+		if (m_next_term != NULL)
+			m_next_term->operator*=(a);
+		Simplify();
+		return *this;
+	}
+	
+	ParanoidNumber * t = this;
 	while (t->m_next_factor != NULL)
 		t = t->m_next_factor;
-	t->m_next_factor = nf;
+	t->m_next_factor = new ParanoidNumber(a, MULTIPLY);
+
 	if (m_next_term != NULL)
 		m_next_term->operator*=(a);
-	//Debug("Simplify after mul");
-	Debug("Simplify {%s}", Str().c_str());
+
+	//Debug("Simplify {%s}", Str().c_str());
 	Simplify();
+	//Debug("Simplified to {%s}", Str().c_str());
 	return *this;
 }
 
 
 ParanoidNumber & ParanoidNumber::operator/=(const ParanoidNumber & a)
 {
+		
+
+		
+	if (a.Floating() && ParanoidOp<digit_t>(m_value, a.m_value, DIVIDE))
+	{
+		if (m_next_term != NULL)
+			m_next_term->operator/=(a);
+		Simplify();
+		return *this;
+	}
+	
 	//Debug("Called %s /= %s", Str().c_str(), a.Str().c_str());
 	// this = (vf + t) * (a)
-	ParanoidNumber * nf = m_next_factor;
-	m_next_factor = new ParanoidNumber(a, DIVIDE);
-	ParanoidNumber * t = m_next_factor;
+	ParanoidNumber * t = this;
 	while (t->m_next_factor != NULL)
+	{
 		t = t->m_next_factor;
-	t->m_next_factor = nf;
+	}
+	t->m_next_factor = new ParanoidNumber(a, DIVIDE);
+
 	if (m_next_term != NULL)
 		m_next_term->operator/=(a);
+
 	Simplify();
 	return *this;
 }
@@ -188,6 +226,7 @@ ParanoidNumber & ParanoidNumber::operator/=(const ParanoidNumber & a)
 
 void ParanoidNumber::SimplifyTerms()
 { 
+
 	//Debug("Simplify {%s}", Str().c_str()); 
 	if (m_next_term == NULL)
 	{
@@ -197,8 +236,13 @@ void ParanoidNumber::SimplifyTerms()
 
 	for (ParanoidNumber * a = this; a != NULL; a = a->m_next_term)
 	{
-		ParanoidNumber * bprev = a;
 		ParanoidNumber * b = a->m_next_term;
+		if (a->m_next_factor != NULL)
+		{
+			continue;
+		}
+		
+		ParanoidNumber * bprev = a;
 		while (b != NULL)
 		{
 			//Debug("Simplify factors of %s", b->Str().c_str());
@@ -209,28 +253,16 @@ void ParanoidNumber::SimplifyTerms()
 				b = b->m_next_term;
 				continue;
 			}
-			float f = a->m_value;
-			feclearexcept(FE_ALL_EXCEPT);
-			switch (b->m_op)
+			bool simplify = false;
+			simplify = ParanoidOp<digit_t>(a->m_value, b->Head<digit_t>(), ADD);
+			if (simplify)
 			{
-				case ADD:
-					f += b->m_value;
-					break;
-				case SUBTRACT:
-					f -= b->m_value;
-					break;
-				default:
-					Fatal("Unexpected %c in term list...", OpChar(b->m_op));
-					break;
-			}
-			if (!fetestexcept(FE_ALL_EXCEPT))
-			{
-				a->m_value = f;
 				bprev->m_next_term = b->m_next_term;
 				b->m_next_term = NULL;
 				delete b;
 				b = bprev;
 			}
+			
 			bprev = b;
 			b = b->m_next_term;
 		}
@@ -239,6 +271,7 @@ void ParanoidNumber::SimplifyTerms()
 
 void ParanoidNumber::SimplifyFactors()
 { 
+
 	//Debug("Simplify {%s}", Str().c_str()); 
 	if (m_next_factor == NULL)
 	{
@@ -248,6 +281,9 @@ void ParanoidNumber::SimplifyFactors()
 
 	for (ParanoidNumber * a = this; a != NULL; a = a->m_next_factor)
 	{
+		if ((a->m_op != ADD || a->m_op != SUBTRACT) && a->m_next_term != NULL)
+			continue;
+			
 		ParanoidNumber * bprev = a;
 		ParanoidNumber * b = a->m_next_factor;
 		while (b != NULL)
@@ -259,37 +295,21 @@ void ParanoidNumber::SimplifyFactors()
 				b = b->m_next_factor;
 				continue;
 			}
-			float f = a->m_value;
-			feclearexcept(FE_ALL_EXCEPT);
-			switch (b->m_op)
+		
+			Optype op = b->m_op;
+			if (a->m_op == DIVIDE)
 			{
-				case MULTIPLY:
-					if (a->m_op != DIVIDE) 
-						f *= b->m_value;
-					else
-						f /= b->m_value;
-					break;
-				case DIVIDE:
-					if (a->m_op != DIVIDE)
-						f /= b->m_value;
-					else
-						f *= b->m_value;
-					break;
-				default:
-					Fatal("Unexpected %c in factor list...",OpChar(b->m_op));
-					break;
+				op = (b->m_op == DIVIDE) ? MULTIPLY : DIVIDE;
 			}
-			if (!fetestexcept(FE_ALL_EXCEPT))
-			{
-				
-				a->m_value = f;
+			
+			if (ParanoidOp<digit_t>(a->m_value, b->m_value, op))
+			{	
+
 				bprev->m_next_factor = b->m_next_factor;
 				b->m_next_factor = NULL;
 				delete b;
 				b = bprev;
 			}
-			//else
-				//Debug("Failed to simplify %f %c %f", a->m_value, OpChar(b->m_op), b->m_value);
 			bprev = b;
 			b = b->m_next_factor;
 		}
@@ -306,29 +326,101 @@ string ParanoidNumber::Str() const
 {
 	string result("");
 	stringstream s;
-	
-	s << m_value;
+	s << (double)m_value;
 	
 	if (m_next_factor != NULL)
 	{
-		result += OpChar(m_op);
-		result += "(";
 		result += s.str();
-		result += m_next_factor->Str();
-		result += ")";
+		result += OpChar(m_next_factor->m_op);
+		if (m_next_factor->m_next_term != NULL)
+			result += "(" + m_next_factor->Str() + ")";
+		else
+			result += m_next_factor->Str();
 	}
 	else
 	{
-		result += OpChar(m_op);
 		result += s.str();
 	}
 		
 	if (m_next_term != NULL)
 	{
 		result += " ";
+		result += OpChar(m_next_term->m_op);
 		result += m_next_term->Str();
 	}
 	return result;
+}
+
+template <>
+bool TrustingOp<float>(float & a, const float & b, Optype op)
+{
+	feclearexcept(FE_ALL_EXCEPT);
+	switch (op)
+	{
+		case ADD:
+			a += b;
+			break;
+		case SUBTRACT:
+			a -= b;
+			break;
+		case MULTIPLY:
+			a *= b;
+			break;
+		case DIVIDE:
+			a /= b;
+			break;
+	}
+	return !fetestexcept(FE_ALL_EXCEPT);
+}
+
+template <>
+bool TrustingOp<double>(double & a, const double & b, Optype op)
+{
+	feclearexcept(FE_ALL_EXCEPT);
+	switch (op)
+	{
+		case ADD:
+			a += b;
+			break;
+		case SUBTRACT:
+			a -= b;
+			break;
+		case MULTIPLY:
+			a *= b;
+			break;
+		case DIVIDE:
+			a /= b;
+			break;
+	}
+	return !fetestexcept(FE_ALL_EXCEPT);
+}
+
+template <>
+bool TrustingOp<int8_t>(int8_t & a, const int8_t & b, Optype op)
+{
+	int16_t sa(a);
+	bool exact = true;
+	switch (op)
+	{
+		case ADD:
+			sa += b;
+			exact = (abs(sa) <= 127);
+			break;
+		case SUBTRACT:
+			sa -= b;
+			exact = (abs(sa) <= 127);
+			break;
+		case MULTIPLY:
+			sa *= b;
+			exact = (abs(sa) <= 127);
+			break;
+		case DIVIDE:
+			exact = (b != 0 && sa > b && sa % b == 0);
+			sa /= b;
+			break;
+	}
+	a = (int8_t)(sa);
+	return exact;
 }
 
 }

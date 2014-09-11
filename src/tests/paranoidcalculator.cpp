@@ -17,17 +17,19 @@ int main(int argc, char ** argv)
 	Debug("FLT_MAX = %.40f", FLT_MAX);
 	Debug("FLT_MIN = %.40f", FLT_MIN);
 	Debug("FLT_EPSILON = %.40f", FLT_EPSILON);
-	
-	ParanoidNumber a("0.3");
-	Debug("start at {%s} = %lf", a.Str().c_str(), a.ToDouble());
-	cout << "0.3 ";
-	float fa = 0.3;
-	double da = 0.3;
+	Debug("Sizeof ParanoidNumber::digit_t is %u", sizeof(ParanoidNumber::digit_t));
+	Debug("Sizeof ParanoidNumber is %u", sizeof(ParanoidNumber));
+
+	string token("");
+	cin >> token;	
+	ParanoidNumber a(token.c_str());
+	double da = a.ToDouble();
+	float fa = da;
 	while (cin.good())
 	{
 		char op;
 		cin >> op;
-		string token("");
+		token = "";
 		for (char c = cin.peek(); cin.good() && !iswspace(c); c = cin.peek())
 		{
 			if (c == '+' || c == '-' || c == '*' || c == '/')

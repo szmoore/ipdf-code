@@ -219,8 +219,8 @@ ObjectRenderer::PixelPoint ObjectRenderer::CPUPointLocation(const Vec2 & point, 
 {
 	// hack...
 	Rect result = view.TransformToViewCoords(Rect(point.x, point.y,1,1));
-	int64_t x = Int64(result.x*target.w);
-	int64_t y = Int64(result.y*target.h);
+	int64_t x = Int64(result.x)*target.w;
+	int64_t y = Int64(result.y)*target.h;
 	return PixelPoint(x,y);
 }
 	

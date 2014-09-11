@@ -1,8 +1,9 @@
 #include "real.h"
+#include <fenv.h>
 
 namespace IPDF
 {
-	// Maps the REAL to a string
+	// Maps the REALTYPE to a string
 	const char * g_real_name[] = {
 		"single",
 		"double",
@@ -10,14 +11,18 @@ namespace IPDF
 		"VFPU",
 		"Rational<int64_t>", 
 		"Rational<Arbint>",
-		"mpfrc++ real"
+		"mpfrc++ real",
+		"iRRAM REAL"
 	};
 	
-#if REAL == REAL_RATIONAL_ARBINT
+#if REALTYPE == REAL_RATIONAL_ARBINT
 	template <> Gmpint Tabs(const Gmpint & a)
 	{
 		return a.Abs();
 	}
 #endif
+
+
+
 
 }

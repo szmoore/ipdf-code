@@ -53,7 +53,7 @@ void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 	}
 	if (buttons)
 	{
-		#if REAL == REAL_RATIONAL
+		#if REALTYPE == REAL_RATIONAL
 			view->Translate(Real(oldx, scr->ViewportWidth()) -Real(x,scr->ViewportWidth()), Real(oldy, scr->ViewportHeight()) - Real(y,scr->ViewportHeight()));
 		#else			
 			view->Translate(Real(oldx-x)/Real(scr->ViewportWidth()), Real(oldy-y)/Real(scr->ViewportHeight()));
@@ -69,7 +69,7 @@ void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 		
 	if (wheel)
 	{
-		#if REAL == REAL_RATIONAL
+		#if REALTYPE == REAL_RATIONAL
 			view->ScaleAroundPoint(Real(x,scr->ViewportWidth()), Real(y,scr->ViewportHeight()), Real(20-wheel, 20));
 		#else
 			view->ScaleAroundPoint(Real(x)/Real(scr->ViewportWidth()),Real(y)/Real(scr->ViewportHeight()), Real(expf(-wheel/20.f)));
@@ -126,7 +126,10 @@ inline void MainLoop(Document & doc, Screen & scr, View & view)
 		scr.DebugFontPrintF("[GPU] Render took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", gpu_frame*1e3, 1.0/gpu_frame, total_gpu_time, frames/total_gpu_time);
 		scr.DebugFontPrintF("[REALTIME] Render+Present+Cruft took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", real_frame*1e3, 1.0/real_frame, total_real_time,frames/total_real_time);
 		scr.DebugFontPrintF("View bounds: %s\n", view.GetBounds().Str().c_str());
-		scr.DebugFontPrintF("type of Real == %s\n", g_real_name[REAL]);
+		scr.DebugFontPrintF("type of Real == %s\n", g_real_name[REALTYPE]);
+		#if REALTYPE == REAL_MPFRCPP
+			scr.DebugFontPrintf("Precision: %s\nRounding: %s\n");
+		#endif 
 
 		if (view.UsingGPUTransform())
 		{

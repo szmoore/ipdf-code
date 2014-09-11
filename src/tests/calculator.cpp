@@ -11,6 +11,9 @@ using namespace IPDF;
 
 int main(int argc, char ** argv)
 {
+	#if REALTYPE == REAL_IRRAM
+	  iRRAM_initialize(argc,argv);
+	#endif
 	while (cin.good())
 	{
 		double da; double db;

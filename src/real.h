@@ -12,48 +12,53 @@
 #define REAL_RATIONAL 4
 #define REAL_RATIONAL_ARBINT 5
 #define REAL_MPFRCPP 6
+#define REAL_IRRAM 7
 
-#ifndef REAL
-	#error "REAL was not defined!"
+#ifndef REALTYPE
+	#error "REALTYPE was not defined!"
 #endif
 
-#if REAL == REAL_VFPU
+#if REALTYPE == REAL_VFPU
 	#include "vfpu.h"
 #endif
 
-#if REAL == REAL_RATIONAL
+#if REALTYPE == REAL_RATIONAL
 	#include "rational.h"
-#endif //REAL
+#endif //REALTYPE
 
-#if REAL == REAL_RATIONAL_ARBINT
+#if REALTYPE == REAL_RATIONAL_ARBINT
 	#include "rational.h"
 	#include "arbint.h"
 	#include "gmpint.h"
-#endif //REAL
+#endif //REALTYPE
 
-#if REAL == REAL_MPFRCPP
+#if REALTYPE == REAL_MPFRCPP
 	#include <mpreal.h>
-#endif //REAL
+#endif //REALTYPE
+
+#if REALTYPE == REAL_IRRAM
+	#include "../contrib/iRRAM/include/iRRAM/lib.h"
+#endif
 
 namespace IPDF
 {	
 	extern const char * g_real_name[];
 
-#if REAL == REAL_SINGLE
+#if REALTYPE == REAL_SINGLE
 	typedef float Real;
-#elif REAL == REAL_DOUBLE
+#elif REALTYPE == REAL_DOUBLE
 	typedef double Real;
-#elif REAL == REAL_LONG_DOUBLE
+#elif REALTYPE == REAL_LONG_DOUBLE
 	typedef long double Real;
-#elif REAL == REAL_VFPU
+#elif REALTYPE == REAL_VFPU
 	typedef VFPU::VFloat Real;
 	inline float Float(const Real & r) {return r.m_value;}
 	inline double Double(const Real & r) {return r.m_value;}
-#elif REAL == REAL_RATIONAL
+#elif REALTYPE == REAL_RATIONAL
 	typedef Rational<int64_t> Real;
 	inline float Float(const Real & r) {return (float)r.ToDouble();}
 	inline double Double(const Real & r) {return r.ToDouble();}
-#elif REAL == REAL_RATIONAL_ARBINT
+#elif REALTYPE == REAL_RATIONAL_ARBINT
 	#define ARBINT Gmpint // Set to Gmpint or Arbint here
 	
 	typedef Rational<ARBINT> Real;
@@ -61,21 +66,26 @@ namespace IPDF
 	inline double Double(const Real & r) {return r.ToDouble();}
 	inline int64_t Int64(const Real & r) {return r.ToInt64();}
 	inline Rational<ARBINT> Sqrt(const Rational<ARBINT> & r) {return r.Sqrt();}
-#elif REAL == REAL_MPFRCPP
+#elif REALTYPE == REAL_MPFRCPP
 	typedef mpfr::mpreal Real;
 	inline double Double(const Real & r) {return r.toDouble();}
 	inline float Float(const Real & r) {return r.toDouble();}
 	inline int64_t Int64(const Real & r) {return r.toLong();}
 	inline Real Sqrt(const Real & r) {return mpfr::sqrt(r, mpfr::mpreal::get_default_rnd());}
 	inline Real Abs(const Real & r) {return mpfr::abs(r, mpfr::mpreal::get_default_rnd());}
+#elif REALTYPE == REAL_IRRAM
+	typedef iRRAM::REAL Real;
+	inline double Double(const Real & r) {return r.as_double(53);}
+	inline float Float(const Real & r) {return r.as_double(53);}
+	inline int64_t Int64(const Real & r) {return (int64_t)r.as_double(53);}
+	inline Real Sqrt(const Real & r) {return iRRAM::sqrt(r);}
 #else
 	#error "Type of Real unspecified."
-#endif //REAL
+#endif //REALTYPE
 
 	// Allow us to call Float on the primative types
 	// Useful so I can template some things that could be either (a more complicated) Real or a primitive type
 	// Mostly in the testers.
-	inline float Float(float f) {return (float)f;}
 	inline float Float(double f) {return (float)f;}
 	inline float Float(long double f) {return (float)(f);}
 	inline double Double(float f) {return (double)f;}
@@ -103,8 +113,12 @@ namespace IPDF
 		Vec2() : x(0), y(0) {}
 		Vec2(Real _x, Real _y) : x(_x), y(_y) {}
 		Vec2(const std::pair<Real, Real> & p) : x(p.first), y(p.second) {}
+		#if REALTYPE != REAL_IRRAM
 		Vec2(const std::pair<int64_t, int64_t> & p) : x(p.first), y(p.second) {}
-	
+		#else
+		Vec2(const std::pair<int64_t, int64_t> & p) : x((int)p.first), y((int)p.second) {}
+		// Apparently iRRAM didn't implement -= for a constant argument
+		#endif
 		bool operator==(const Vec2& other) const { return (x == other.x) && (y == other.y); }
 		bool operator!=(const Vec2& other) const { return !(*this == other); }
 		
@@ -122,6 +136,8 @@ namespace IPDF
 		const Real SquareLength() const { return (x*x + y*y); }
 	
 	};
+
+
 
 
 }
