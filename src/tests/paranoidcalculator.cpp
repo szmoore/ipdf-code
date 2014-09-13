@@ -41,11 +41,13 @@ int main(int argc, char ** argv)
 			token += c;
 			c = cin.get();
 		}
-		Debug("String is %s", token.c_str());
+		//Debug("String is \"%s\"", token.c_str());
 		float fb = strtof(token.c_str(), NULL);
 		double db = strtod(token.c_str(), NULL);
 		ParanoidNumber b(token.c_str());
-		Debug("b is {%s} %lf", b.Str().c_str(), b.ToDouble());
+		Debug("a is {%s} \"%lf\"", a.Str().c_str(), a.ToDouble());
+		Debug("b is {%s} \"%lf\"", b.Str().c_str(), b.ToDouble());
+		Debug("db is %lf", db);
 		switch (op)
 		{
 			case '+':
@@ -70,12 +72,12 @@ int main(int argc, char ** argv)
 				break;
 		}
 			
-		Debug("a is: %s", a.Str().c_str());
-		Debug("a as double: %.40f\n", a.ToDouble());
-		Debug("a as float: %.40f\n", a.ToFloat());
-		Debug("a as int64_t: %ld\n", a.Convert<int64_t>());
-		Debug("floats give: %.40f\n", fa);
-		Debug("double gives: %.40f\n", da);
+		Debug("a is: {%s}", a.Str().c_str());
+		Debug("a as double: %.40lf", a.ToDouble());
+		Debug("a as float: %.40f", a.ToFloat());
+		Debug("a as int64_t: %ld", a.Convert<int64_t>());
+		Debug("floats give: %.40f", fa);
+		Debug("double gives: %.40lf", da);
 		
 		
 	}
