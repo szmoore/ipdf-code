@@ -13,3 +13,6 @@
 bin/ipdf
 data/*
 src/moc_controlpanel.cpp
+src/tests/*
+!src/tests/*.cpp
+!src/tests/*.h

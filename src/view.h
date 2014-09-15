@@ -39,6 +39,7 @@ namespace IPDF
 			const bool UsingGPURendering() const { return m_use_gpu_rendering; } // whether GPU shaders are used or CPU rendering
 			void ToggleGPUTransform() { m_use_gpu_transform = (!m_use_gpu_transform); m_bounds_dirty = true; m_buffer_dirty = true; }
 			void ToggleGPURendering() { m_use_gpu_rendering = (!m_use_gpu_rendering); m_bounds_dirty = true; m_buffer_dirty = true; }
+			void SetGPUTransform(bool state) {m_use_gpu_transform = state; m_bounds_dirty = true; m_buffer_dirty = true;}
 			
 			void SetGPURendering(bool state) {m_use_gpu_rendering = state; m_bounds_dirty = true; m_buffer_dirty = true;}
 
@@ -57,6 +58,11 @@ namespace IPDF
 			void ForceBoundsDirty() {m_bounds_dirty = true;}		
 			void ForceBufferDirty() {m_buffer_dirty = true;}		
 			void ForceRenderDirty() {m_render_dirty = true;}
+			
+			void SetLazyRendering(bool state = true) {m_lazy_rendering = state;}
+			bool UsingLazyRendering() const {return m_lazy_rendering;}
+			
+			void SaveCPUBMP(const char * filename);
 
 		private:
 			struct GPUObjBounds
@@ -100,6 +106,8 @@ namespace IPDF
 			bool m_show_bezier_type;
 			bool m_show_fill_points;
 			bool m_show_fill_bounds;
+			
+			bool m_lazy_rendering;// don't redraw frames unless we need to
 
 
 #ifndef QUADTREE_DISABLED

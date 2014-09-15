@@ -136,9 +136,15 @@ QMenu * ControlPanel::CreateScreenMenu()
 	m_screen_cpu_rendering = new QAction("&CPU Rendering", this);
 	m_screen_cpu_rendering->setCheckable(true);
 	m_screen_gpu_rendering->setToolTip("Uses the CPU for Rendering");
+	
+	m_screen_lazy_rendering = new QAction("&Lazy Rendering", this);
+	m_screen_lazy_rendering->setCheckable(true);
 		
 	screen->addAction(m_screen_gpu_rendering);
 	screen->addAction(m_screen_cpu_rendering);
+	
+	screen->addAction(m_screen_lazy_rendering);
+	connect(m_screen_lazy_rendering, SIGNAL(triggered()), this, SLOT(ToggleLazyRendering()));
 	
 	connect(m_screen_gpu_rendering, SIGNAL(triggered()), this, SLOT(SetGPURendering()));
 	connect(m_screen_cpu_rendering, SIGNAL(triggered()), this, SLOT(SetCPURendering()));
@@ -171,6 +177,7 @@ void ControlPanel::UpdateAll()
 	m_screen_gpu_rendering->setChecked(using_gpu_rendering);
 	m_screen_cpu_rendering->setChecked(!using_gpu_rendering);	
 	m_screen_show_debug->setChecked(m_screen.DebugFontShown());
+	m_screen_lazy_rendering->setChecked(m_view.UsingLazyRendering());
 	
 	m_view_show_bezier_bounds->setChecked(m_view.ShowingBezierBounds());
 	m_view_show_bezier_type->setChecked(m_view.ShowingBezierType());
@@ -264,6 +271,13 @@ void ControlPanel::SetCPURendering()
 	UpdateAll();
 }
 
+void ControlPanel::ToggleLazyRendering()
+{
+	bool state = m_view.UsingLazyRendering();
+	m_view.SetLazyRendering(!state);
+	UpdateAll();
+}
+
 void ControlPanel::ToggleScreenDebugFont()
 {
 	bool state = m_screen.DebugFontShown();
@@ -303,6 +317,9 @@ void ControlPanel::InsertTextIntoDocument()
 void ControlPanel::InsertSVGIntoDocument()
 {
 	Rect bounds(m_view.GetBounds());
+	bounds.x += bounds.w/Real(2);
+	bounds.y += bounds.h/Real(2);
+	
 	bounds.w /= Real(m_screen.ViewportWidth());
 	bounds.h /= Real(m_screen.ViewportHeight());
 	
@@ -320,6 +337,9 @@ void ControlPanel::LoadSVGIntoDocument()
 		return;
 	
 	Rect bounds(m_view.GetBounds());
+	bounds.x += bounds.w/Real(2);
+	bounds.y += bounds.h/Real(2);
+	
 	bounds.w /= Real(m_screen.ViewportWidth());
 	bounds.h /= Real(m_screen.ViewportHeight());
 	

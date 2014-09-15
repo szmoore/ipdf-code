@@ -104,7 +104,7 @@ movie : $(BIN) ../tools/stream_plot.py
 # To change that you can run as `make DEFS="REALTYPE=X" tests/<target>` where X is your chosen type
 # But remember to make clean first.
 tests/% : tests/%.cpp ../obj/tests/%.o $(LINKOBJ)
-	$(CXX) $(CFLAGS) -o $@.test $(LINKOBJ) ../obj/$@.o $(LIB) $(TESTRPATH)
+	$(CXX) $(CFLAGS) -o $@ $(LINKOBJ) ../obj/$@.o $(LIB) $(TESTRPATH)
 
 -include $(DEPS)
 

@@ -79,7 +79,7 @@ void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 }
 
 
-inline void MainLoop(Document & doc, Screen & scr, View & view)
+inline void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 {
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
 
@@ -98,7 +98,8 @@ inline void MainLoop(Document & doc, Screen & scr, View & view)
 	double data_rate = 0; // period between data output to stdout (if <= 0 there will be no output)
 	uint64_t data_points = 0;
 	setbuf(stdout, NULL);
-	while (scr.PumpEvents())
+	int frame_number = 0;
+	while (scr.PumpEvents() && (max_frames < 0 || frame_number++ < max_frames))
 	{
 		real_clock_prev = real_clock_now;
 		++frames;

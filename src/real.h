@@ -46,18 +46,23 @@ namespace IPDF
 
 #if REALTYPE == REAL_SINGLE
 	typedef float Real;
+	inline Real RealFromStr(const char * str) {return strtof(str, NULL);}
 #elif REALTYPE == REAL_DOUBLE
 	typedef double Real;
+	inline Real RealFromStr(const char * str) {return strtod(str, NULL);}
 #elif REALTYPE == REAL_LONG_DOUBLE
 	typedef long double Real;
+	inline Real RealFromStr(const char * str) {return strtold(str, NULL);}
 #elif REALTYPE == REAL_VFPU
 	typedef VFPU::VFloat Real;
 	inline float Float(const Real & r) {return r.m_value;}
 	inline double Double(const Real & r) {return r.m_value;}
+	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 #elif REALTYPE == REAL_RATIONAL
 	typedef Rational<int64_t> Real;
 	inline float Float(const Real & r) {return (float)r.ToDouble();}
 	inline double Double(const Real & r) {return r.ToDouble();}
+	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 #elif REALTYPE == REAL_RATIONAL_ARBINT
 	#define ARBINT Gmpint // Set to Gmpint or Arbint here
 	
@@ -73,12 +78,14 @@ namespace IPDF
 	inline int64_t Int64(const Real & r) {return r.toLong();}
 	inline Real Sqrt(const Real & r) {return mpfr::sqrt(r, mpfr::mpreal::get_default_rnd());}
 	inline Real Abs(const Real & r) {return mpfr::abs(r, mpfr::mpreal::get_default_rnd());}
+	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 #elif REALTYPE == REAL_IRRAM
 	typedef iRRAM::REAL Real;
 	inline double Double(const Real & r) {return r.as_double(53);}
 	inline float Float(const Real & r) {return r.as_double(53);}
 	inline int64_t Int64(const Real & r) {return (int64_t)r.as_double(53);}
 	inline Real Sqrt(const Real & r) {return iRRAM::sqrt(r);}
+	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 #else
 	#error "Type of Real unspecified."
 #endif //REALTYPE
@@ -137,6 +144,7 @@ namespace IPDF
 	
 	};
 
+	inline Real RealFromStr(const std::string & str) {return RealFromStr(str.c_str());}
 
 
 

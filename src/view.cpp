@@ -160,7 +160,7 @@ void View::Render(int width, int height)
 	}
 
 	// View bounds have not changed; blit the FrameBuffer as it is
-	if (!m_bounds_dirty)
+	if (!m_bounds_dirty && m_lazy_rendering)
 	{
 		m_cached_display.UnBind();
 		m_cached_display.Blit();
@@ -171,7 +171,7 @@ void View::Render(int width, int height)
 	m_cached_display.Clear();
 
 #ifndef QUADTREE_DISABLED
-	if (m_bounds_dirty)
+	if (m_bounds_dirty || !m_lazy_rendering)
 	{
 		if ( false &&  (m_bounds.x > 1.0 || m_bounds.x < 0.0 || m_bounds.y > 1.0 || m_bounds.y < 0.0 || m_bounds.w > 1.0 || m_bounds.h > 1.0))
 		{
@@ -363,7 +363,7 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 	if (m_render_dirty) // document has changed
 		PrepareRender();
 
-	if (m_buffer_dirty || m_bounds_dirty) // object bounds have changed
+	if (m_buffer_dirty || m_bounds_dirty || !m_lazy_rendering) // object bounds have changed
 		UpdateObjBoundsVBO(first_obj, last_obj);
 
 	if (m_use_gpu_transform)
@@ -497,4 +497,13 @@ void View::PrepareRender()
 	}
 	dynamic_cast<BezierRenderer*>(m_object_renderers[BEZIER])->PrepareBezierGPUBuffer(m_document.m_objects);
 	m_render_dirty = false;
+}
+
+void View::SaveCPUBMP(const char * filename)
+{
+	bool prev = UsingGPURendering();
+	SetGPURendering(false);
+	Render(800, 600);
+	ObjectRenderer::SaveBMP({m_cpu_rendering_pixels, 800, 600}, filename);
+	SetGPURendering(prev);
 }
