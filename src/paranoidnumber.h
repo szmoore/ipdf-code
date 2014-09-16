@@ -7,6 +7,8 @@
 #include <string>
 #include "log.h"
 #include <fenv.h>
+#include <vector>
+#include <cmath>
 
 #define PARANOID_DIGIT_T float // we could theoretically replace this with a template
 								// but let's not do that...
@@ -22,15 +24,8 @@ namespace IPDF
 				(op == DIVIDE) ? MULTIPLY :
 				(op == NOP) ? NOP : NOP);
 	}
-	inline Optype AdjacentOp(Optype op)
-	{
-		return ((op == ADD) ? MULTIPLY :
-				(op == SUBTRACT) ? DIVIDE :
-				(op == MULTIPLY) ? ADD :
-				(op == DIVIDE) ? SUBTRACT :
-				(op == NOP) ? NOP : NOP);
-	}	
 	
+
 	inline char OpChar(int op) 
 	{
 		static char opch[] = {'+','-','*','/'};
@@ -86,53 +81,35 @@ namespace IPDF
 				Construct();
 				for (int i = 0; i < NOP; ++i)
 				{
-					if (cpy.m_next[i] != NULL)
-						m_next[i] = new ParanoidNumber(*(cpy.m_next[i]));
+					for (auto next : cpy.m_next[i])
+						m_next[i].push_back(new ParanoidNumber(*next));
 				}
 			}
 			
 			ParanoidNumber(const char * str);
-			ParanoidNumber(const std::string & str) : ParanoidNumber(str.c_str()) {Construct();}
+			ParanoidNumber(const std::string & str) : ParanoidNumber(str.c_str()) {}
 			
 			virtual ~ParanoidNumber();
 			
 			inline void Construct() 
 			{
-				for (int i = 0; i < NOP; ++i)
-					m_next[i] = NULL;
 				g_count++;
 			}
 			
 			
 			template <class T> T Convert() const;
-			template <class T> T AddTerms(T value = T(0)) const;
-			template <class T> T MultiplyFactors(T value = T(1)) const;
-			template <class T> T Head() const {return (m_op == SUBTRACT) ? T(-m_value) : T(m_value);}
-			
 
-			
-			
 			double ToDouble() const {return Convert<double>();}
-			float ToFloat() const {return Convert<float>();}
 			digit_t Digit() const {return Convert<digit_t>();}
 			
 			bool Floating() const 
 			{
-				for (int i = 0; i < NOP; ++i)
-				{
-					if (m_next[i] != NULL)
-						return false;
-				}
-				return true;
+				return NoFactors() && NoTerms();
 			}
 			bool Sunken() const {return !Floating();} // I could not resist...
 			
-			bool Pure(Optype op) const
-			{
-				if (op == ADD || op == SUBTRACT)
-					return (m_next[MULTIPLY] == NULL && m_next[DIVIDE] == NULL);
-				return (m_next[ADD] == NULL && m_next[SUBTRACT] == NULL);
-			}
+			bool NoFactors() const {return (m_next[MULTIPLY].size() == 0 && m_next[DIVIDE].size() == 0);}
+			bool NoTerms() const {return (m_next[ADD].size() == 0 && m_next[SUBTRACT].size() == 0);}
 			
 			ParanoidNumber & operator+=(const ParanoidNumber & a);
 			ParanoidNumber & operator-=(const ParanoidNumber & a);
@@ -140,8 +117,10 @@ namespace IPDF
 			ParanoidNumber & operator/=(const ParanoidNumber & a);
 			ParanoidNumber & operator=(const ParanoidNumber & a);
 			
-			
-			ParanoidNumber * Operation(ParanoidNumber * b, Optype op, ParanoidNumber ** parent = NULL);
+			ParanoidNumber * OperationTerm(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point = NULL, Optype * mop = NULL);
+			ParanoidNumber * OperationFactor(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point = NULL, Optype * mop = NULL);
+			ParanoidNumber * TrivialOp(ParanoidNumber * b, Optype op);
+			ParanoidNumber * Operation(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point = NULL, Optype * mop = NULL);
 			bool Simplify(Optype op);
 			
 			
@@ -179,6 +158,24 @@ namespace IPDF
 			
 			std::string Str() const;
 
+			ParanoidNumber * CopyTerms()
+			{
+				ParanoidNumber * copy = new ParanoidNumber(*this);
+				copy->m_value = 0;
+				copy->Simplify(ADD);
+				copy->Simplify(SUBTRACT);
+				return copy;
+			}
+			
+			ParanoidNumber * CopyFactors()
+			{
+				ParanoidNumber * copy = new ParanoidNumber(*this);
+				copy->m_value = 1;
+				copy->Simplify(MULTIPLY);
+				copy->Simplify(DIVIDE);
+				return copy;
+			}
+
 		
 			static int64_t Paranoia() {return g_count;}
 			
@@ -193,68 +190,29 @@ namespace IPDF
 			
 			digit_t m_value;
 			Optype m_op;
-			ParanoidNumber * m_next[4]; // Next by Operation
+			std::vector<ParanoidNumber*> m_next[4];
+			
+			int m_size;
 	};
-
-template <class T>
-T ParanoidNumber::AddTerms(T value) const
-{
-	ParanoidNumber * add = m_next[ADD];
-	ParanoidNumber * sub = m_next[SUBTRACT];
-	while (add != NULL && sub != NULL)
-	{
-		value += add->m_value * add->MultiplyFactors<T>();
-		value -= sub->m_value * sub->MultiplyFactors<T>();
-		add = add->m_next[ADD];
-		sub = sub->m_next[SUBTRACT];
-	}
-	while (add != NULL)
-	{
-		value += add->m_value * add->MultiplyFactors<T>();
-		add = add->m_next[ADD];
-	}
-	while (sub != NULL)
-	{
-		value -= sub->m_value * sub->MultiplyFactors<T>();
-		sub = sub->m_next[SUBTRACT];;
-	}
-	return value;
-}
-
-template <class T>
-T ParanoidNumber::MultiplyFactors(T value) const
-{
-	ParanoidNumber * mul = m_next[MULTIPLY];
-	ParanoidNumber * div = m_next[DIVIDE];
-	while (mul != NULL && div != NULL)
-	{
-		value *= (mul->m_value + mul->AddTerms<T>());
-		value /= (div->m_value + div->AddTerms<T>());
-		mul = mul->m_next[MULTIPLY];
-		div = div->m_next[DIVIDE];
-	}
-	while (mul != NULL)
-	{
-		value *= (mul->m_value + mul->AddTerms<T>());
-		mul = mul->m_next[MULTIPLY];
-	}
-	while (div != NULL)
-	{
-		value /= (div->m_value + div->AddTerms<T>());
-		div = div->m_next[DIVIDE];
-	}
-	return value;
-}
-
-
 
 template <class T>
 T ParanoidNumber::Convert() const
 {
-	return MultiplyFactors<T>(m_value) + AddTerms<T>(0);
+	T value(m_value);
+	for (auto mul : m_next[MULTIPLY])
+	{
+		value *= mul->Digit();
+	}
+	for (auto div : m_next[DIVIDE])
+	{
+		value /= div->Digit();
+	}
+	for (auto add : m_next[ADD])
+		value += add->Digit();
+	for (auto sub : m_next[SUBTRACT])
+		value -= sub->Digit();
+	return value;
 }
-
-
 
 }
 

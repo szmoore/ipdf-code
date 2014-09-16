@@ -1,7 +1,7 @@
 #Makefile
 ARCH := $(shell uname -m)
 # TODO: stb_truetype doesn't compile with some of these warnings.
-CXX = g++ -std=gnu++0x -g -Wall -Werror -Wshadow -pedantic -rdynamic
+CXX = g++ -std=c++11 -g -Wall -Werror -Wshadow -pedantic -rdynamic
 MAIN = main.o
 OBJ = log.o real.o bezier.o document.o objectrenderer.o view.o screen.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o  path.o paranoidnumber.o
 

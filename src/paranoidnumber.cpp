@@ -16,7 +16,10 @@ ParanoidNumber::~ParanoidNumber()
 {
 	g_count--;
 	for (int i = 0; i < NOP; ++i)
-		delete m_next[i];
+	{
+		for (auto n : m_next[i])
+			delete n;
+	}
 }
 
 ParanoidNumber::ParanoidNumber(const char * str) : m_value(0)
@@ -42,12 +45,9 @@ ParanoidNumber::ParanoidNumber(const char * str) : m_value(0)
 	ParanoidNumber n(1);
 	for (int i = dp+1; i < end; ++i)
 	{
-		Debug("{%s} /= 10", n.Str().c_str());
 		n/=10;
-		Debug("{%s}", n.Str().c_str());
 		ParanoidNumber b(str[i]-'0');
 		b*=n;
-		Debug("{%s} += {%s}", Str().c_str(), b.Str().c_str());
 		this->operator+=(b);
 	}
 }
@@ -57,22 +57,16 @@ ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
 	m_value = a.m_value;
 	for (int i = 0; i < NOP; ++i)
 	{
-		if (a.m_next[i] == NULL)
+		for (unsigned j = 0; j < m_next[i].size() && j < a.m_next[i].size(); ++j)
 		{
-			if (m_next[i] != NULL)
-				delete m_next[i];
-			m_next[i] = NULL;
-			continue;
+			m_next[i][j]->operator=(*(a.m_next[i][j]));
 		}
-			
-		if (m_next[i] != NULL)
+		
+		for (unsigned j = a.m_next[i].size(); j < m_next[i].size(); ++j)
 		{
-			m_next[i]->operator=(*(a.m_next[i]));
+			delete m_next[i][j];
 		}
-		else
-		{
-			m_next[i] = new ParanoidNumber(*(a.m_next[i]));
-		}
+		m_next[i].resize(a.m_next[i].size());
 	}	
 	return *this;
 }
@@ -84,38 +78,38 @@ string ParanoidNumber::Str() const
 	stringstream s;
 	s << (double)m_value;
 	result += s.str();
-	if (m_next[MULTIPLY] != NULL)
+	for (auto mul : m_next[MULTIPLY])
 	{
 		result += "*";
-		if (m_next[MULTIPLY]->m_next[ADD] != NULL || m_next[MULTIPLY]->m_next[SUBTRACT] != NULL)
-			result += "(" + m_next[MULTIPLY]->Str() + ")";
+		if (!mul->Floating())
+			result += "(" + mul->Str() + ")";
 		else
-			result += m_next[MULTIPLY]->Str();
+			result += mul->Str();
 	}
-	if (m_next[DIVIDE] != NULL)
+	for (auto div : m_next[DIVIDE])
 	{
 		result += "/";
-		if (m_next[DIVIDE]->m_next[ADD] != NULL || m_next[DIVIDE]->m_next[SUBTRACT] != NULL)
-			result += "(" + m_next[DIVIDE]->Str() + ")";
+		if (!div->Floating())
+			result += "(" + div->Str() + ")";
 		else
-			result += m_next[DIVIDE]->Str();
+			result += div->Str();
 	}	
 	
-	if (m_next[ADD] != NULL)
+	for (auto add : m_next[ADD])
 	{
 		result += "+";
-		if (m_next[ADD]->m_next[MULTIPLY] != NULL || m_next[ADD]->m_next[DIVIDE] != NULL)
-			result += "(" + m_next[ADD]->Str() + ")";
+		if (!add->Floating())
+			result += "(" + add->Str() + ")";
 		else
-			result += m_next[ADD]->Str();
+			result += add->Str();
 	}
-	if (m_next[SUBTRACT] != NULL)
+	for (auto sub : m_next[SUBTRACT])
 	{
 		result += "-";
-		if (m_next[SUBTRACT]->m_next[MULTIPLY] != NULL || m_next[SUBTRACT]->m_next[DIVIDE] != NULL)
-			result += "(" + m_next[SUBTRACT]->Str() + ")";
+		if (!sub->Floating())
+			result += "(" + sub->Str() + ")";
 		else
-			result += m_next[SUBTRACT]->Str();
+			result += sub->Str();
 	}
 	
 
@@ -227,205 +221,240 @@ ParanoidNumber & ParanoidNumber::operator/=(const ParanoidNumber & a)
 	return *this;
 }
 
+// a + b
+ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
+{
+			
+	if (Floating() && m_value == 0) // 0 + b = b
+	{
+		m_value = b->m_value;
+		if (op == SUBTRACT)
+		{
+			m_value = -m_value;
+			swap(b->m_next[ADD], b->m_next[SUBTRACT]);
+		}
+		
+		for (int i = 0; i < NOP; ++i)
+		{
+			m_next[i] = b->m_next[i];
+			b->m_next[i].clear();
+		}
+		return b;
+	}
+	if (b->Floating() && b->m_value == 0) // a + 0 = a
+		return b;
+		
+
+	
+	if (NoFactors() && b->NoFactors())
+	{
+		if (ParanoidOp<digit_t>(m_value, b->m_value, op))
+		{
+			Optype addop = (op == ADD) ? ADD : SUBTRACT;
+			for (auto add : b->m_next[ADD])
+			{
+				delete OperationTerm(add, addop);
+			}
+			Optype subop = (op == ADD) ? SUBTRACT : ADD;
+			for (auto sub : b->m_next[SUBTRACT])
+				delete OperationTerm(sub, subop);
+				
+			b->m_next[ADD].clear();
+			b->m_next[SUBTRACT].clear();
+			return b;
+		}
+	}
+
+
+	
+	
+	bool parent = (merge_point == NULL);
+	ParanoidNumber * merge = this;
+	Optype mop = op;
+	assert(mop != NOP); // silence compiler warning
+	if (parent)
+	{
+		merge_point = &merge;
+		merge_op = &mop;
+	}
+	else
+	{
+		merge = *merge_point;
+		mop = *merge_op;
+	}
+		
+	Optype invop = InverseOp(op); // inverse of p
+	Optype fwd = op;
+	Optype rev = invop;
+	if (op == SUBTRACT)
+	{
+		fwd = ADD;
+		rev = SUBTRACT;
+	}
+	
+	for (auto prev : m_next[invop])
+	{
+		if (prev->OperationTerm(b, rev, merge_point, merge_op) == b)
+			return b;
+		
+	}
+	for (auto next : m_next[op])
+	{
+		if (next->OperationTerm(b, fwd, merge_point, merge_op) == b)
+			return b;
+	}
+	
+
+	
+	
+	if (parent)
+	{
+		merge->m_next[*merge_op].push_back(b);
+	}
+	else
+	{
+		if (m_next[op].size() == 0)
+		{
+			*merge_point = this;
+			*merge_op = op;
+		}
+	}
+	return NULL;
+}
+
+ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
+{
+	
+	if (Floating() && m_value == 0)
+	{
+		return b;
+	}
+	
+	if (Floating() && m_value == 1 && op == MULTIPLY)
+	{
+		m_value = b->m_value;
+		for (int i = 0; i < NOP; ++i)
+		{
+			for (auto n : m_next[i])
+				delete n;
+			m_next[i].clear();
+			swap(m_next[i], b->m_next[i]);
+		}
+		return b;
+	}
+	if (b->Floating() && b->m_value == 1)
+		return b;
+		
+	if (NoTerms() && b->NoTerms())
+	{
+		if (ParanoidOp<digit_t>(m_value, b->m_value, op))
+		{
+			Optype mulop = (op == MULTIPLY) ? MULTIPLY : DIVIDE;
+			for (auto mul : b->m_next[MULTIPLY])
+			{
+				delete OperationFactor(mul, mulop);
+			}
+			Optype divop = (op == MULTIPLY) ? DIVIDE : MULTIPLY;
+			for (auto div : b->m_next[DIVIDE])
+				delete OperationFactor(div, divop);
+				
+			b->m_next[DIVIDE].clear();
+			b->m_next[MULTIPLY].clear();
+			return b;		
+		}
+	}
+	
+		
+	bool parent = (merge_point == NULL);
+	ParanoidNumber * merge = this;
+	Optype mop = op;
+	if (parent)
+	{
+		merge_point = &merge;
+		merge_op = &mop;	
+	}
+	else
+	{
+		merge = *merge_point;
+		mop = *merge_op;
+	}
+		
+	Optype invop = InverseOp(op); // inverse of p
+	Optype fwd = op;
+	Optype rev = invop;
+	if (op == DIVIDE)
+	{
+		fwd = MULTIPLY;
+		rev = DIVIDE;
+	}
+
+	ParanoidNumber * cpy_b = NULL;
+	
+	if (m_next[ADD].size() > 0 || m_next[SUBTRACT].size() > 0)
+	{
+		cpy_b = new ParanoidNumber(*b);
+	}
+	
+	for (auto prev : m_next[invop])
+	{
+		if (prev->OperationFactor(b, rev, merge_point, merge_op) == b)
+		{
+			for (auto add : m_next[ADD])
+				delete add->OperationFactor(new ParanoidNumber(*cpy_b), op);
+			for (auto sub : m_next[SUBTRACT])
+				delete sub->OperationFactor(new ParanoidNumber(*cpy_b), op);
+				
+			delete cpy_b;
+			return b;
+		}
+	}
+	for (auto next : m_next[op])
+	{
+		if (next->OperationFactor(b, fwd, merge_point, merge_op) == b)
+		{
+			for (auto add : m_next[ADD])
+				delete add->OperationFactor(new ParanoidNumber(*cpy_b), op);
+			for (auto sub : m_next[SUBTRACT])
+				delete sub->OperationFactor(new ParanoidNumber(*cpy_b), op);
+			delete cpy_b;
+			return b;
+		}
+	}
+	
+	if (parent)
+	{
+		m_next[op].push_back(b);
+		for (auto add : m_next[ADD])
+			delete add->OperationFactor(new ParanoidNumber(*cpy_b), op);
+		for (auto sub : m_next[SUBTRACT])
+			delete sub->OperationFactor(new ParanoidNumber(*cpy_b), op);
+	}
+	return NULL;	
+}
+
+
+
 /**
  * Performs the operation on a with argument b (a += b, a -= b, a *= b, a /= b)
  * @returns b if b can safely be deleted
  * @returns NULL if b has been merged with a
  * append indicates that b should be merged
  */
-ParanoidNumber * ParanoidNumber::Operation(ParanoidNumber * b, Optype op, ParanoidNumber ** parent)
+ParanoidNumber * ParanoidNumber::Operation(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
 {
+
 	if (b == NULL)
 		return NULL;
-		
-	Optype invop = InverseOp(op); // inverse of p
-	ParanoidNumber * append_at = this;
-	
-	if (Floating())
-	{
-		if ((op == ADD || op == SUBTRACT) && (m_value == 0))
-		{
-			m_value = b->m_value;
-			for (int i = 0; i < NOP; ++i)
-			{
-				m_next[i] = b->m_next[i];
-				b->m_next[i] = NULL;
-			}
-			return b;
-		}
-		if ((op == MULTIPLY) && (m_value == 1))
-		{
-			m_value = b->m_value;
-			for (int i = 0; i < NOP; ++i)
-			{
-				m_next[i] = b->m_next[i];
-				b->m_next[i] = NULL;
-			}
-			return b;
-			return b;
-		}
-		
-	}
-	
-	if (b->Floating())
-	{
-		if ((op == ADD || op == SUBTRACT) && (b->m_value == 0))
-			return b;
-		if ((op == MULTIPLY || op == DIVIDE) && (b->m_value == 1))
-			return b;
-	}
-	
-	// Operation can be applied directly to the m_value of this and b
-	// ie: op is + or - and this and b have no * or / children
-	// or: op is * or / and this and b have no + or - children
-	if (Pure(op) && (b->Pure(op))) 
-	{
-		if (ParanoidOp<digit_t>(m_value, b->m_value, op)) // op applied successfully...
-		{	
-			Simplify(op);
-			Simplify(invop);
-			for (int i = 0; i < NOP; ++i) // Try applying b's children to this
-			{
-				delete Operation(b->m_next[i], Optype(i));
-				b->m_next[i] = NULL;
-			}
-			return b; // can delete b
-		}
-	}
-	
-	// Try to simplify the cases:
-	// a + b*c == (a/c + b)*c
-	// a + b/c == (a*c + b)/c
-	else if ((op == ADD || op == SUBTRACT) &&
-			(Pure(op) || b->Pure(op)))
-	{
-		
-		Debug("Simplify: {%s} %c {%s}", Str().c_str(), OpChar(op), b->Str().c_str());
-		Optype adj[] = {MULTIPLY, DIVIDE};
-		for (int i = 0; i < 2; ++i)
-		{
 
-			Optype f = adj[i];
-			Optype invf = InverseOp(f);
-			
-			Debug("Try %c", OpChar(f));
-			
-			if (m_next[f] == NULL && b->m_next[f] == NULL)
-				continue;
-
-			ParanoidNumber * tmp_a = new ParanoidNumber(*this);
-			ParanoidNumber * tmp_b = new ParanoidNumber(*b);
-				
-		
-			ParanoidNumber * af = (tmp_a->m_next[f] != NULL) ? new ParanoidNumber(*(tmp_a->m_next[f])) : NULL;
-			ParanoidNumber * bf = (tmp_b->m_next[f] != NULL) ? new ParanoidNumber(*(tmp_b->m_next[f])) : NULL;
-			
-			Debug("{%s} %c {%s}", tmp_a->Str().c_str(), OpChar(op), tmp_b->Str().c_str());
-			Debug("{%s} %c {%s}", tmp_a->Str().c_str(), OpChar(op), tmp_b->Str().c_str());
-			if (tmp_a->Operation(af, invf) != af || tmp_b->Operation(bf, invf) != bf)
-			{
-				delete af;
-				delete bf;
-				delete tmp_a;
-				delete tmp_b;
-				continue;
-			}
-			Debug("{%s} %c {%s}", tmp_a->Str().c_str(), OpChar(op), tmp_b->Str().c_str());
-			
-			if (tmp_a->Operation(bf, invf) == bf && tmp_b->Operation(af, invf) == af) // a / c simplifies
-			{  
-				if (tmp_a->Operation(tmp_b, op) != NULL) // (a/c) + b simplifies
-				{
-					this->operator=(*tmp_a);
-					if (bf != NULL)
-						delete Operation(bf, f);
-					if (af != NULL)
-						delete Operation(af, f);
-					delete tmp_a;
-					delete tmp_b;
-					return b; // It simplified after all!
-				}
-				else
-				{
-					tmp_b = NULL;
-					delete af;
-					delete bf;
-				} 	
-			}
-			//Debug("tmp_a : %s", tmp_a->PStr().c_str());
-			//Debug("tmp_b : %s", tmp_b->PStr().c_str());
-			delete tmp_a;
-			delete tmp_b;
-		}
-	}
 	
-		// See if operation can be applied to children of this in the same dimension
-	{
-		// (a / b) / c = a / (b*c)
-		// (a * b) / c = a * (b/c)
-		// (a / b) * c = a / (b/c)
-		// (a * b) * c = a * (b*c)
-		// (a + b) + c = a + (b+c)
-		// (a - b) + c = a - (b-c)
-		// (a + b) - c = a + (b-c)
-		// (a - b) - c = a - (b+c)
-		Optype fwd(op);
-		Optype rev(invop);
-		if (op == DIVIDE || op == SUBTRACT)
-		{
-			fwd = invop;
-			rev = op;
-		}
-		// opposite direction first (because ideally things will cancel each other out...)
-		if (m_next[invop] != NULL && m_next[invop]->Operation(b, rev, &append_at) != NULL)
-			return b;
-		// forward direction
-		if (m_next[op] != NULL && m_next[op]->Operation(b, fwd, &append_at) != NULL) 
-			return b;
-	}
-	
-	// At this point, we have no choice but to merge 'b' with this ParanoidNumber
-	
-	// we are a child; the merge operation needs to be applied by the root, so leave
-	if (parent != NULL) 
-	{
-		if (m_next[op] == NULL)
-			*parent = this; // last element in list
-		return NULL;
-	}
-	
-	append_at->m_next[op] = b; // Merge with b
-	
-	// MULTIPLY and DIVIDE operations need to be performed on each term in the ADD/SUBTRACT dimension
-	if (op == DIVIDE || op == MULTIPLY)
-	{
-		// apply the operation to each term
-		if (m_next[ADD] != NULL) delete m_next[ADD]->Operation(new ParanoidNumber(*b), op);
-		if (m_next[SUBTRACT] != NULL) delete m_next[SUBTRACT]->Operation(new ParanoidNumber(*b), op);
-		
-		// try and simplify this by adding the terms (you never know...)
-		Simplify(ADD);
-		Simplify(SUBTRACT);
-	}
-	// failed to simplify
-	return NULL;
+	if (op == SUBTRACT || op == ADD)
+		return OperationTerm(b, op, merge_point, merge_op);
+	if (op == MULTIPLY || op == DIVIDE)
+		return OperationFactor(b, op, merge_point, merge_op);
+	return b;
 }
 
-bool ParanoidNumber::Simplify(Optype op)
-{
-	ParanoidNumber * n = m_next[op];
-	m_next[op] = NULL;
-	if (Operation(n, Optype(op)))
-	{
-		delete n;
-		return true;
-	}
-	else
-	{
-		m_next[op] = n;
-		return false;
-	}
-}
+
 
 string ParanoidNumber::PStr() const
 {
@@ -433,11 +462,29 @@ string ParanoidNumber::PStr() const
 	for (int i = 0; i < NOP; ++i)
 	{
 		Optype f = Optype(i);
-		s << this << OpChar(f) << m_next[f] << "\n";
+		s << this;
+		for (auto n : m_next[f])
+		{
+			s << OpChar(f) << n->PStr();
+		}
 	}
 	return s.str();
 }
 
+bool ParanoidNumber::Simplify(Optype op)
+{
+	vector<ParanoidNumber*> next(0);
+	swap(m_next[op], next);
+	for (auto n : next)
+	{
+		ParanoidNumber * result = Operation(n, op);
+		if (result != NULL)
+			delete result;
+		else
+			m_next[op].push_back(n);
+	}
+	return (next.size() > m_next[op].size());
+}
 
 
 
