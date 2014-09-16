@@ -22,7 +22,7 @@ ParanoidNumber::~ParanoidNumber()
 	}
 }
 
-ParanoidNumber::ParanoidNumber(const char * str) : m_value(0)
+ParanoidNumber::ParanoidNumber(const char * str) : m_value(0), m_cached_result(0)
 {
 	Construct();
 	int dp = 0;
@@ -55,6 +55,7 @@ ParanoidNumber::ParanoidNumber(const char * str) : m_value(0)
 ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
 {
 	m_value = a.m_value;
+	m_cached_result = a.m_cached_result;
 	for (int i = 0; i < NOP; ++i)
 	{
 		for (unsigned j = 0; j < m_next[i].size() && j < a.m_next[i].size(); ++j)
@@ -198,6 +199,8 @@ bool TrustingOp<int8_t>(int8_t & a, const int8_t & b, Optype op)
 ParanoidNumber & ParanoidNumber::operator+=(const ParanoidNumber & a)
 {
 	delete Operation(new ParanoidNumber(a), ADD);
+	Simplify(ADD);
+	Simplify(SUBTRACT);
 	return *this;
 }
 
@@ -205,6 +208,8 @@ ParanoidNumber & ParanoidNumber::operator+=(const ParanoidNumber & a)
 ParanoidNumber & ParanoidNumber::operator-=(const ParanoidNumber & a)
 {
 	delete Operation(new ParanoidNumber(a), SUBTRACT);
+	//Simplify(SUBTRACT);
+	//Simplify(ADD);
 	return *this;
 }
 
@@ -224,7 +229,7 @@ ParanoidNumber & ParanoidNumber::operator/=(const ParanoidNumber & a)
 // a + b
 ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
 {
-			
+	m_cached_result = nan("");
 	if (Floating() && m_value == 0) // 0 + b = b
 	{
 		m_value = b->m_value;
@@ -246,7 +251,8 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 		
 
 	
-	if (NoFactors() && b->NoFactors())
+	if ((NoFactors() && b->NoFactors())
+		|| (GetFactors() == b->GetFactors()))
 	{
 		if (ParanoidOp<digit_t>(m_value, b->m_value, op))
 		{
@@ -264,7 +270,6 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 			return b;
 		}
 	}
-
 
 	
 	
@@ -309,7 +314,8 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 	
 	if (parent)
 	{
-		merge->m_next[*merge_op].push_back(b);
+		//merge->m_next[*merge_op].push_back(b);
+		m_next[op].push_back(b);
 	}
 	else
 	{
@@ -324,7 +330,7 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 
 ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
 {
-	
+	m_cached_result = nan("");
 	if (Floating() && m_value == 0)
 	{
 		return b;
@@ -344,6 +350,8 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 	}
 	if (b->Floating() && b->m_value == 1)
 		return b;
+	
+
 		
 	if (NoTerms() && b->NoTerms())
 	{
@@ -360,6 +368,9 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 				
 			b->m_next[DIVIDE].clear();
 			b->m_next[MULTIPLY].clear();
+			
+			
+			
 			return b;		
 		}
 	}
@@ -477,16 +488,63 @@ bool ParanoidNumber::Simplify(Optype op)
 	swap(m_next[op], next);
 	for (auto n : next)
 	{
-		ParanoidNumber * result = Operation(n, op);
-		if (result != NULL)
-			delete result;
-		else
-			m_next[op].push_back(n);
+		delete Operation(n, op);
 	}
 	return (next.size() > m_next[op].size());
 }
 
+bool ParanoidNumber::FullSimplify()
+{
+	bool result = false;
+	result |= Simplify(MULTIPLY);
+	result |= Simplify(DIVIDE);
+	result |= Simplify(ADD);
+	result |= Simplify(SUBTRACT);
+	return result;
+}
 
+
+ParanoidNumber::digit_t ParanoidNumber::Digit()
+{
+	if (!isnan(m_cached_result))
+		return m_cached_result;
+	m_cached_result = m_value;
+	for (auto mul : m_next[MULTIPLY])
+	{
+		m_cached_result *= mul->Digit();
+	}
+	for (auto div : m_next[DIVIDE])
+	{
+		m_cached_result /= div->Digit();
+	}
+	for (auto add : m_next[ADD])
+		m_cached_result += add->Digit();
+	for (auto sub : m_next[SUBTRACT])
+		m_cached_result -= sub->Digit();
+	return m_cached_result;
+		
+}
+
+ParanoidNumber::digit_t ParanoidNumber::GetFactors()
+{
+	digit_t value = 1;
+	for (auto mul : m_next[MULTIPLY])
+		value *= mul->Digit();
+	for (auto div : m_next[DIVIDE])
+		value /= div->Digit();
+	return value;
+}
+
+
+ParanoidNumber::digit_t ParanoidNumber::GetTerms()
+{
+	digit_t value = 0;
+	for (auto add : m_next[ADD])
+		value += add->Digit();
+	for (auto sub : m_next[SUBTRACT])
+		value -= sub->Digit();
+	return value;
+}
 
 
 }

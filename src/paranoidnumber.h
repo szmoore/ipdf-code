@@ -71,12 +71,12 @@ namespace IPDF
 		public:
 			typedef PARANOID_DIGIT_T digit_t;
 
-			ParanoidNumber(digit_t value=0) : m_value(value)
+			ParanoidNumber(digit_t value=0) : m_value(value), m_cached_result(value)
 			{
 				Construct();
 			}
 			
-			ParanoidNumber(const ParanoidNumber & cpy) : m_value(cpy.m_value)
+			ParanoidNumber(const ParanoidNumber & cpy) : m_value(cpy.m_value), m_cached_result(cpy.m_cached_result)
 			{
 				Construct();
 				for (int i = 0; i < NOP; ++i)
@@ -98,9 +98,12 @@ namespace IPDF
 			
 			
 			template <class T> T Convert() const;
+			digit_t GetFactors();
+			digit_t GetTerms();
+		
 
-			double ToDouble() const {return Convert<double>();}
-			digit_t Digit() const {return Convert<digit_t>();}
+			double ToDouble() {return (double)Digit();}
+			digit_t Digit();
 			
 			bool Floating() const 
 			{
@@ -122,14 +125,14 @@ namespace IPDF
 			ParanoidNumber * TrivialOp(ParanoidNumber * b, Optype op);
 			ParanoidNumber * Operation(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point = NULL, Optype * mop = NULL);
 			bool Simplify(Optype op);
+			bool FullSimplify();
 			
-			
-			bool operator<(const ParanoidNumber & a) const {return ToDouble() < a.ToDouble();}
-			bool operator<=(const ParanoidNumber & a) const {return this->operator<(a) || this->operator==(a);}
-			bool operator>(const ParanoidNumber & a) const {return !(this->operator<=(a));}
-			bool operator>=(const ParanoidNumber & a) const {return !(this->operator<(a));}
-			bool operator==(const ParanoidNumber & a) const {return ToDouble() == a.ToDouble();}
-			bool operator!=(const ParanoidNumber & a) const {return !(this->operator==(a));}
+			bool operator<(ParanoidNumber & a) {return ToDouble() < a.ToDouble();}
+			bool operator<=(ParanoidNumber & a) {return this->operator<(a) || this->operator==(a);}
+			bool operator>(ParanoidNumber & a) {return !(this->operator<=(a));}
+			bool operator>=(ParanoidNumber & a) {return !(this->operator<(a));}
+			bool operator==(ParanoidNumber & a) {return ToDouble() == a.ToDouble();}
+			bool operator!=(ParanoidNumber & a) {return !(this->operator==(a));}
 			
 			ParanoidNumber operator+(const ParanoidNumber & a) const
 			{
@@ -176,7 +179,7 @@ namespace IPDF
 				return copy;
 			}
 
-		
+
 			static int64_t Paranoia() {return g_count;}
 			
 			std::string PStr() const;
@@ -191,28 +194,35 @@ namespace IPDF
 			digit_t m_value;
 			Optype m_op;
 			std::vector<ParanoidNumber*> m_next[4];
-			
-			int m_size;
+			digit_t m_cached_result;
+			bool m_cache_valid;
 	};
+	
+
+
 
 template <class T>
 T ParanoidNumber::Convert() const
 {
+	if (!isnan(m_cached_result))
+		return (T)m_cached_result;
 	T value(m_value);
 	for (auto mul : m_next[MULTIPLY])
 	{
-		value *= mul->Digit();
+		value *= mul->Convert<T>();
 	}
 	for (auto div : m_next[DIVIDE])
 	{
-		value /= div->Digit();
+		value /= div->Convert<T>();
 	}
 	for (auto add : m_next[ADD])
-		value += add->Digit();
+		value += add->Convert<T>();
 	for (auto sub : m_next[SUBTRACT])
-		value -= sub->Digit();
+		value -= sub->Convert<T>();
 	return value;
 }
+
+
 
 }
 

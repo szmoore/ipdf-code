@@ -148,7 +148,7 @@ void TestMulDivIntegers(int max=50)
 void TestRandomisedOps(int test_cases = 1000, int ops_per_case = 1, int max_digits = 4)
 {
 	Debug("Test %i*%i randomised ops (max digits = %i)", test_cases, ops_per_case, max_digits);
-	long double eps = 1e-6; //* (1e4*ops_per_case);
+	long double eps = 1e-2; //* (1e4*ops_per_case);
 	for (int i = 0; i < test_cases; ++i)
 	{
 		string s = RandomNumberAsString(max_digits);
