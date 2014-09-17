@@ -364,7 +364,10 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 		PrepareRender();
 
 	if (m_buffer_dirty || m_bounds_dirty || !m_lazy_rendering) // object bounds have changed
-		UpdateObjBoundsVBO(first_obj, last_obj);
+	{
+		if (m_use_gpu_rendering)
+			UpdateObjBoundsVBO(first_obj, last_obj);
+	}
 
 	if (m_use_gpu_transform)
 	{
@@ -464,10 +467,13 @@ void View::PrepareRender()
 {
 	Debug("Recreate buffers with %u objects", m_document.ObjectCount());
 	// Prepare bounds vbo
-	m_bounds_ubo.Invalidate();
-	m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
-	m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
-	m_bounds_ubo.SetName("m_bounds_ubo: Screen bounds.");
+	if (UsingGPURendering())
+	{
+		m_bounds_ubo.Invalidate();
+		m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
+		m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
+		m_bounds_ubo.SetName("m_bounds_ubo: Screen bounds.");
+	}
 	
 	// Instead of having each ObjectRenderer go through the whole document
 	//  we initialise them, go through the document once adding to the appropriate Renderers
@@ -490,12 +496,14 @@ void View::PrepareRender()
 		//Debug("Object of type %d", type);
 	}
 
+
 	// Finish the buffers
 	for (unsigned i = 0; i < m_object_renderers.size(); ++i)
 	{
 		m_object_renderers[i]->FinaliseBuffers();
 	}
-	dynamic_cast<BezierRenderer*>(m_object_renderers[BEZIER])->PrepareBezierGPUBuffer(m_document.m_objects);
+	if (UsingGPURendering())
+		dynamic_cast<BezierRenderer*>(m_object_renderers[BEZIER])->PrepareBezierGPUBuffer(m_document.m_objects);
 	m_render_dirty = false;
 }
 
