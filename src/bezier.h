@@ -293,7 +293,7 @@ namespace IPDF
 			{
 				Real t1 = *it;
 				if (t1 == t0) continue;
-				Debug(" -- t0: %f to t1: %f: %f", Double(t0), Double(t1), (t1 + t0)/Real(2));
+				Debug(" -- t0: %f to t1: %f: %f", Double(t0), Double(t1), Double((t1 + t0)/Real(2)));
 				Real ptx, pty;
 				Evaluate(ptx, pty, ((t1 + t0) / Real(2)));
 				if (r.PointIn(ptx, pty))

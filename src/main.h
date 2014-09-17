@@ -129,9 +129,9 @@ inline void MainLoop(Document & doc, Screen & scr, View & view, int max_frames =
 		scr.DebugFontPrintF("[REALTIME] Render+Present+Cruft took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", real_frame*1e3, 1.0/real_frame, total_real_time,frames/total_real_time);
 		scr.DebugFontPrintF("View bounds: %s\n", view.GetBounds().Str().c_str());
 		scr.DebugFontPrintF("type of Real == %s\n", g_real_name[REALTYPE]);
-		#if REALTYPE == REAL_MPFRCPP
-			scr.DebugFontPrintf("Precision: %s\nRounding: %s\n");
-		#endif 
+		//#if REALTYPE == REAL_MPFRCPP
+		//	scr.DebugFontPrintf("Precision: %s\nRounding: %s\n");
+		//#endif 
 
 		if (view.UsingGPUTransform())
 		{
