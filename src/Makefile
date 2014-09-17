@@ -41,7 +41,7 @@ DEF = -DREALTYPE=$(REALTYPE)
 ## Only link with things we care about
 
 ifeq ($(QUADTREE),enabled)
-	OBJ := $(OBJ) quadtree.o
+	OBJ := $(OBJ)
 else
 	DEF := $(DEF) -DQUADTREE_DISABLED
 endif

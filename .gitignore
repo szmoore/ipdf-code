@@ -14,5 +14,8 @@ bin/ipdf
 data/*
 src/moc_controlpanel.cpp
 src/tests/*
+tools/*
+!tools/*.ipynb
+!tools/*.py
 !src/tests/*.cpp
 !src/tests/*.h

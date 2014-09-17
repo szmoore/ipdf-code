@@ -24,12 +24,16 @@ static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum 
 }
 
 
-Screen::Screen()
+Screen::Screen(bool visible)
 {
 
 	SDL_Init(SDL_INIT_VIDEO);
+	uint32_t flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+	if (!visible)
+		flags |= SDL_WINDOW_HIDDEN;
+	
 	m_window = SDL_CreateWindow("IPDF", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-			800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+			800, 600, flags);
 
 	if (!m_window)
 	{

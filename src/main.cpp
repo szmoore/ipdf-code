@@ -49,14 +49,11 @@ int main(int argc, char ** argv)
 	int max_frames = -1;
 	bool hide_control_panel;
 	bool lazy_rendering = true;
+	bool window_visible = true;
+	bool gpu_transform = true;
+	bool gpu_rendering = true;
 	
 
-	
-	Screen scr;
-	View view(doc,scr, {0,0,1,1});
-	
-	if (!lazy_rendering)
-		view.SetLazyRendering(false);
 	
 	int i = 0;
 	while (++i < argc)
@@ -105,11 +102,11 @@ int main(int argc, char ** argv)
 					Fatal("Expected \"gpu\" or \"cpu\" after -r switch");
 				if (strcmp(argv[i], "gpu") == 0)
 				{
-					view.SetGPURendering(true);
+					gpu_rendering = true;
 				}
 				else if (strcmp(argv[i], "cpu") == 0)
 				{
-					view.SetGPURendering(false);
+					gpu_rendering = false;
 				}
 				else
 				{
@@ -124,11 +121,11 @@ int main(int argc, char ** argv)
 					Fatal("Expected \"gpu\" or \"cpu\" after -T switch");
 				if (strcmp(argv[i], "gpu") == 0)
 				{
-					view.SetGPUTransform(true);
+					gpu_transform = true;
 				}
 				else if (strcmp(argv[i], "cpu") == 0)
 				{
-					view.SetGPUTransform(false);
+					gpu_transform = false;
 				}
 				else
 				{
@@ -139,7 +136,7 @@ int main(int argc, char ** argv)
 			
 			
 			case 'l':
-				view.SetLazyRendering(!view.UsingLazyRendering());
+				lazy_rendering = !lazy_rendering;
 				break;
 			
 			case 'f':
@@ -153,11 +150,21 @@ int main(int argc, char ** argv)
 				hide_control_panel = true;
 				break;
 					
+			case 'Q':
+				hide_control_panel = true;
+				window_visible = !window_visible;
+				break;
 		}	
 	}
 
 	Rect bounds(b[0],b[1],b[2],b[3]);
-	view.SetBounds(bounds);
+	Screen scr(window_visible);
+	View view(doc,scr, bounds);
+	
+	view.SetLazyRendering(lazy_rendering);
+	view.SetGPURendering(gpu_rendering);
+	view.SetGPUTransform(gpu_transform);
+
 	if (input_filename != NULL)
 	{
 		
@@ -184,16 +191,15 @@ int main(int argc, char ** argv)
 			Error("Couldn't create ControlPanel thread: %s", SDL_GetError());
 		}
 	}
-	#endif //CONTROLPANEL_DISABLED
+	#else //CONTROLPANEL_DISABLED
+		Debug("No control panel, hide_control_panel is %d", hide_control_panel);
+	#endif 
 
 	if (mode == LOOP)
 		MainLoop(doc, scr, view, max_frames);
-	else if (mode == OUTPUT_TO_BMP) //TODO: Remove this shit
+	else if (mode == OUTPUT_TO_BMP)
 	{
-		if (view.UsingGPURendering())
-			OverlayBMP(doc, output_bmp, output_bmp, bounds, c);
-		else
-			view.SaveCPUBMP(output_bmp);
+		view.SaveBMP(output_bmp);
 	}
 		
 	#ifndef CONTROLPANEL_DISABLED

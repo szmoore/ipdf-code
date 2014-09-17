@@ -62,7 +62,10 @@ namespace IPDF
 			void SetLazyRendering(bool state = true) {m_lazy_rendering = state;}
 			bool UsingLazyRendering() const {return m_lazy_rendering;}
 			
+			void SaveBMP(const char * filename) {if (UsingGPURendering()) SaveGPUBMP(filename); else SaveCPUBMP(filename);}
+			
 			void SaveCPUBMP(const char * filename);
+			void SaveGPUBMP(const char * filename);
 
 		private:
 			struct GPUObjBounds

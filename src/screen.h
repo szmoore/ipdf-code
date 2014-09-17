@@ -18,7 +18,7 @@ namespace IPDF
 	class Screen
 	{
 	public:
-		Screen();
+		Screen(bool visible = true);
 		~Screen();
 
 		// 'Pumps' the system event queue.

@@ -123,6 +123,7 @@ inline void MainLoop(Document & doc, Screen & scr, View & view, int max_frames =
 			data_points++;
 		}
 		scr.DebugFontPrintF("Rendered frame %lu\n", (uint64_t)frames);
+		scr.DebugFontPrintF("Lazy Rendering = %d\n", view.UsingLazyRendering());
 		scr.DebugFontPrintF("[CPU] Render took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", cpu_frame*1e3, 1.0/cpu_frame, total_cpu_time,frames/total_cpu_time);
 		scr.DebugFontPrintF("[GPU] Render took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", gpu_frame*1e3, 1.0/gpu_frame, total_gpu_time, frames/total_gpu_time);
 		scr.DebugFontPrintF("[REALTIME] Render+Present+Cruft took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", real_frame*1e3, 1.0/real_frame, total_real_time,frames/total_real_time);

@@ -22,7 +22,7 @@ View::View(Document & document, Screen & screen, const Rect & bounds, const Colo
 		m_render_dirty(true), m_document(document), m_screen(screen), m_cached_display(), m_bounds(bounds), m_colour(colour), m_bounds_ubo(), 
 		m_objbounds_vbo(), m_object_renderers(NUMBER_OF_OBJECT_TYPES), m_cpu_rendering_pixels(NULL),
 		m_perform_shading(USE_SHADING), m_show_bezier_bounds(false), m_show_bezier_type(false),
-		m_show_fill_points(false), m_show_fill_bounds(false)
+		m_show_fill_points(false), m_show_fill_bounds(false), m_lazy_rendering(true)
 {
 	Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
 
@@ -506,4 +506,13 @@ void View::SaveCPUBMP(const char * filename)
 	Render(800, 600);
 	ObjectRenderer::SaveBMP({m_cpu_rendering_pixels, 800, 600}, filename);
 	SetGPURendering(prev);
+}
+
+void View::SaveGPUBMP(const char * filename)
+{
+	bool prev = UsingGPURendering();
+	SetGPURendering(true);
+	Render(800,600);
+	m_screen.ScreenShot(filename);
+	SetGPURendering(prev);	
 }
