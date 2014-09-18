@@ -186,7 +186,7 @@ struct Rational
 	double ToDouble() const 
 	{
 		T num = P, denom = Q;
-		while (Tabs(num) > T(1e10))
+		while (Tabs(num) > T(1e10) || Tabs(denom) > T(1e10))
 		{
 			num /= T(16);
 			denom /= T(16);

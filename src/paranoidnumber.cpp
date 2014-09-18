@@ -22,7 +22,7 @@ ParanoidNumber::~ParanoidNumber()
 	}
 }
 
-ParanoidNumber::ParanoidNumber(const char * str) : m_value(0), m_cached_result(0)
+ParanoidNumber::ParanoidNumber(const string & str) : m_value(0), m_cached_result(0), m_cache_valid(false), m_next()
 {
 	Construct();
 	int dp = 0;
@@ -54,13 +54,22 @@ ParanoidNumber::ParanoidNumber(const char * str) : m_value(0), m_cached_result(0
 
 ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
 {
+	assert(this != NULL);
 	m_value = a.m_value;
 	m_cached_result = a.m_cached_result;
 	for (int i = 0; i < NOP; ++i)
 	{
+		for (auto n : m_next[i])
+			delete n;
+		m_next[i].clear();
+		for (auto n : a.m_next[i])
+			m_next[i].push_back(new ParanoidNumber(*n));
+	}
+		/*
 		for (unsigned j = 0; j < m_next[i].size() && j < a.m_next[i].size(); ++j)
 		{
-			m_next[i][j]->operator=(*(a.m_next[i][j]));
+			if (a.m_next[i][j] != NULL)
+				m_next[i][j]->operator=(*(a.m_next[i][j]));
 		}
 		
 		for (unsigned j = a.m_next[i].size(); j < m_next[i].size(); ++j)
@@ -68,13 +77,16 @@ ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
 			delete m_next[i][j];
 		}
 		m_next[i].resize(a.m_next[i].size());
-	}	
+		*/
+	//}	
 	return *this;
 }
 
 
 string ParanoidNumber::Str() const
 {
+	
+	assert(this != NULL);
 	string result("");
 	stringstream s;
 	s << (double)m_value;
@@ -120,6 +132,7 @@ string ParanoidNumber::Str() const
 template <>
 bool TrustingOp<float>(float & a, const float & b, Optype op)
 {
+	
 	feclearexcept(FE_ALL_EXCEPT);
 	switch (op)
 	{
@@ -133,6 +146,12 @@ bool TrustingOp<float>(float & a, const float & b, Optype op)
 			a *= b;
 			break;
 		case DIVIDE:
+			if (b == 0)
+			{
+				a = (a >= 0) ? INFINITY : -INFINITY;
+				return false;
+			}
+			
 			a /= b;
 			break;
 		case NOP:
@@ -157,6 +176,11 @@ bool TrustingOp<double>(double & a, const double & b, Optype op)
 			a *= b;
 			break;
 		case DIVIDE:
+			if (b == 0)
+			{
+				a = (a >= 0) ? INFINITY : -INFINITY;
+				return false;
+			}
 			a /= b;
 			break;
 		case NOP:
@@ -198,7 +222,9 @@ bool TrustingOp<int8_t>(int8_t & a, const int8_t & b, Optype op)
 
 ParanoidNumber & ParanoidNumber::operator+=(const ParanoidNumber & a)
 {
-	delete Operation(new ParanoidNumber(a), ADD);
+	
+	assert(this != NULL);
+	delete Operation(SafeConstruct(a), ADD);
 	Simplify(ADD);
 	Simplify(SUBTRACT);
 	return *this;
@@ -207,28 +233,38 @@ ParanoidNumber & ParanoidNumber::operator+=(const ParanoidNumber & a)
 
 ParanoidNumber & ParanoidNumber::operator-=(const ParanoidNumber & a)
 {
-	delete Operation(new ParanoidNumber(a), SUBTRACT);
-	//Simplify(SUBTRACT);
-	//Simplify(ADD);
+	delete Operation(SafeConstruct(a), SUBTRACT);
+	Simplify(SUBTRACT);
+	Simplify(ADD);
 	return *this;
 }
 
 ParanoidNumber & ParanoidNumber::operator*=(const ParanoidNumber & a)
 {
-	delete Operation(new ParanoidNumber(a), MULTIPLY);
+	delete Operation(SafeConstruct(a), MULTIPLY);
+	Simplify(MULTIPLY);
+	Simplify(DIVIDE);	
 	return *this;
 }
 
 
 ParanoidNumber & ParanoidNumber::operator/=(const ParanoidNumber & a)
 {
-	delete Operation(new ParanoidNumber(a), DIVIDE);
+	delete Operation(SafeConstruct(a), DIVIDE);
+	Simplify(MULTIPLY);
+	Simplify(DIVIDE);
 	return *this;
 }
 
 // a + b
 ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
 {
+	if (!SanityCheck())
+	{
+		Fatal("What...");
+	}
+	assert(b->SanityCheck());
+	
 	m_cached_result = nan("");
 	if (Floating() && m_value == 0) // 0 + b = b
 	{
@@ -244,6 +280,8 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 			m_next[i] = b->m_next[i];
 			b->m_next[i].clear();
 		}
+		
+		assert(SanityCheck());
 		return b;
 	}
 	if (b->Floating() && b->m_value == 0) // a + 0 = a
@@ -267,6 +305,7 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 				
 			b->m_next[ADD].clear();
 			b->m_next[SUBTRACT].clear();
+			assert(SanityCheck());
 			return b;
 		}
 	}
@@ -300,13 +339,19 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 	for (auto prev : m_next[invop])
 	{
 		if (prev->OperationTerm(b, rev, merge_point, merge_op) == b)
+		{
+			assert(SanityCheck());
 			return b;
+		}
 		
 	}
 	for (auto next : m_next[op])
 	{
 		if (next->OperationTerm(b, fwd, merge_point, merge_op) == b)
+		{
+			assert(SanityCheck());
 			return b;
+		}
 	}
 	
 
@@ -325,11 +370,15 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 			*merge_op = op;
 		}
 	}
+
+	assert(SanityCheck());
 	return NULL;
 }
 
 ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
 {
+	assert(SanityCheck());
+	assert(b->SanityCheck());
 	m_cached_result = nan("");
 	if (Floating() && m_value == 0)
 	{
@@ -346,6 +395,7 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 			m_next[i].clear();
 			swap(m_next[i], b->m_next[i]);
 		}
+		assert(SanityCheck());
 		return b;
 	}
 	if (b->Floating() && b->m_value == 1)
@@ -370,7 +420,7 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 			b->m_next[MULTIPLY].clear();
 			
 			
-			
+			assert(SanityCheck());
 			return b;		
 		}
 	}
@@ -403,7 +453,7 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 	
 	if (m_next[ADD].size() > 0 || m_next[SUBTRACT].size() > 0)
 	{
-		cpy_b = new ParanoidNumber(*b);
+		cpy_b = SafeConstruct(*b);
 	}
 	
 	for (auto prev : m_next[invop])
@@ -411,11 +461,12 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 		if (prev->OperationFactor(b, rev, merge_point, merge_op) == b)
 		{
 			for (auto add : m_next[ADD])
-				delete add->OperationFactor(new ParanoidNumber(*cpy_b), op);
+				delete add->OperationFactor(SafeConstruct(*cpy_b), op);
 			for (auto sub : m_next[SUBTRACT])
-				delete sub->OperationFactor(new ParanoidNumber(*cpy_b), op);
+				delete sub->OperationFactor(SafeConstruct(*cpy_b), op);
 				
 			delete cpy_b;
+			assert(SanityCheck());
 			return b;
 		}
 	}
@@ -424,22 +475,29 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 		if (next->OperationFactor(b, fwd, merge_point, merge_op) == b)
 		{
 			for (auto add : m_next[ADD])
-				delete add->OperationFactor(new ParanoidNumber(*cpy_b), op);
+			{
+				delete add->OperationFactor(SafeConstruct(*cpy_b), op);
+			}
 			for (auto sub : m_next[SUBTRACT])
-				delete sub->OperationFactor(new ParanoidNumber(*cpy_b), op);
+			{
+				delete sub->OperationFactor(SafeConstruct(*cpy_b), op);
+			}
 			delete cpy_b;
+			assert(SanityCheck());
 			return b;
 		}
 	}
 	
 	if (parent)
 	{
+		assert(b != NULL);
 		m_next[op].push_back(b);
 		for (auto add : m_next[ADD])
-			delete add->OperationFactor(new ParanoidNumber(*cpy_b), op);
+			delete add->OperationFactor(SafeConstruct(*cpy_b), op);
 		for (auto sub : m_next[SUBTRACT])
-			delete sub->OperationFactor(new ParanoidNumber(*cpy_b), op);
+			delete sub->OperationFactor(SafeConstruct(*cpy_b), op);
 	}
+	assert(SanityCheck());
 	return NULL;	
 }
 
@@ -484,11 +542,50 @@ string ParanoidNumber::PStr() const
 
 bool ParanoidNumber::Simplify(Optype op)
 {
-	vector<ParanoidNumber*> next(0);
+	if (Floating())
+		return false;
+		
+	assert(SanityCheck());
+	vector<ParanoidNumber*> next;
+	next.clear();
 	swap(m_next[op], next);
-	for (auto n : next)
+	m_next[op].clear();
+	assert(m_next[op].size() == 0);
+	assert(SanityCheck());
+	Optype fwd = op;
+	if (op == DIVIDE)
+		fwd = MULTIPLY;
+	else if (op == SUBTRACT)
+		fwd = ADD;
+		
+	
+	for (vector<ParanoidNumber*>::iterator n = next.begin(); n != next.end(); ++n)
 	{
-		delete Operation(n, op);
+		if (*n == NULL)
+			continue;
+		for (vector<ParanoidNumber*>::iterator m = n; m != next.end(); ++m)
+		{
+			if ((*m) == (*n))
+				continue;
+			if (*m == NULL)
+				continue;
+				
+			ParanoidNumber * parent = this;
+			Optype mop = op;
+			ParanoidNumber * result = (*n)->Operation(*m, fwd, &parent, &mop);
+			if (result != NULL)
+			{
+				*m = NULL;
+				delete result;
+			}
+		}
+		if (*n != NULL)
+			delete Operation(*n, op);
+	}
+	set<ParanoidNumber*> s;
+	if (!SanityCheck(s))
+	{
+		Error("Simplify broke Sanity");
 	}
 	return (next.size() > m_next[op].size());
 }
@@ -503,29 +600,35 @@ bool ParanoidNumber::FullSimplify()
 	return result;
 }
 
-
-ParanoidNumber::digit_t ParanoidNumber::Digit()
+ParanoidNumber::digit_t ParanoidNumber::Digit() const
 {
-	if (!isnan(m_cached_result))
-		return m_cached_result;
-	m_cached_result = m_value;
+	if (!SanityCheck())
+	{
+		Fatal("Blargh");
+	}
+	//if (!isnan(m_cached_result))
+	//	return m_cached_result;
+		
+	// Get around the absurd requirement that const correctness be observed.
+	digit_t result;// = ((ParanoidNumber*)(this))->m_cached_result;
+	result = m_value;
 	for (auto mul : m_next[MULTIPLY])
 	{
-		m_cached_result *= mul->Digit();
+		result *= mul->Digit();
 	}
 	for (auto div : m_next[DIVIDE])
 	{
-		m_cached_result /= div->Digit();
+		result /= div->Digit();
 	}
 	for (auto add : m_next[ADD])
-		m_cached_result += add->Digit();
+		result += add->Digit();
 	for (auto sub : m_next[SUBTRACT])
-		m_cached_result -= sub->Digit();
-	return m_cached_result;
+		result -= sub->Digit();
+	return result;
 		
 }
 
-ParanoidNumber::digit_t ParanoidNumber::GetFactors()
+ParanoidNumber::digit_t ParanoidNumber::GetFactors() const
 {
 	digit_t value = 1;
 	for (auto mul : m_next[MULTIPLY])
@@ -536,7 +639,7 @@ ParanoidNumber::digit_t ParanoidNumber::GetFactors()
 }
 
 
-ParanoidNumber::digit_t ParanoidNumber::GetTerms()
+ParanoidNumber::digit_t ParanoidNumber::GetTerms() const
 {
 	digit_t value = 0;
 	for (auto add : m_next[ADD])
@@ -546,5 +649,44 @@ ParanoidNumber::digit_t ParanoidNumber::GetTerms()
 	return value;
 }
 
+bool ParanoidNumber::SanityCheck(set<ParanoidNumber*> & visited) const
+{
+	if (this == NULL)
+	{
+		Error("NULL pointer in tree");
+		return false;
+	}
+		
+	if (visited.find((ParanoidNumber*)this) != visited.end())
+	{
+		Error("I think I've seen this tree before...");
+		return false;
+	}
+	
+	visited.insert((ParanoidNumber*)this);
+		
+	for (auto add : m_next[ADD])
+	{
+		if (!add->SanityCheck(visited))
+			return false;
+	}
+	for (auto sub : m_next[SUBTRACT])
+	{
+		if (!sub->SanityCheck(visited))
+			return false;
+	}
+	for (auto mul : m_next[MULTIPLY])
+	{
+		if (!mul->SanityCheck(visited))
+			return false;
+	}
+	
+	for (auto div : m_next[DIVIDE])
+	{
+		if (!div->SanityCheck(visited))
+			return false;
+	}
+	return true;
+}
 
 }

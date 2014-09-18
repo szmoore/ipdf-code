@@ -12,7 +12,9 @@ namespace IPDF
 		"Rational<int64_t>", 
 		"Rational<Arbint>",
 		"mpfrc++ real",
-		"iRRAM REAL"
+		"iRRAM REAL",
+		"ParanoidNumber",
+		"GMPrat"
 	};
 	
 #if REALTYPE == REAL_RATIONAL_ARBINT

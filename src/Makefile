@@ -73,6 +73,14 @@ ifeq ($(REALTYPE),7)
 	CFLAGS :=  $(CFLAGS) -I../contrib/iRRAM/include
 endif
 
+ifeq ($(REALTYPE),8)
+	echo "There is no hope" 1>&2
+endif
+
+ifeq ($(REALTYPE),9)
+	LIB := $(LIB) -lgmp
+endif
+
 LINKOBJ = $(OBJPATHS)
 
 

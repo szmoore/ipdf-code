@@ -47,7 +47,7 @@ int main(int argc, char ** argv)
 	const char * input_text = NULL;
 	float b[4] = {0,0,1,1};
 	int max_frames = -1;
-	bool hide_control_panel;
+	bool hide_control_panel = false;
 	bool lazy_rendering = true;
 	bool window_visible = true;
 	bool gpu_transform = true;

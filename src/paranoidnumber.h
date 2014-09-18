@@ -9,6 +9,8 @@
 #include <fenv.h>
 #include <vector>
 #include <cmath>
+#include <cassert> // it's going to be ok
+#include <set>
 
 #define PARANOID_DIGIT_T float // we could theoretically replace this with a template
 								// but let's not do that...
@@ -71,40 +73,65 @@ namespace IPDF
 		public:
 			typedef PARANOID_DIGIT_T digit_t;
 
-			ParanoidNumber(digit_t value=0) : m_value(value), m_cached_result(value)
+			ParanoidNumber(PARANOID_DIGIT_T value=0) : m_value(value), m_cached_result(value), m_cache_valid(true), m_next()
 			{
 				Construct();
+				assert(SanityCheck());
 			}
 			
-			ParanoidNumber(const ParanoidNumber & cpy) : m_value(cpy.m_value), m_cached_result(cpy.m_cached_result)
+			static ParanoidNumber * SafeConstruct(const ParanoidNumber & cpy)
+			{
+				ParanoidNumber * result = new ParanoidNumber(cpy);
+				assert(result != NULL);
+				assert(result->SanityCheck());
+				return result;
+			}
+			
+			ParanoidNumber(const ParanoidNumber & cpy) : m_value(cpy.m_value), m_cached_result(cpy.m_cached_result), m_cache_valid(cpy.m_cache_valid), m_next()
 			{
 				Construct();
 				for (int i = 0; i < NOP; ++i)
 				{
 					for (auto next : cpy.m_next[i])
-						m_next[i].push_back(new ParanoidNumber(*next));
+					{
+						if (next != NULL) // why would this ever be null
+							m_next[i].push_back(new ParanoidNumber(*next)); // famous last words...
+					}
 				}
+				assert(SanityCheck());
 			}
 			
-			ParanoidNumber(const char * str);
-			ParanoidNumber(const std::string & str) : ParanoidNumber(str.c_str()) {}
+			//ParanoidNumber(const char * str);
+			ParanoidNumber(const std::string & str);// : ParanoidNumber(str.c_str()) {}
 			
 			virtual ~ParanoidNumber();
 			
 			inline void Construct() 
 			{
+				for (int i = 0; i < NOP; ++i)
+					m_next[i].clear();
 				g_count++;
 			}
 			
+			bool SanityCheck(std::set<ParanoidNumber*> & visited) const;
+			bool SanityCheck() const 
+			{
+				std::set<ParanoidNumber*> s; 
+				return SanityCheck(s);
+			}
 			
 			template <class T> T Convert() const;
-			digit_t GetFactors();
-			digit_t GetTerms();
+			digit_t GetFactors() const;
+			digit_t GetTerms() const;
 		
-
-			double ToDouble() {return (double)Digit();}
-			digit_t Digit();
+			// This function is declared const purely to trick the compiler.
+			// It is not actually const, and therefore, none of the other functions that call it are const either.
+			digit_t Digit() const;
 			
+			// Like this one. It isn't const.
+			double ToDouble() const {return (double)Digit();}
+			
+			// This one is probably const.
 			bool Floating() const 
 			{
 				return NoFactors() && NoTerms();
@@ -127,12 +154,21 @@ namespace IPDF
 			bool Simplify(Optype op);
 			bool FullSimplify();
 			
-			bool operator<(ParanoidNumber & a) {return ToDouble() < a.ToDouble();}
-			bool operator<=(ParanoidNumber & a) {return this->operator<(a) || this->operator==(a);}
-			bool operator>(ParanoidNumber & a) {return !(this->operator<=(a));}
-			bool operator>=(ParanoidNumber & a) {return !(this->operator<(a));}
-			bool operator==(ParanoidNumber & a) {return ToDouble() == a.ToDouble();}
-			bool operator!=(ParanoidNumber & a) {return !(this->operator==(a));}
+			
+			// None of these are actually const
+			bool operator<(const ParanoidNumber & a) const {return ToDouble() < a.ToDouble();}
+			bool operator<=(const ParanoidNumber & a) const {return this->operator<(a) || this->operator==(a);}
+			bool operator>(const ParanoidNumber & a) const {return !(this->operator<=(a));}
+			bool operator>=(const ParanoidNumber & a) const {return !(this->operator<(a));}
+			bool operator==(const ParanoidNumber & a) const {return ToDouble() == a.ToDouble();}
+			bool operator!=(const ParanoidNumber & a) const {return !(this->operator==(a));}
+			
+			ParanoidNumber operator-() const
+			{
+				ParanoidNumber neg(0);
+				neg -= *this;
+				return neg;
+			}
 			
 			ParanoidNumber operator+(const ParanoidNumber & a) const
 			{
@@ -193,9 +229,10 @@ namespace IPDF
 			
 			digit_t m_value;
 			Optype m_op;
-			std::vector<ParanoidNumber*> m_next[4];
+			
 			digit_t m_cached_result;
 			bool m_cache_valid;
+			std::vector<ParanoidNumber*> m_next[4];
 	};
 	
 

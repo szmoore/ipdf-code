@@ -239,8 +239,8 @@ void BezierRenderer::RenderBezierOnCPU(unsigned i, Objects & objects, const View
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,255,0,0));
 	}
 	
-	unsigned blen =	min(max(2U, (unsigned)Int64(Real(target.w)/view.GetBounds().w)), 
-			min((unsigned)(pix_bounds.w+pix_bounds.h)/4 + 1, 100U));
+	unsigned blen =	target.w;//min(max(2U, (unsigned)Int64(Real(target.w)/view.GetBounds().w)), 
+			//min((unsigned)(pix_bounds.w+pix_bounds.h)/4 + 1, 100U));
 		
 		// DeCasteljau Divide the Bezier
 	queue<Bezier> divisions;

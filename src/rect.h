@@ -9,8 +9,8 @@ namespace IPDF
 	struct Rect
 	{
 		Real x; Real y; Real w; Real h;
-		Rect() = default; // Needed so we can fread/fwrite this struct
-		Rect(Real _x, Real _y, Real _w, Real _h) : x(_x), y(_y), w(_w), h(_h) {}
+		//Rect() = default; // Needed so we can fread/fwrite this struct
+		Rect(Real _x=0, Real _y=0, Real _w=1, Real _h=1) : x(_x), y(_y), w(_w), h(_h) {}
 		std::string Str() const
 		{
 			std::stringstream s;
