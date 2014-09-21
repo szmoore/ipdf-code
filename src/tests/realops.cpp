@@ -22,6 +22,7 @@ bool NotEqual(double a, double b, double threshold=1e-1)
 int main(int argc, char ** argv)
 {
 	srand(time(NULL));
+	DebugRealInfo();
 	
 	unsigned failures = 0;
 	for (unsigned i = 0; i < TEST_CASES; ++i)

@@ -178,6 +178,7 @@ namespace IPDF
 	inline Real RealFromStr(const std::string & str) {return RealFromStr(str.c_str());}
 
 
+	inline void DebugRealInfo() {Debug("Compiled with REAL = %d => \"%s\" sizeof(Real) == %d bytes", REALTYPE, g_real_name[REALTYPE], sizeof(Real));}
 
 }
 

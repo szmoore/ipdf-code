@@ -831,7 +831,7 @@ pair<unsigned, unsigned> Document::ParseSVGPathData(const string & d, const SVGM
 			//Debug("Construct lineto command, relative %d", relative);
 		
 			Real dx = RealFromStr(GetToken(d,token,i,delims));
-			Real dy;
+			Real dy = 0;
 			if (command == "l" || command == "L")
 			{
 				assert(GetToken(d,token,i,delims) == ",");

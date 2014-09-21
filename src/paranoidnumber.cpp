@@ -9,12 +9,14 @@
 using namespace std;
 namespace IPDF
 {
-int64_t ParanoidNumber::g_count = 0;
 
+
+#ifdef PARANOID_USE_ARENA
+ParanoidNumber::Arena ParanoidNumber::g_arena;
+#endif //PARANOID_USE_ARENA
 
 ParanoidNumber::~ParanoidNumber()
 {
-	g_count--;
 	for (int i = 0; i < NOP; ++i)
 	{
 		for (auto n : m_next[i])
@@ -22,9 +24,15 @@ ParanoidNumber::~ParanoidNumber()
 	}
 }
 
-ParanoidNumber::ParanoidNumber(const string & str) : m_value(0), m_cached_result(0), m_cache_valid(false), m_next()
+ParanoidNumber::ParanoidNumber(const string & str) : m_value(0), m_next()
 {
-	Construct();
+	#ifdef PARANOID_SIZE_LIMIT
+		m_size = 0;
+	#endif
+	#ifdef PARANOID_CACHE_RESULTS
+	m_cached_result = NAN;
+	#endif
+	
 	int dp = 0;
 	int end = 0;
 	while (str[dp] != '\0' && str[dp] != '.')
@@ -54,9 +62,16 @@ ParanoidNumber::ParanoidNumber(const string & str) : m_value(0), m_cached_result
 
 ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
 {
-	assert(this != NULL);
+	//assert(this != NULL);
+	
+	#ifdef PARANOID_SIZE_LIMIT
+		m_size = a.m_size;
+	#endif
+	
 	m_value = a.m_value;
+	#ifdef PARANOID_CACHE_RESULT
 	m_cached_result = a.m_cached_result;
+	#endif
 	for (int i = 0; i < NOP; ++i)
 	{
 		for (auto n : m_next[i])
@@ -86,7 +101,7 @@ ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
 string ParanoidNumber::Str() const
 {
 	
-	assert(this != NULL);
+	//assert(this != NULL);
 	string result("");
 	stringstream s;
 	s << (double)m_value;
@@ -132,6 +147,7 @@ string ParanoidNumber::Str() const
 template <>
 bool TrustingOp<float>(float & a, const float & b, Optype op)
 {
+
 	
 	feclearexcept(FE_ALL_EXCEPT);
 	switch (op)
@@ -189,6 +205,41 @@ bool TrustingOp<double>(double & a, const double & b, Optype op)
 	return !fetestexcept(FE_ALL_EXCEPT);
 }
 
+
+
+template <>
+bool TrustingOp<long double>(long double & a, const long double & b, Optype op)
+{
+
+	
+	feclearexcept(FE_ALL_EXCEPT);
+	switch (op)
+	{
+		case ADD:
+			a += b;
+			break;
+		case SUBTRACT:
+			a -= b;
+			break;
+		case MULTIPLY:
+			a *= b;
+			break;
+		case DIVIDE:
+			if (b == 0)
+			{
+				a = (a >= 0) ? INFINITY : -INFINITY;
+				return false;
+			}
+			
+			a /= b;
+			break;
+		case NOP:
+			break;
+	}
+	return !fetestexcept(FE_ALL_EXCEPT);
+}
+
+
 template <>
 bool TrustingOp<int8_t>(int8_t & a, const int8_t & b, Optype op)
 {
@@ -220,11 +271,48 @@ bool TrustingOp<int8_t>(int8_t & a, const int8_t & b, Optype op)
 }
 
 
+ParanoidNumber & ParanoidNumber::operator+=(const digit_t & a)
+{
+	
+	//assert(this != NULL);
+	delete Operation(new ParanoidNumber(a), ADD);
+	Simplify(ADD);
+	Simplify(SUBTRACT);
+	return *this;
+}
+
+
+ParanoidNumber & ParanoidNumber::operator-=(const digit_t & a)
+{
+	delete Operation(new ParanoidNumber(a), SUBTRACT);
+	Simplify(SUBTRACT);
+	Simplify(ADD);
+	return *this;
+}
+
+ParanoidNumber & ParanoidNumber::operator*=(const digit_t & a)
+{
+	delete Operation(new ParanoidNumber(a), MULTIPLY);
+	Simplify(MULTIPLY);
+	Simplify(DIVIDE);	
+	return *this;
+}
+
+
+ParanoidNumber & ParanoidNumber::operator/=(const digit_t & a)
+{
+	delete Operation(new ParanoidNumber(a), DIVIDE);
+	Simplify(MULTIPLY);
+	Simplify(DIVIDE);
+	return *this;
+}
+
+
 ParanoidNumber & ParanoidNumber::operator+=(const ParanoidNumber & a)
 {
 	
-	assert(this != NULL);
-	delete Operation(SafeConstruct(a), ADD);
+	//assert(this != NULL);
+	delete Operation(new ParanoidNumber(a), ADD);
 	Simplify(ADD);
 	Simplify(SUBTRACT);
 	return *this;
@@ -233,7 +321,7 @@ ParanoidNumber & ParanoidNumber::operator+=(const ParanoidNumber & a)
 
 ParanoidNumber & ParanoidNumber::operator-=(const ParanoidNumber & a)
 {
-	delete Operation(SafeConstruct(a), SUBTRACT);
+	delete Operation(new ParanoidNumber(a), SUBTRACT);
 	Simplify(SUBTRACT);
 	Simplify(ADD);
 	return *this;
@@ -241,7 +329,7 @@ ParanoidNumber & ParanoidNumber::operator-=(const ParanoidNumber & a)
 
 ParanoidNumber & ParanoidNumber::operator*=(const ParanoidNumber & a)
 {
-	delete Operation(SafeConstruct(a), MULTIPLY);
+	delete Operation(new ParanoidNumber(a), MULTIPLY);
 	Simplify(MULTIPLY);
 	Simplify(DIVIDE);	
 	return *this;
@@ -250,22 +338,46 @@ ParanoidNumber & ParanoidNumber::operator*=(const ParanoidNumber & a)
 
 ParanoidNumber & ParanoidNumber::operator/=(const ParanoidNumber & a)
 {
-	delete Operation(SafeConstruct(a), DIVIDE);
+	delete Operation(new ParanoidNumber(a), DIVIDE);
 	Simplify(MULTIPLY);
 	Simplify(DIVIDE);
+	return *this;
+}
+
+ParanoidNumber & ParanoidNumber::operator=(const digit_t & a)
+{
+	for (int i = 0; i < NOP; ++i)
+	{
+		for (auto n : m_next[i])
+			delete n;
+	}
+	m_value = a;
+	#ifdef PARANOID_CACHE_RESULT
+	m_cached_result = a;
+	#endif
 	return *this;
 }
 
 // a + b
 ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
 {
-	if (!SanityCheck())
-	{
-		Fatal("What...");
-	}
-	assert(b->SanityCheck());
+	////assert(b->SanityCheck());
+	#ifdef PARANOID_CACHE_RESULTS
+	m_cached_result = NAN;
+	#endif
+	#ifdef PARANOID_SIZE_LIMIT
+		if (m_size > PARANOID_SIZE_LIMIT)
+		{
+			if (op == ADD)
+				m_value += b->Digit();
+			else
+				m_value -= b->Digit();
+			return b;
+		}
+		//Debug("At size limit %d", m_size);
+	#endif 
 	
-	m_cached_result = nan("");
+
 	if (Floating() && m_value == 0) // 0 + b = b
 	{
 		m_value = b->m_value;
@@ -281,7 +393,7 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 			b->m_next[i].clear();
 		}
 		
-		assert(SanityCheck());
+		//assert(SanityCheck());
 		return b;
 	}
 	if (b->Floating() && b->m_value == 0) // a + 0 = a
@@ -297,15 +409,15 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 			Optype addop = (op == ADD) ? ADD : SUBTRACT;
 			for (auto add : b->m_next[ADD])
 			{
-				delete OperationTerm(add, addop);
+				delete (OperationTerm(add, addop));
 			}
 			Optype subop = (op == ADD) ? SUBTRACT : ADD;
 			for (auto sub : b->m_next[SUBTRACT])
-				delete OperationTerm(sub, subop);
+				delete (OperationTerm(sub, subop));
 				
 			b->m_next[ADD].clear();
 			b->m_next[SUBTRACT].clear();
-			assert(SanityCheck());
+			//assert(SanityCheck());
 			return b;
 		}
 	}
@@ -315,7 +427,7 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 	bool parent = (merge_point == NULL);
 	ParanoidNumber * merge = this;
 	Optype mop = op;
-	assert(mop != NOP); // silence compiler warning
+	//assert(mop != NOP); // silence compiler warning
 	if (parent)
 	{
 		merge_point = &merge;
@@ -340,7 +452,7 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 	{
 		if (prev->OperationTerm(b, rev, merge_point, merge_op) == b)
 		{
-			assert(SanityCheck());
+			//assert(SanityCheck());
 			return b;
 		}
 		
@@ -349,7 +461,7 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 	{
 		if (next->OperationTerm(b, fwd, merge_point, merge_op) == b)
 		{
-			assert(SanityCheck());
+			//assert(SanityCheck());
 			return b;
 		}
 	}
@@ -361,6 +473,9 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 	{
 		//merge->m_next[*merge_op].push_back(b);
 		m_next[op].push_back(b);
+		#ifdef PARANOID_SIZE_LIMIT
+			m_size += 1+b->m_size;
+		#endif	
 	}
 	else
 	{
@@ -371,15 +486,30 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 		}
 	}
 
-	assert(SanityCheck());
+	//assert(SanityCheck());
+
 	return NULL;
 }
 
 ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
 {
-	assert(SanityCheck());
-	assert(b->SanityCheck());
-	m_cached_result = nan("");
+	//assert(SanityCheck());
+	//assert(b->SanityCheck());
+	#ifdef PARANOID_CACHE_RESULTS
+	m_cached_result = NAN;
+	#endif
+	#ifdef PARANOID_SIZE_LIMIT
+		if (m_size > PARANOID_SIZE_LIMIT)
+		{
+			if (op == MULTIPLY)
+				m_value *= b->Digit();
+			else
+				m_value /= b->Digit();
+			//Debug("At size limit %d", m_size);
+			return b;
+		}
+	#endif	
+
 	if (Floating() && m_value == 0)
 	{
 		return b;
@@ -391,11 +521,11 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 		for (int i = 0; i < NOP; ++i)
 		{
 			for (auto n : m_next[i])
-				delete n;
+				delete (n);
 			m_next[i].clear();
 			swap(m_next[i], b->m_next[i]);
 		}
-		assert(SanityCheck());
+		//assert(SanityCheck());
 		return b;
 	}
 	if (b->Floating() && b->m_value == 1)
@@ -410,17 +540,14 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 			Optype mulop = (op == MULTIPLY) ? MULTIPLY : DIVIDE;
 			for (auto mul : b->m_next[MULTIPLY])
 			{
-				delete OperationFactor(mul, mulop);
+				delete(OperationFactor(mul, mulop));
 			}
 			Optype divop = (op == MULTIPLY) ? DIVIDE : MULTIPLY;
 			for (auto div : b->m_next[DIVIDE])
-				delete OperationFactor(div, divop);
+				delete(OperationFactor(div, divop));
 				
 			b->m_next[DIVIDE].clear();
 			b->m_next[MULTIPLY].clear();
-			
-			
-			assert(SanityCheck());
 			return b;		
 		}
 	}
@@ -449,24 +576,17 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 		rev = DIVIDE;
 	}
 
-	ParanoidNumber * cpy_b = NULL;
-	
-	if (m_next[ADD].size() > 0 || m_next[SUBTRACT].size() > 0)
-	{
-		cpy_b = SafeConstruct(*b);
-	}
-	
+	ParanoidNumber * cpy_b = new ParanoidNumber(*b);
 	for (auto prev : m_next[invop])
 	{
 		if (prev->OperationFactor(b, rev, merge_point, merge_op) == b)
 		{
 			for (auto add : m_next[ADD])
-				delete add->OperationFactor(SafeConstruct(*cpy_b), op);
+				delete(add->OperationFactor(new ParanoidNumber(*cpy_b), op));
 			for (auto sub : m_next[SUBTRACT])
-				delete sub->OperationFactor(SafeConstruct(*cpy_b), op);
+				delete(sub->OperationFactor(new ParanoidNumber(*cpy_b), op));
 				
-			delete cpy_b;
-			assert(SanityCheck());
+			delete(cpy_b);
 			return b;
 		}
 	}
@@ -476,28 +596,34 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 		{
 			for (auto add : m_next[ADD])
 			{
-				delete add->OperationFactor(SafeConstruct(*cpy_b), op);
+				delete(add->OperationFactor(new ParanoidNumber(*cpy_b), op));
 			}
 			for (auto sub : m_next[SUBTRACT])
 			{
-				delete sub->OperationFactor(SafeConstruct(*cpy_b), op);
+				delete(sub->OperationFactor(new ParanoidNumber(*cpy_b), op));
 			}
-			delete cpy_b;
-			assert(SanityCheck());
+			delete(cpy_b);
 			return b;
 		}
 	}
 	
 	if (parent)
 	{
-		assert(b != NULL);
+		//assert(b != NULL);
 		m_next[op].push_back(b);
 		for (auto add : m_next[ADD])
-			delete add->OperationFactor(SafeConstruct(*cpy_b), op);
+			delete(add->OperationFactor(new ParanoidNumber(*cpy_b), op));
 		for (auto sub : m_next[SUBTRACT])
-			delete sub->OperationFactor(SafeConstruct(*cpy_b), op);
+			delete(sub->OperationFactor(new ParanoidNumber(*cpy_b), op));
+			
+		#ifdef PARANOID_SIZE_LIMIT
+			m_size += 1+b->m_size;
+		#endif	
 	}
-	assert(SanityCheck());
+	//assert(SanityCheck());
+
+
+	
 	return NULL;	
 }
 
@@ -542,22 +668,30 @@ string ParanoidNumber::PStr() const
 
 bool ParanoidNumber::Simplify(Optype op)
 {
+	
 	if (Floating())
 		return false;
 		
-	assert(SanityCheck());
+	//assert(SanityCheck());
 	vector<ParanoidNumber*> next;
 	next.clear();
 	swap(m_next[op], next);
 	m_next[op].clear();
-	assert(m_next[op].size() == 0);
-	assert(SanityCheck());
+	//assert(m_next[op].size() == 0);
+	//assert(SanityCheck());
 	Optype fwd = op;
 	if (op == DIVIDE)
 		fwd = MULTIPLY;
 	else if (op == SUBTRACT)
 		fwd = ADD;
 		
+		
+	vector<ParanoidNumber*> hold[2];
+	if (op == MULTIPLY || op == DIVIDE)
+	{
+		swap(m_next[ADD], hold[0]);
+		swap(m_next[SUBTRACT], hold[1]);
+	}
 	
 	for (vector<ParanoidNumber*>::iterator n = next.begin(); n != next.end(); ++n)
 	{
@@ -575,18 +709,44 @@ bool ParanoidNumber::Simplify(Optype op)
 			ParanoidNumber * result = (*n)->Operation(*m, fwd, &parent, &mop);
 			if (result != NULL)
 			{
+				#ifdef PARANOID_SIZE_LIMIT
+					m_size -= (1+result->m_size);
+				#endif
 				*m = NULL;
-				delete result;
+				delete(result);
 			}
 		}
-		if (*n != NULL)
-			delete Operation(*n, op);
 	}
-	set<ParanoidNumber*> s;
-	if (!SanityCheck(s))
+	
+	
+	
+	for (auto n : next)
 	{
-		Error("Simplify broke Sanity");
+		if (n != NULL)
+		{		
+			#ifdef PARANOID_SIZE_LIMIT
+				if (Operation(n, op) == n)
+				{
+					m_size -= (1+n->m_size);
+					delete n;
+				}
+			#else	
+				delete(Operation(n, op));
+			#endif 
+		}
 	}
+	
+	if (op == MULTIPLY || op == DIVIDE)
+	{
+		swap(m_next[ADD], hold[0]);
+		swap(m_next[SUBTRACT], hold[1]);
+	}
+	
+	set<ParanoidNumber*> s;
+	//if (!SanityCheck(s))
+	//{
+	//	Error("Simplify broke Sanity");
+	//}
 	return (next.size() > m_next[op].size());
 }
 
@@ -602,15 +762,16 @@ bool ParanoidNumber::FullSimplify()
 
 ParanoidNumber::digit_t ParanoidNumber::Digit() const
 {
-	if (!SanityCheck())
-	{
-		Fatal("Blargh");
-	}
-	//if (!isnan(m_cached_result))
-	//	return m_cached_result;
-		
+
 	// Get around the absurd requirement that const correctness be observed.
-	digit_t result;// = ((ParanoidNumber*)(this))->m_cached_result;
+	#ifdef PARANOID_CACHE_RESULTS
+	digit_t & result = ((ParanoidNumber*)(this))->m_cached_result;
+	
+	if (!isnan(float(result))) // le sigh ambiguous function compiler warnings
+		return result;
+	#else
+		digit_t result;
+	#endif
 	result = m_value;
 	for (auto mul : m_next[MULTIPLY])
 	{
@@ -688,5 +849,57 @@ bool ParanoidNumber::SanityCheck(set<ParanoidNumber*> & visited) const
 	}
 	return true;
 }
+
+#ifdef PARANOID_USE_ARENA
+
+void * ParanoidNumber::operator new(size_t s)
+{
+	return g_arena.allocate(s);
+}
+
+void ParanoidNumber::operator delete(void * p)
+{
+	g_arena.deallocate(p);
+}
+
+ParanoidNumber::Arena::Arena(int64_t block_size) : m_block_size(block_size), m_spare(NULL)
+{
+	m_blocks.push_back({malloc(block_size*sizeof(ParanoidNumber)),0});
+}
+
+ParanoidNumber::Arena::~Arena()
+{
+	for (auto block : m_blocks)
+	{
+		free(block.memory);
+	}
+	m_blocks.clear();
+}
+
+void * ParanoidNumber::Arena::allocate(size_t s)
+{
+	if (m_spare != NULL)
+	{
+		void * result = m_spare;
+		m_spare = NULL;
+		return result;
+	}
+		
+	Block & b = m_blocks.back();
+	void * result = (ParanoidNumber*)(b.memory) + (b.used++);
+	if (b.used >= m_block_size)
+	{
+		m_block_size *= 2;
+		Debug("Add block of size %d", m_block_size);
+		m_blocks.push_back({malloc(m_block_size*sizeof(ParanoidNumber)), 0});
+	}
+	return result;
+}
+
+void ParanoidNumber::Arena::deallocate(void * p)
+{
+	m_spare = p;
+}
+#endif //PARANOID_USE_ARENA
 
 }

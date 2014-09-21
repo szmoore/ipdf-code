@@ -14,10 +14,10 @@ Path::Path(const Objects & objects, unsigned start, unsigned end, const Colour &
 	// Find the bounds coordinates
 	//  and identify the top left and bottom right objects
 	
-	unsigned left;
-	unsigned right;
-	unsigned top;
-	unsigned bottom;
+	unsigned left = m_start;
+	unsigned right = m_start;
+	unsigned top = m_start;
+	unsigned bottom = m_start;
 	
 	for (unsigned i = m_start; i <= m_end; ++i)
 	{

@@ -32,7 +32,7 @@ int main(int argc, char ** argv)
 	// We want to crash if we ever get a NaN.
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
-	Debug("Compiled with REAL = %d => \"%s\" sizeof(Real) == %d bytes", REALTYPE, g_real_name[REALTYPE], sizeof(Real));
+	DebugRealInfo();
 
 	Document doc("","fonts/ComicSans.ttf");
 	srand(time(NULL));

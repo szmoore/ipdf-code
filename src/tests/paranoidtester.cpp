@@ -32,7 +32,7 @@ string RandomNumberAsString(int max_digits = 3)
 
 bool CloseEnough(long double d, ParanoidNumber & p, long double eps = 1e-6)
 {
-	long double pd = p.Convert<long double>();
+	double pd = p.ToDouble();
 		
 	if (d == 0)
 		return fabs(pd) <= eps;
@@ -217,8 +217,13 @@ void TestRandomisedOps(int test_cases = 1000, int ops_per_case = 1, int max_digi
 			Warn("double Yields: %.40lf", da);
 			Warn("PN Yields: %.40lf", a.ToDouble());
 		}
+		if (i == test_cases - 1)
+		{
+			Debug("double: %.40lf", da);
+			Debug("PN: %.40lf", a.ToDouble());
+		}
 	}
-	Debug("Complete!");
+
 
 }
 
@@ -228,7 +233,6 @@ int main(int argc, char ** argv)
 {
 	TestAddSubIntegers(100);
 	TestMulDivIntegers(100);
-	//return 0;
 	for (int i = 1; i <= 100; ++i)
 		TestRandomisedOps(1000, i);
 	return 0;

@@ -12,8 +12,15 @@
 #include <cassert> // it's going to be ok
 #include <set>
 
-#define PARANOID_DIGIT_T float // we could theoretically replace this with a template
+#define PARANOID_DIGIT_T double // we could theoretically replace this with a template
 								// but let's not do that...
+								
+
+#define PARANOID_CACHE_RESULTS
+
+//#define PARANOID_USE_ARENA
+#define PARANOID_SIZE_LIMIT 0
+
 
 namespace IPDF
 {
@@ -73,23 +80,25 @@ namespace IPDF
 		public:
 			typedef PARANOID_DIGIT_T digit_t;
 
-			ParanoidNumber(PARANOID_DIGIT_T value=0) : m_value(value), m_cached_result(value), m_cache_valid(true), m_next()
+			ParanoidNumber(PARANOID_DIGIT_T value=0) : m_value(value), m_next()
 			{
-				Construct();
-				assert(SanityCheck());
+				#ifdef PARANOID_SIZE_LIMIT
+					m_size = 0;
+				#endif
+				#ifdef PARANOID_CACHE_RESULTS
+					m_cached_result = value;
+				#endif 
 			}
 			
-			static ParanoidNumber * SafeConstruct(const ParanoidNumber & cpy)
+			ParanoidNumber(const ParanoidNumber & cpy) : m_value(cpy.m_value), m_next()
 			{
-				ParanoidNumber * result = new ParanoidNumber(cpy);
-				assert(result != NULL);
-				assert(result->SanityCheck());
-				return result;
-			}
-			
-			ParanoidNumber(const ParanoidNumber & cpy) : m_value(cpy.m_value), m_cached_result(cpy.m_cached_result), m_cache_valid(cpy.m_cache_valid), m_next()
-			{
-				Construct();
+				
+				#ifdef PARANOID_SIZE_LIMIT
+					m_size = cpy.m_size;
+				#endif
+				#ifdef PARANOID_CACHE_RESULTS
+					m_cached_result = cpy.m_cached_result;
+				#endif 
 				for (int i = 0; i < NOP; ++i)
 				{
 					for (auto next : cpy.m_next[i])
@@ -98,20 +107,14 @@ namespace IPDF
 							m_next[i].push_back(new ParanoidNumber(*next)); // famous last words...
 					}
 				}
-				assert(SanityCheck());
+				//assert(SanityCheck());
 			}
 			
 			//ParanoidNumber(const char * str);
 			ParanoidNumber(const std::string & str);// : ParanoidNumber(str.c_str()) {}
 			
 			virtual ~ParanoidNumber();
-			
-			inline void Construct() 
-			{
-				for (int i = 0; i < NOP; ++i)
-					m_next[i].clear();
-				g_count++;
-			}
+
 			
 			bool SanityCheck(std::set<ParanoidNumber*> & visited) const;
 			bool SanityCheck() const 
@@ -141,11 +144,19 @@ namespace IPDF
 			bool NoFactors() const {return (m_next[MULTIPLY].size() == 0 && m_next[DIVIDE].size() == 0);}
 			bool NoTerms() const {return (m_next[ADD].size() == 0 && m_next[SUBTRACT].size() == 0);}
 			
+			
 			ParanoidNumber & operator+=(const ParanoidNumber & a);
 			ParanoidNumber & operator-=(const ParanoidNumber & a);
 			ParanoidNumber & operator*=(const ParanoidNumber & a);
 			ParanoidNumber & operator/=(const ParanoidNumber & a);
 			ParanoidNumber & operator=(const ParanoidNumber & a);
+			
+			ParanoidNumber & operator+=(const digit_t & a);
+			ParanoidNumber & operator-=(const digit_t & a);
+			ParanoidNumber & operator*=(const digit_t & a);
+			ParanoidNumber & operator/=(const digit_t & a);
+			ParanoidNumber & operator=(const digit_t & a);
+			
 			
 			ParanoidNumber * OperationTerm(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point = NULL, Optype * mop = NULL);
 			ParanoidNumber * OperationFactor(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point = NULL, Optype * mop = NULL);
@@ -197,42 +208,59 @@ namespace IPDF
 			
 			std::string Str() const;
 
-			ParanoidNumber * CopyTerms()
-			{
-				ParanoidNumber * copy = new ParanoidNumber(*this);
-				copy->m_value = 0;
-				copy->Simplify(ADD);
-				copy->Simplify(SUBTRACT);
-				return copy;
-			}
 			
-			ParanoidNumber * CopyFactors()
-			{
-				ParanoidNumber * copy = new ParanoidNumber(*this);
-				copy->m_value = 1;
-				copy->Simplify(MULTIPLY);
-				copy->Simplify(DIVIDE);
-				return copy;
-			}
 
-
-			static int64_t Paranoia() {return g_count;}
 			
 			std::string PStr() const;
+			
+			#ifdef PARANOID_USE_ARENA
+			void * operator new(size_t byes);
+			void operator delete(void * p);
+			#endif //PARANOID_USE_ARENA
 		
 		private:
-			static int64_t g_count;
+		
 			void Simplify();
 			void SimplifyTerms();
 			void SimplifyFactors();
 			
-			
-			digit_t m_value;
-			Optype m_op;
-			
-			digit_t m_cached_result;
-			bool m_cache_valid;
+			digit_t m_value;	
+			#ifdef PARANOID_CACHE_RESULTS
+				digit_t m_cached_result;
+			#endif
 			std::vector<ParanoidNumber*> m_next[4];
+			#ifdef PARANOID_SIZE_LIMIT
+				int64_t m_size;
+			#endif //PARANOID_SIZE_LIMIT
+			
+			#ifdef PARANOID_USE_ARENA
+			class Arena
+			{
+				public:
+					Arena(int64_t block_size = 10000000);
+					~Arena();
+					
+					void * allocate(size_t bytes);
+					void deallocate(void * p);
+					
+				private:
+					struct Block
+					{
+						void * memory;
+						int64_t used;
+					};
+				
+					std::vector<Block> m_blocks;
+					int64_t m_block_size;
+					
+					void * m_spare;
+				
+			};
+			
+			static Arena g_arena;
+			#endif //PARANOID_USE_ARENA
+
+		
 	};
 	
 
@@ -241,8 +269,10 @@ namespace IPDF
 template <class T>
 T ParanoidNumber::Convert() const
 {
-	if (!isnan(m_cached_result))
+	#ifdef PARANOID_CACHE_RESULTS
+	if (!isnan((float(m_cached_result))))
 		return (T)m_cached_result;
+	#endif
 	T value(m_value);
 	for (auto mul : m_next[MULTIPLY])
 	{
