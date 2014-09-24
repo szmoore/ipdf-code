@@ -19,7 +19,7 @@
 //#define PARANOID_CACHE_RESULTS
 
 //#define PARANOID_USE_ARENA
-#define PARANOID_SIZE_LIMIT 0
+#define PARANOID_SIZE_LIMIT 1
 
 
 // Define to compare all ops against double ops and check within epsilon
@@ -235,6 +235,8 @@ namespace IPDF
 
 			inline void CompareForSanityEx(const char * func, const char * file, int line, const digit_t & compare, const digit_t & arg, const digit_t & eps = PARANOID_COMPARE_EPSILON)
 			{
+				if (!SanityCheck())
+					Fatal("This is insane!");
 				if (fabs(Digit() - compare) > eps)
 				{
 					Error("Called via %s(%lf) (%s:%d)", func, arg, file, line);

@@ -432,14 +432,13 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 	#ifdef PARANOID_SIZE_LIMIT
 		if (m_size >= PARANOID_SIZE_LIMIT)
 		{
+			this->operator=(this->Digit());
 			if (op == ADD)
-			{
-				m_value += b->Digit() / GetFactors();
-			}
+				m_value += b->Digit();
 			else
-			{
-				m_value -= b->Digit() / GetFactors();
-			}
+				m_value -= b->Digit();
+			m_size = 0;
+			Debug("Cut off %p", this);
 			return b;
 		}
 		//Debug("At size limit %d", m_size);
@@ -567,15 +566,14 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 	#ifdef PARANOID_SIZE_LIMIT
 		if (m_size >= PARANOID_SIZE_LIMIT)
 		{
+			this->operator=(this->Digit());
 			if (op == MULTIPLY)
 				m_value *= b->Digit();
 			else
 				m_value /= b->Digit();
-				
-			for (auto n : m_next[ADD])
-				delete n->OperationFactor(new ParanoidNumber(*b), op);
-			for (auto n : m_next[SUBTRACT])
-				delete n->OperationFactor(new ParanoidNumber(*b), op);
+			m_size = 0;
+			
+			Debug("Cut off %p", this);
 			return b;
 			
 		}
