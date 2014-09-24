@@ -25,6 +25,8 @@ int main(int argc, char ** argv)
 	DebugRealInfo();
 	
 	unsigned failures = 0;
+	Real acumulate(0);
+	double dacumulate = 0;
 	for (unsigned i = 0; i < TEST_CASES; ++i)
 	{
 		//Debug("Test %u of %u", i, TEST_CASES);
@@ -129,6 +131,49 @@ int main(int argc, char ** argv)
 			Warn("a = b = %f should be %f, a before op was %f", Double(a), da, Double(abeforeop));
 		}
 		
+		if (NotEqual(Double(-a), -da))
+		{
+			failures++;
+			Warn("-a = %f should be %f, a before op was %f", Double(-a), -da, Double(abeforeop));
+		}
+		
+		if (NotEqual(Double(Sqrt(a)), Sqrt(da)))
+		{
+			failures++;
+			Warn("Sqrt(a) = %f should be %f, a before op was %f", Double(Sqrt(a)), Sqrt(da), Double(abeforeop));
+		}		
+		
+		if (NotEqual(Double(a), da))
+		{
+			failures++;
+			Warn("a = %f, should be %f, a before ops was %f", Double(a), da, Double(abeforeop));
+		}
+		
+		switch (rand() % 4)
+		{
+			case 0:
+				acumulate += a;
+				dacumulate += da;
+				break;
+			case 1:
+				acumulate -= a;
+				dacumulate -= da;
+				break;
+			case 2:
+				acumulate *= a;
+				dacumulate *= da;
+				break;
+			case 3:
+				acumulate /= a;
+				dacumulate /= da;
+				break;
+		}
+		if (NotEqual(Double(acumulate), dacumulate))
+		{
+			Warn("Accumulated result %.30lf vs %.30lf is wrong", Double(acumulate), dacumulate);
+			failures++;
+		}
+		
 		if (failures > old_failures)
 		{
 			Error("%u failures on case %u da = %f, db = %f, a = %f, b = %f, aa = %f, bb = %f", failures-old_failures, i, da, db, Double(a), Double(b), Double(aa), Double(bb));
@@ -136,8 +181,12 @@ int main(int argc, char ** argv)
 				Debug("\tStrings are a = %s, b = %s, aa = %s, bb = %s", a.Str().c_str(), b.Str().c_str(), aa.Str().c_str(), bb.Str().c_str());
 			#endif
 		}
+
 	}
-	Debug("Completed %u test cases with total of %u operations, %u failures", TEST_CASES, 12*TEST_CASES, failures);
+	Debug("Completed %u test cases with total of %u operations, %u failures", TEST_CASES, 18*TEST_CASES, failures);
 	Debug("Total accumulated difference between Real and Double operations was %f", g_totalerror);
+	Debug("Real: %.40lf", Double(acumulate));
+	Debug("Doub: %.40lf", dacumulate);
+	Debug("Diff: %.40lf", Double(acumulate) - dacumulate);
 
 }

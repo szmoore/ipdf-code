@@ -37,6 +37,12 @@ ParanoidNumber::ParanoidNumber(const string & str) : m_value(0), m_next()
 	
 	int dp = 0;
 	int end = 0;
+	bool negate = str[0] == '-';
+	if (negate)
+	{
+		dp++;
+		end++;
+	}
 	while (str[dp] != '\0' && str[dp] != '.')
 	{
 		++dp;
@@ -45,7 +51,7 @@ ParanoidNumber::ParanoidNumber(const string & str) : m_value(0), m_next()
 	while (str[end] != '\0')
 		++end;
 	ParanoidNumber m(1);
-	for (int i = dp-1; i >= 0; --i)
+	for (int i = dp-1; i >= negate; --i)
 	{
 		ParanoidNumber b(str[i]-'0');
 		b*=m;
@@ -60,6 +66,14 @@ ParanoidNumber::ParanoidNumber(const string & str) : m_value(0), m_next()
 		b*=n;
 		this->operator+=(b);
 	}
+	
+	if (negate)
+		Negate();
+	
+	#ifdef PARANOID_COMPARE_EPSILON
+		double d = strtod(str.c_str(), NULL);
+		CompareForSanity(d, d);
+	#endif
 }
 
 ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
@@ -914,6 +928,12 @@ bool ParanoidNumber::SanityCheck(set<ParanoidNumber*> & visited) const
 		}
 	}
 	return true;
+}
+
+void ParanoidNumber::Negate()
+{
+	swap(m_next[ADD], m_next[SUBTRACT]);
+	m_value = -m_value;
 }
 
 #ifdef PARANOID_USE_ARENA

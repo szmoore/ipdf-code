@@ -24,7 +24,7 @@
 
 // Define to compare all ops against double ops and check within epsilon
 #define PARANOID_COMPARE_EPSILON 1e-6
-#define CompareForSanity(...) this->ParanoidNumber::CompareForSanityEx(__func__, __FILE__, __LINE__, __VA_ARGS__)
+#define CompareForSanity(...) ParanoidNumber::CompareForSanityEx(__func__, __FILE__, __LINE__, __VA_ARGS__)
 
 namespace IPDF
 {
@@ -111,6 +111,9 @@ namespace IPDF
 							m_next[i].push_back(new ParanoidNumber(*next)); // famous last words...
 					}
 				}
+				#ifdef PARANOID_COMPARE_EPSILON
+					CompareForSanity(cpy.Digit(), cpy.Digit());
+				#endif
 				//assert(SanityCheck());
 			}
 			
@@ -171,47 +174,60 @@ namespace IPDF
 			
 			
 			// None of these are actually const
-			bool operator<(const ParanoidNumber & a) const {return ToDouble() < a.ToDouble();}
-			bool operator<=(const ParanoidNumber & a) const {return this->operator<(a) || this->operator==(a);}
-			bool operator>(const ParanoidNumber & a) const {return !(this->operator<=(a));}
-			bool operator>=(const ParanoidNumber & a) const {return !(this->operator<(a));}
-			bool operator==(const ParanoidNumber & a) const {return ToDouble() == a.ToDouble();}
-			bool operator!=(const ParanoidNumber & a) const {return !(this->operator==(a));}
+			bool operator<(const ParanoidNumber & a) const {return Digit() < a.Digit();}
+			bool operator<=(const ParanoidNumber & a) const {return Digit() <= a.Digit();}
+			bool operator>(const ParanoidNumber & a) const {return Digit() > a.Digit();}
+			bool operator>=(const ParanoidNumber & a) const {return Digit() >= a.Digit();}
+			bool operator==(const ParanoidNumber & a) const {return Digit() == a.Digit();}
+			bool operator!=(const ParanoidNumber & a) const {return Digit() != a.Digit();}
 			
 			ParanoidNumber operator-() const
 			{
-				ParanoidNumber neg(0);
-				neg -= *this;
+				ParanoidNumber neg(*this);
+				neg.Negate();
+				#ifdef PARANOID_COMPARE_EPSILON
+					neg.CompareForSanity(-Digit(), Digit());
+				#endif
 				return neg;
 			}
+			
+			void Negate();
+			
 			
 			ParanoidNumber operator+(const ParanoidNumber & a) const
 			{
 				ParanoidNumber result(*this);
-				a.SanityCheck();
 				result += a;
+				#ifdef PARANOID_COMPARE_EPSILON
+					result.CompareForSanity(Digit()+a.Digit(), a.Digit());
+				#endif
 				return result;
 			}
 			ParanoidNumber operator-(const ParanoidNumber & a) const
 			{
 				ParanoidNumber result(*this);
 				result -= a;
+				#ifdef PARANOID_COMPARE_EPSILON
+					result.CompareForSanity(Digit()-a.Digit(), a.Digit());
+				#endif
 				return result;
 			}
 			ParanoidNumber operator*(const ParanoidNumber & a) const
 			{
 				ParanoidNumber result(*this);
 				result *= a;
-				if (!result.SanityCheck())
-				{
-					Fatal("Blargh");
-				}
+				#ifdef PARANOID_COMPARE_EPSILON
+					result.CompareForSanity(Digit()*a.Digit(), a.Digit());
+				#endif
 				return result;
 			}
 			ParanoidNumber operator/(const ParanoidNumber & a) const
 			{
 				ParanoidNumber result(*this);
 				result /= a;
+				#ifdef PARANOID_COMPARE_EPSILON
+					result.CompareForSanity(Digit()/a.Digit(), a.Digit());
+				#endif
 				return result;
 			}
 			
