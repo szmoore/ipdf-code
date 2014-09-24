@@ -173,7 +173,7 @@ void View::Render(int width, int height)
 #ifndef QUADTREE_DISABLED
 	if (m_bounds_dirty)
 	{
-		if ( false &&  (m_bounds.x > 1.0 || m_bounds.x < 0.0 || m_bounds.y > 1.0 || m_bounds.y < 0.0 || m_bounds.w > 1.0 || m_bounds.h > 1.0))
+		if ( (m_bounds.x > 1.0 || m_bounds.x < 0.0 || m_bounds.y > 1.0 || m_bounds.y < 0.0 || m_bounds.w > 1.0 || m_bounds.h > 1.0))
 		{
 			//TODO: Generate a new parent node.
 			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].parent != QUADTREE_EMPTY)
@@ -227,8 +227,16 @@ void View::Render(int width, int height)
 			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].bottom_right;
 		}
 	}
-	m_screen.DebugFontPrintF("Current View QuadTree Node: %d (objs: %d -> %d)\n", m_current_quadtree_node, m_document.GetQuadTree().nodes[m_current_quadtree_node].object_begin,
-				m_document.GetQuadTree().nodes[m_current_quadtree_node].object_end);
+
+	m_screen.DebugFontPrintF("Current View QuadTree");
+	QuadTreeIndex overlay = m_current_quadtree_node;
+	while (overlay != -1)
+	{
+		m_screen.DebugFontPrintF(" Node: %d (objs: %d -> %d)", overlay, m_document.GetQuadTree().nodes[overlay].object_begin,
+					m_document.GetQuadTree().nodes[overlay].object_end);
+		overlay = m_document.GetQuadTree().nodes[overlay].next_overlay;
+	}
+	m_screen.DebugFontPrintF("\n");
 
 	Rect view_top_bounds = m_bounds;
 	QuadTreeIndex tmp = m_current_quadtree_node;
@@ -285,7 +293,12 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 	if (!remaining_depth) return;
 	//Debug("Rendering QT node %d, (objs: %d -- %d)\n", node, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
 	m_bounds_dirty = true;
-	RenderRange(width, height, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
+	QuadTreeIndex overlay = node;
+	while(overlay != -1)
+	{
+		RenderRange(width, height, m_document.GetQuadTree().nodes[overlay].object_begin, m_document.GetQuadTree().nodes[overlay].object_end);
+		overlay = m_document.GetQuadTree().nodes[overlay].next_overlay;
+	}
 
 	if (m_bounds.Intersects(Rect(-1,-1,1,1)))
 	{

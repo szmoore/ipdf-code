@@ -39,6 +39,8 @@ namespace IPDF
 		unsigned object_begin;
 		// Last object in the node.
 		unsigned object_end;
+		// Linked list of "extra" nodes
+		QuadTreeIndex next_overlay;
 	};
 
 	struct QuadTree

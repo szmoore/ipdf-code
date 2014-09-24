@@ -94,9 +94,8 @@ void Document::Save(const string & filename)
 
 void Document::GenBaseQuadtree()
 {
-	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 0, ObjectCount()});
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QTC_UNKNOWN, 0, ObjectCount(), -1});
 	m_quadtree.root_id = 0;
-	GenQuadChild(0, QTC_TOP_LEFT);
 }
 
 int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
@@ -169,7 +168,8 @@ int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type)
 {
 	QuadTreeIndex new_index = m_quadtree.nodes.size();
-	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, parent, type, 0, 0});
+	Debug("-------------- Generating Quadtree Node %d (parent %d) ----------------------", new_index, parent);
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, parent, type, 0, 0, -1});
 
 	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();
 	for (unsigned i = m_quadtree.nodes[parent].object_begin; i < m_quadtree.nodes[parent].object_end; ++i)
@@ -204,7 +204,7 @@ QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren 
 QuadTreeIndex Document::GenQuadParent(QuadTreeIndex child, QuadTreeNodeChildren type)
 {
 	QuadTreeIndex new_index = m_quadtree.nodes.size();
-	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, -1, QTC_UNKNOWN, 0, 0});
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, -1, QTC_UNKNOWN, 0, 0, -1});
 
 	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();
 	for (unsigned i = m_quadtree.nodes[child].object_begin; i < m_quadtree.nodes[child].object_end; ++i)
@@ -324,11 +324,28 @@ unsigned Document::AddBezier(const Bezier & bezier)
 	return Add(BEZIER, bounds, index);
 }
 
-unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index)
+unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index, QuadTreeIndex qti)
 {
 	m_objects.types.push_back(type);
 	m_objects.bounds.push_back(bounds);
 	m_objects.data_indices.push_back(data_index);
+#ifndef QUADTREE_DISABLED
+	if (qti != -1)
+	{
+		if (m_count == m_quadtree.nodes[qti].object_end+1)
+		{
+			m_quadtree.nodes[qti].object_end++;
+		}
+		else
+		{
+			QuadTreeIndex overlay = m_quadtree.nodes.size();
+			m_quadtree.nodes.push_back(m_quadtree.nodes[qti]);
+			m_quadtree.nodes[overlay].object_begin = m_count;
+			m_quadtree.nodes[overlay].object_end = m_count+1;
+			m_quadtree.nodes[qti].next_overlay = overlay;
+		}
+	}
+#endif
 	return (m_count++); // Why can't we just use the size of types or something?
 }
 

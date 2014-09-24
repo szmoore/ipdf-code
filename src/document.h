@@ -54,7 +54,7 @@ namespace IPDF
 
 			unsigned AddPath(unsigned start_index, unsigned end_index, const Colour & shading=Colour(0.6,0.6,0.6,1), const Colour & stroke=Colour(0,0,0,0));
 			unsigned AddBezier(const Bezier & bezier);
-			unsigned Add(ObjectType type, const Rect & bounds, unsigned data_index = 0);
+			unsigned Add(ObjectType type, const Rect & bounds, unsigned data_index = 0, QuadTreeIndex qtnode = 0);
 			unsigned AddBezierData(const Bezier & bezier);
 			unsigned AddPathData(const Path & path);
 

@@ -15,7 +15,7 @@ namespace IPDF
 	
 	extern std::vector<Real> SolveQuadratic(const Real & a, const Real & b, const Real & c, const Real & min = 0, const Real & max = 1);
 
-	extern std::vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d, const Real & min = 0, const Real & max = 1, const Real & delta = 1e-4);
+	extern std::vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d, const Real & min = 0, const Real & max = 1, const Real & delta = 1e-9);
 
 	/** A _cubic_ bezier. **/
 	struct Bezier
@@ -256,17 +256,21 @@ namespace IPDF
 
 			// Find its roots.
 			std::vector<Real> x_intersection = SolveXParam(r.x);
+			Debug("Found %d intersections on left edge", x_intersection.size());
 
 			// And for the other side.
 
 			std::vector<Real> x_intersection_pt2 = SolveXParam(r.x + r.w);
 			x_intersection.insert(x_intersection.end(), x_intersection_pt2.begin(), x_intersection_pt2.end());
+			Debug("Found %d intersections on right edge (total x: %d)", x_intersection_pt2.size(), x_intersection.size());
 
 			// Find its roots.
 			std::vector<Real> y_intersection = SolveYParam(r.y);
+			Debug("Found %d intersections on top edge", y_intersection.size());
 
 			std::vector<Real> y_intersection_pt2 = SolveYParam(r.y+r.h);
 			y_intersection.insert(y_intersection.end(), y_intersection_pt2.begin(), y_intersection_pt2.end());
+			Debug("Found %d intersections on bottom edge (total y: %d)", y_intersection_pt2.size(), y_intersection.size());
 
 			// Merge and sort.
 			x_intersection.insert(x_intersection.end(), y_intersection.begin(), y_intersection.end());
