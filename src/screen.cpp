@@ -37,7 +37,8 @@ Screen::Screen(bool visible)
 
 	if (!m_window)
 	{
-		Fatal("Couldn't create window!");
+		Error("Couldn't create window!");
+		return;
 	}
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -111,6 +112,8 @@ Screen::Screen(bool visible)
 
 Screen::~Screen()
 {
+	if (!Valid())
+		return;
 	SDL_GL_DeleteContext(m_gl_context);
 	SDL_DestroyWindow(m_window);
 	SDL_Quit();
@@ -118,6 +121,8 @@ Screen::~Screen()
 
 void Screen::Clear(float r, float g, float b, float a)
 {
+	if (!Valid())
+		return;
 	glClearColor(r,g,b,a);
 	glClear(GL_COLOR_BUFFER_BIT);
 	DebugFontClear();
@@ -134,6 +139,9 @@ void Screen::ResizeViewport(int width, int height)
 
 bool Screen::PumpEvents()
 {
+	if (!Valid())
+		return true;
+
 	SDL_Event evt;
 	
 	while (SDL_PollEvent(&evt))
@@ -212,6 +220,8 @@ void Screen::SetMouseCursor(Screen::MouseCursors cursor)
 
 void Screen::Present()
 {
+	if (!Valid())
+		return;
 	if (m_debug_font_atlas)
 		DebugFontFlush();
 	m_last_frame_time = SDL_GetPerformanceCounter() - m_frame_begin_time;
@@ -227,7 +237,7 @@ void Screen::Present()
 
 double Screen::GetLastFrameTimeGPU() const
 {
-	if (!m_last_frame_gpu_timer)
+	if (!Valid() || !m_last_frame_gpu_timer)
 		return 0;
 	uint64_t frame_time_ns;
 	glGetQueryObjectui64v(m_last_frame_gpu_timer, GL_QUERY_RESULT, &frame_time_ns);
@@ -278,6 +288,7 @@ void Screen::RenderPixels(int x, int y, int w, int h, uint8_t *pixels) const
 
 void Screen::ScreenShot(const char * filename) const
 {
+	if (!Valid()) return;
 	Debug("Attempting to save BMP to file %s", filename);
 
 	int w = ViewportWidth();
@@ -316,6 +327,7 @@ void Screen::ScreenShot(const char * filename) const
  */
 void Screen::RenderBMP(const char * filename) const
 {
+	if (!Valid()) return;
 	if (access(filename, R_OK) == -1)
 	{
 		Error("No such file \"%s\" - Nothing to render - You might have done this deliberately?", filename);
@@ -384,6 +396,8 @@ void Screen::RenderBMP(const char * filename) const
 
 void Screen::DebugFontInit(const char *name, float font_size)
 {
+	if (!Valid()) return;
+
 	unsigned char font_atlas_data[1024*1024];
 	FILE *font_file = fopen(name, "rb");
 	fseek(font_file, 0, SEEK_END);
@@ -415,6 +429,7 @@ void Screen::DebugFontInit(const char *name, float font_size)
 
 void Screen::DebugFontClear()
 {
+	if (!Valid()) return;
 	m_debug_font_x = m_debug_font_y = 0;
 	if (!m_debug_font_atlas) return;
 	DebugFontPrint("\n");
@@ -422,6 +437,7 @@ void Screen::DebugFontClear()
 
 void Screen::DebugFontFlush()
 {
+	if (!Valid()) return;
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 40, -1, "Screen::DebugFontFlush()");	
 		
 	glEnable(GL_BLEND);
@@ -461,6 +477,7 @@ struct fontvertex
 
 void Screen::DebugFontPrint(const char* str)
 {
+	if (!Valid()) return;
 	if (!m_debug_font_atlas || !m_show_debug_font) return;
 
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 41, -1, "Screen::DebugFontPrint()");

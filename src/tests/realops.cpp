@@ -12,7 +12,7 @@ using namespace IPDF;
 
 static double g_totalerror = 0;
 
-bool NotEqual(double a, double b, double threshold=1e-1)
+bool NotEqual(double a, double b, double threshold=1e-4)
 {
 	double error = fabs(a-b);
 	g_totalerror += error;
@@ -116,7 +116,18 @@ int main(int argc, char ** argv)
 		{
 			failures++;
 			Warn("a /= b = %f should be %f, a before op was %f", Double(a), da, Double(abeforeop));
+		}
+		if (NotEqual(Double(a*0.0 + 1.0), da*0.0 + 1.0))
+		{
+			failures++;
+			Warn("a * 0 = %f should be %f, a before op was %f", Double(a), da, Double(abeforeop));
 		}		
+
+		if (NotEqual(Double(a=b), da=db))
+		{
+			failures++;
+			Warn("a = b = %f should be %f, a before op was %f", Double(a), da, Double(abeforeop));
+		}
 		
 		if (failures > old_failures)
 		{

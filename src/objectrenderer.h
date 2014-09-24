@@ -28,7 +28,7 @@ namespace IPDF
 	{
 		public:
 			/** Construct the ObjectRenderer **/
-			ObjectRenderer(const ObjectType & type, const char * vert_glsl_file, const char * frag_glsl_file, const char * geom_glsl_file = "");
+			ObjectRenderer(const ObjectType & type, const char * vert_glsl_file="", const char * frag_glsl_file="", const char * geom_glsl_file = "");
 			virtual ~ObjectRenderer() {}
 
 			/**
@@ -169,6 +169,15 @@ namespace IPDF
 			virtual ~PathRenderer() {}
 			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 			// do nothing on GPU
+			virtual void RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id) {}
+	};
+
+	class FakeRenderer : public ObjectRenderer
+	{
+		public:
+			FakeRenderer() : ObjectRenderer(PATH,NULL,NULL,NULL) {}
+			~FakeRenderer() {}
+			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id) {}
 			virtual void RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id) {}
 	};
 	

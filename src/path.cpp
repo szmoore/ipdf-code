@@ -21,6 +21,8 @@ Path::Path(const Objects & objects, unsigned start, unsigned end, const Colour &
 	
 	for (unsigned i = m_start; i <= m_end; ++i)
 	{
+		if (i >= objects.bounds.size())
+			break;
 		const Rect & objb = objects.bounds[i];
 		
 		if (i == m_start || objb.x < xmin)

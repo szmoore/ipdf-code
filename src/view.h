@@ -10,6 +10,8 @@
 #define USE_GPU_RENDERING true
 #define USE_SHADING !(USE_GPU_RENDERING) && true
 
+#define TRANSFORM_OBJECTS_NOT_VIEW
+
 namespace IPDF
 {
 	class Screen;

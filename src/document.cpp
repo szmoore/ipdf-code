@@ -316,7 +316,7 @@ unsigned Document::AddBezier(const Bezier & bezier)
 	Bezier data = bezier.ToRelative(bounds); // Relative
 	if (data.ToAbsolute(bounds) != bezier)
 	{
-		Warn("%s != %s", data.ToAbsolute(Rect(0,0,1,1)).Str().c_str(),
+		Warn("%s != %s", data.ToAbsolute(bounds).Str().c_str(),
 			bezier.Str().c_str());
 		Warn("ToAbsolute on ToRelative does not give original Bezier");
 	}
@@ -561,7 +561,7 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 			//Debug("Path data attribute is \"%s\"", d.c_str());
 			bool closed = false;
 			pair<unsigned, unsigned> range = ParseSVGPathData(d, transform, closed);
-			if (true)//(closed)
+			if (true && range.first < m_count && range.second < m_count)//(closed)
 			{
 				
 				string colour_str("");
@@ -1023,4 +1023,43 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 	//Debug("Added Glyph \"%c\" at %f %f, scale %f", (char)character, Float(x), Float(y), Float(scale));
 
 	stbtt_FreeShape(font, instructions);
+}
+
+void Document::TransformObjectBounds(const SVGMatrix & transform)
+{
+	for (unsigned i = 0; i < m_count; ++i)
+	{
+		TransformXYPair(m_objects.bounds[i].x, m_objects.bounds[i].y, transform);
+		m_objects.bounds[i].w *= transform.a;
+		m_objects.bounds[i].h *= transform.d;
+	}
+}
+
+void Document::TranslateObjects(const Real & dx, const Real & dy)
+{
+	for (unsigned i = 0; i < m_count; ++i)
+	{
+		m_objects.bounds[i].x += dx;
+		m_objects.bounds[i].y += dy;
+	}
+}
+
+void Document::ScaleObjectsAboutPoint(const Real & x, const Real & y, const Real & scale_amount)
+{
+	for (unsigned i = 0; i < m_count; ++i)
+	{
+		m_objects.bounds[i].w /= scale_amount;
+		m_objects.bounds[i].h /= scale_amount;
+		//m_objects.bounds[i].x = x + (m_objects.bounds[i].x-x)/scale_amount;
+		//m_objects.bounds[i].y = y + (m_objects.bounds[i].y-x)/scale_amount;
+		m_objects.bounds[i].x -= x;
+		m_objects.bounds[i].x /= scale_amount;
+		m_objects.bounds[i].x += x;
+		
+		m_objects.bounds[i].y -= y;
+		m_objects.bounds[i].y /= scale_amount;
+		m_objects.bounds[i].y += y;
+
+	}	
+	
 }

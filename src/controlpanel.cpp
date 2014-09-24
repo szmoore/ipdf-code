@@ -336,7 +336,11 @@ void ControlPanel::LoadSVGIntoDocument()
 	if (filename == "")
 		return;
 	
+	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+		Rect bounds(0,0,1,1);
+	#else
 	Rect bounds(m_view.GetBounds());
+	#endif
 	bounds.x += bounds.w/Real(2);
 	bounds.y += bounds.h/Real(2);
 	

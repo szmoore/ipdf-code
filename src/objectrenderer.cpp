@@ -24,9 +24,12 @@ ObjectRenderer::ObjectRenderer(const ObjectType & type,
 		const char * vert_glsl_file, const char * frag_glsl_file, const char * geom_glsl_file)
 		: m_type(type), m_shader_program(), m_indexes(), m_buffer_builder(NULL)
 {
-	m_shader_program.InitialiseShaders(vert_glsl_file, frag_glsl_file, geom_glsl_file);
-	m_shader_program.Use();
-	glUniform4f(m_shader_program.GetUniformLocation("colour"), 0,0,0,1); //TODO: Allow different colours
+	if (vert_glsl_file != NULL && frag_glsl_file != NULL && geom_glsl_file != NULL)
+	{
+		m_shader_program.InitialiseShaders(vert_glsl_file, frag_glsl_file, geom_glsl_file);
+		m_shader_program.Use();
+		glUniform4f(m_shader_program.GetUniformLocation("colour"), 0,0,0,1); //TODO: Allow different colours
+	}
 }
 
 /**

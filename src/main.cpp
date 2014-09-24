@@ -167,8 +167,11 @@ int main(int argc, char ** argv)
 
 	if (input_filename != NULL)
 	{
-		
-		doc.LoadSVG(input_filename, Rect(bounds.x+bounds.w/Real(2),bounds.y+bounds.h/Real(2),bounds.w/Real(800),bounds.h/Real(600)));
+		#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+			doc.LoadSVG(input_filename, Rect(Real(1)/Real(2),Real(1)/Real(2),Real(1)/Real(800),Real(1)/Real(600)));		
+		#else
+			doc.LoadSVG(input_filename, Rect(bounds.x+bounds.w/Real(2),bounds.y+bounds.h/Real(2),bounds.w/Real(800),bounds.h/Real(600)));
+		#endif
 	}
 	else if (input_text != NULL)
 	{
@@ -181,6 +184,7 @@ int main(int argc, char ** argv)
 
 
 	#ifndef CONTROLPANEL_DISABLED
+	if (!scr.Valid()) hide_control_panel = true;
 	SDL_Thread * cp_thread = NULL;
 	if (!hide_control_panel)
 	{

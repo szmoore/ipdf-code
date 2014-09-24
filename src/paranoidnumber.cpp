@@ -6,6 +6,8 @@
 #include <cassert>
 #include <iostream>
 
+// here be many copy paste bugs
+
 using namespace std;
 namespace IPDF
 {
@@ -80,20 +82,9 @@ ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
 		for (auto n : a.m_next[i])
 			m_next[i].push_back(new ParanoidNumber(*n));
 	}
-		/*
-		for (unsigned j = 0; j < m_next[i].size() && j < a.m_next[i].size(); ++j)
-		{
-			if (a.m_next[i][j] != NULL)
-				m_next[i][j]->operator=(*(a.m_next[i][j]));
-		}
-		
-		for (unsigned j = a.m_next[i].size(); j < m_next[i].size(); ++j)
-		{
-			delete m_next[i][j];
-		}
-		m_next[i].resize(a.m_next[i].size());
-		*/
-	//}	
+	#ifdef PARANOID_COMPARE_EPSILON
+		CompareForSanity(a.Digit(),a.Digit());
+	#endif
 	return *this;
 }
 
@@ -273,88 +264,147 @@ bool TrustingOp<int8_t>(int8_t & a, const int8_t & b, Optype op)
 
 ParanoidNumber & ParanoidNumber::operator+=(const digit_t & a)
 {
-	
-	//assert(this != NULL);
+	#ifdef PARANOID_COMPARE_EPSILON
+		digit_t compare = Digit();
+		compare += a;
+	#endif
 	delete Operation(new ParanoidNumber(a), ADD);
-	Simplify(ADD);
 	Simplify(SUBTRACT);
+	Simplify(ADD);
+	#ifdef PARANOID_COMPARE_EPSILON
+		CompareForSanity(compare, a);
+	#endif
 	return *this;
 }
 
 
 ParanoidNumber & ParanoidNumber::operator-=(const digit_t & a)
 {
+	#ifdef PARANOID_COMPARE_EPSILON
+		digit_t compare = Digit();
+		compare -= a;
+	#endif
 	delete Operation(new ParanoidNumber(a), SUBTRACT);
-	Simplify(SUBTRACT);
 	Simplify(ADD);
+	Simplify(SUBTRACT);
+	#ifdef PARANOID_COMPARE_EPSILON
+		CompareForSanity(compare, a);
+	#endif
 	return *this;
 }
 
 ParanoidNumber & ParanoidNumber::operator*=(const digit_t & a)
 {
+	#ifdef PARANOID_COMPARE_EPSILON
+		digit_t compare = Digit();
+		compare *= a;
+	#endif
 	delete Operation(new ParanoidNumber(a), MULTIPLY);
+	Simplify(DIVIDE);
 	Simplify(MULTIPLY);
-	Simplify(DIVIDE);	
+	#ifdef PARANOID_COMPARE_EPSILON
+		CompareForSanity(compare, a);
+	#endif
 	return *this;
 }
 
 
 ParanoidNumber & ParanoidNumber::operator/=(const digit_t & a)
 {
+	#ifdef PARANOID_COMPARE_EPSILON
+		digit_t compare = Digit();
+		compare /= a;
+	#endif
 	delete Operation(new ParanoidNumber(a), DIVIDE);
 	Simplify(MULTIPLY);
 	Simplify(DIVIDE);
+	#ifdef PARANOID_COMPARE_EPSILON
+		CompareForSanity(compare, a);
+	#endif
 	return *this;
 }
 
 
 ParanoidNumber & ParanoidNumber::operator+=(const ParanoidNumber & a)
 {
-	
-	//assert(this != NULL);
+	#ifdef PARANOID_COMPARE_EPSILON
+		digit_t compare = Digit();
+		compare += a.Digit();
+	#endif
 	delete Operation(new ParanoidNumber(a), ADD);
-	Simplify(ADD);
 	Simplify(SUBTRACT);
+	Simplify(ADD);
+	#ifdef PARANOID_COMPARE_EPSILON
+		CompareForSanity(compare, a.Digit());
+	#endif
 	return *this;
 }
 
 
 ParanoidNumber & ParanoidNumber::operator-=(const ParanoidNumber & a)
 {
+	#ifdef PARANOID_COMPARE_EPSILON
+		digit_t compare = Digit();
+		compare -= a.Digit();
+	#endif
 	delete Operation(new ParanoidNumber(a), SUBTRACT);
-	Simplify(SUBTRACT);
 	Simplify(ADD);
+	Simplify(SUBTRACT);
+	#ifdef PARANOID_COMPARE_EPSILON
+		CompareForSanity(compare, a.Digit());
+	#endif
 	return *this;
 }
 
 ParanoidNumber & ParanoidNumber::operator*=(const ParanoidNumber & a)
 {
+	#ifdef PARANOID_COMPARE_EPSILON
+		digit_t compare = Digit();
+		compare *= a.Digit();
+	#endif
 	delete Operation(new ParanoidNumber(a), MULTIPLY);
+	Simplify(DIVIDE);
 	Simplify(MULTIPLY);
-	Simplify(DIVIDE);	
+	#ifdef PARANOID_COMPARE_EPSILON
+		CompareForSanity(compare, a.Digit());
+	#endif
 	return *this;
 }
 
 
 ParanoidNumber & ParanoidNumber::operator/=(const ParanoidNumber & a)
 {
+	#ifdef PARANOID_COMPARE_EPSILON
+		digit_t compare = Digit();
+		compare /= a.Digit();
+	#endif
 	delete Operation(new ParanoidNumber(a), DIVIDE);
 	Simplify(MULTIPLY);
 	Simplify(DIVIDE);
+	#ifdef PARANOID_COMPARE_EPSILON
+		CompareForSanity(compare, a.Digit());
+	#endif
 	return *this;
 }
 
 ParanoidNumber & ParanoidNumber::operator=(const digit_t & a)
 {
+
 	for (int i = 0; i < NOP; ++i)
 	{
 		for (auto n : m_next[i])
 			delete n;
+		m_next[i].clear();
 	}
 	m_value = a;
 	#ifdef PARANOID_CACHE_RESULT
 	m_cached_result = a;
 	#endif
+
+	#ifdef PARANOID_COMPARE_EPSILON
+		CompareForSanity(a,a);
+	#endif
+	
 	return *this;
 }
 
@@ -366,12 +416,16 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 	m_cached_result = NAN;
 	#endif
 	#ifdef PARANOID_SIZE_LIMIT
-		if (m_size > PARANOID_SIZE_LIMIT)
+		if (m_size >= PARANOID_SIZE_LIMIT)
 		{
 			if (op == ADD)
-				m_value += b->Digit();
+			{
+				m_value += b->Digit() / GetFactors();
+			}
 			else
-				m_value -= b->Digit();
+			{
+				m_value -= b->Digit() / GetFactors();
+			}
 			return b;
 		}
 		//Debug("At size limit %d", m_size);
@@ -493,20 +547,23 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 
 ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
 {
-	//assert(SanityCheck());
-	//assert(b->SanityCheck());
 	#ifdef PARANOID_CACHE_RESULTS
 	m_cached_result = NAN;
 	#endif
 	#ifdef PARANOID_SIZE_LIMIT
-		if (m_size > PARANOID_SIZE_LIMIT)
+		if (m_size >= PARANOID_SIZE_LIMIT)
 		{
 			if (op == MULTIPLY)
 				m_value *= b->Digit();
 			else
 				m_value /= b->Digit();
-			//Debug("At size limit %d", m_size);
+				
+			for (auto n : m_next[ADD])
+				delete n->OperationFactor(new ParanoidNumber(*b), op);
+			for (auto n : m_next[SUBTRACT])
+				delete n->OperationFactor(new ParanoidNumber(*b), op);
 			return b;
+			
 		}
 	#endif	
 
@@ -530,7 +587,11 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 	}
 	if (b->Floating() && b->m_value == 1)
 		return b;
-	
+	if (b->Floating() && b->m_value == 0 && op == MULTIPLY)
+	{
+		operator=(*b);
+		return b;
+	}
 
 		
 	if (NoTerms() && b->NoTerms())
@@ -846,6 +907,11 @@ bool ParanoidNumber::SanityCheck(set<ParanoidNumber*> & visited) const
 	{
 		if (!div->SanityCheck(visited))
 			return false;
+		if (div->Digit() == 0)
+		{
+			Error("Divide by zero");
+			return false;
+		}
 	}
 	return true;
 }

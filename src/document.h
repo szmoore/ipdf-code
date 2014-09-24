@@ -81,7 +81,11 @@ namespace IPDF
 			void AddText(const std::string & text, Real scale, Real x, Real y);
 			
 			void AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real scale, Real x, Real y);
-
+			
+			void TransformObjectBounds(const SVGMatrix & transform);
+			void TranslateObjects(const Real & x, const Real & y);
+			void ScaleObjectsAboutPoint(const Real & x, const Real & y, const Real & scale_amount);
+			
 #ifndef QUADTREE_DISABLED
 			inline const QuadTree& GetQuadTree() { if (m_quadtree.root_id == QUADTREE_EMPTY) { GenBaseQuadtree(); } return m_quadtree; }
 			QuadTreeIndex GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type);

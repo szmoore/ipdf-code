@@ -28,13 +28,23 @@ View::View(Document & document, Screen & screen, const Rect & bounds, const Colo
 
 	screen.SetView(this); // oh dear...
 
+	
+
 	// Create ObjectRenderers - new's match delete's in View::~View
 	//TODO: Don't forget to put new renderers here or things will be segfaultastic
-	m_object_renderers[RECT_FILLED] = new RectFilledRenderer();
-	m_object_renderers[RECT_OUTLINE] = new RectOutlineRenderer();
-	m_object_renderers[CIRCLE_FILLED] = new CircleFilledRenderer();
-	m_object_renderers[BEZIER] = new BezierRenderer();
-	m_object_renderers[PATH] = new PathRenderer();
+	if (screen.Valid())
+	{
+		m_object_renderers[RECT_FILLED] = new RectFilledRenderer();
+		m_object_renderers[RECT_OUTLINE] = new RectOutlineRenderer();
+		m_object_renderers[CIRCLE_FILLED] = new CircleFilledRenderer();
+		m_object_renderers[BEZIER] = new BezierRenderer();
+		m_object_renderers[PATH] = new PathRenderer();
+	}
+	else
+	{
+		for (int i = RECT_FILLED; i <= PATH; ++i)
+			m_object_renderers[i] = new FakeRenderer();
+	}
 
 	// To add rendering for a new type of object;
 	// 1. Add enum to ObjectType in ipdf.h
@@ -69,14 +79,19 @@ View::~View()
  */
 void View::Translate(Real x, Real y)
 {
+	if (!m_use_gpu_transform)
+		m_buffer_dirty = true;
+	m_bounds_dirty = true;
+	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+	m_document.TranslateObjects(-x, -y);
+	#endif
 	x *= m_bounds.w;
 	y *= m_bounds.h;
 	m_bounds.x += x;
 	m_bounds.y += y;
 	//Debug("View Bounds => %s", m_bounds.Str().c_str());
-	if (!m_use_gpu_transform)
-		m_buffer_dirty = true;
-	m_bounds_dirty = true;
+
+	
 }
 
 /**
@@ -101,8 +116,18 @@ void View::SetBounds(const Rect & bounds)
  */
 void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 {
+	
+	// (x0, y0, w, h) -> (x*w - (x*w - x0)*s, y*h - (y*h - y0)*s, w*s, h*s)
 	// x and y are coordinates in the window
 	// Convert to local coords.
+	if (!m_use_gpu_transform)
+		m_buffer_dirty = true;
+	m_bounds_dirty = true;
+	
+	
+	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+	m_document.ScaleObjectsAboutPoint(x, y, scale_amount);
+	#endif
 	x *= m_bounds.w;
 	y *= m_bounds.h;
 	x += m_bounds.x;
@@ -119,9 +144,8 @@ void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 	m_bounds.w *= scale_amount;
 	m_bounds.h *= scale_amount;
 	//Debug("Scale at {%s, %s} by %s View Bounds => %s", x.Str().c_str(), y.Str().c_str(), scale_amount.Str().c_str(), m_bounds.Str().c_str());
-	if (!m_use_gpu_transform)
-		m_buffer_dirty = true;
-	m_bounds_dirty = true;
+	
+	
 }
 
 /**
@@ -132,6 +156,9 @@ void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
  */
 Rect View::TransformToViewCoords(const Rect& inp) const
 {
+	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+		return inp;
+	#endif
 	Rect out;
 	out.x = (inp.x - m_bounds.x) / m_bounds.w;
 	out.y = (inp.y - m_bounds.y) / m_bounds.h;
@@ -149,6 +176,7 @@ Rect View::TransformToViewCoords(const Rect& inp) const
  */
 void View::Render(int width, int height)
 {
+	if (!m_screen.Valid()) return;
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION,42,-1, "Beginning View::Render()");
 	// View dimensions have changed (ie: Window was resized)
 	int prev_width = m_cached_display.GetWidth();
@@ -371,8 +399,13 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 
 	if (m_use_gpu_transform)
 	{
+		#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+				GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f,
+					0.0f, 0.0f, float(width), float(height)};
+		#else
 		GLfloat glbounds[] = {static_cast<GLfloat>(Float(m_bounds.x)), static_cast<GLfloat>(Float(m_bounds.y)), static_cast<GLfloat>(Float(m_bounds.w)), static_cast<GLfloat>(Float(m_bounds.h)),
 					0.0, 0.0, static_cast<GLfloat>(width), static_cast<GLfloat>(height)};
+		#endif
 		m_bounds_ubo.Upload(sizeof(float)*8, glbounds);
 	}
 	else

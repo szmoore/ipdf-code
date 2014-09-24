@@ -16,11 +16,15 @@
 								// but let's not do that...
 								
 
-#define PARANOID_CACHE_RESULTS
+//#define PARANOID_CACHE_RESULTS
 
 //#define PARANOID_USE_ARENA
 #define PARANOID_SIZE_LIMIT 0
 
+
+// Define to compare all ops against double ops and check within epsilon
+#define PARANOID_COMPARE_EPSILON 1e-6
+#define CompareForSanity(...) this->ParanoidNumber::CompareForSanityEx(__func__, __FILE__, __LINE__, __VA_ARGS__)
 
 namespace IPDF
 {
@@ -184,6 +188,7 @@ namespace IPDF
 			ParanoidNumber operator+(const ParanoidNumber & a) const
 			{
 				ParanoidNumber result(*this);
+				a.SanityCheck();
 				result += a;
 				return result;
 			}
@@ -197,6 +202,10 @@ namespace IPDF
 			{
 				ParanoidNumber result(*this);
 				result *= a;
+				if (!result.SanityCheck())
+				{
+					Fatal("Blargh");
+				}
 				return result;
 			}
 			ParanoidNumber operator/(const ParanoidNumber & a) const
@@ -208,7 +217,15 @@ namespace IPDF
 			
 			std::string Str() const;
 
-			
+			inline void CompareForSanityEx(const char * func, const char * file, int line, const digit_t & compare, const digit_t & arg, const digit_t & eps = PARANOID_COMPARE_EPSILON)
+			{
+				if (fabs(Digit() - compare) > eps)
+				{
+					Error("Called via %s(%lf) (%s:%d)", func, arg, file, line);
+					Error("Failed: %s", Str().c_str());
+					Fatal("This: %.30lf vs Expected: %.30lf", Digit(), compare);
+				}
+			}
 
 			
 			std::string PStr() const;
