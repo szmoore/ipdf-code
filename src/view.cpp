@@ -22,19 +22,29 @@ View::View(Document & document, Screen & screen, const Rect & bounds, const Colo
 		m_render_dirty(true), m_document(document), m_screen(screen), m_cached_display(), m_bounds(bounds), m_colour(colour), m_bounds_ubo(), 
 		m_objbounds_vbo(), m_object_renderers(NUMBER_OF_OBJECT_TYPES), m_cpu_rendering_pixels(NULL),
 		m_perform_shading(USE_SHADING), m_show_bezier_bounds(false), m_show_bezier_type(false),
-		m_show_fill_points(false), m_show_fill_bounds(false)
+		m_show_fill_points(false), m_show_fill_bounds(false), m_lazy_rendering(true)
 {
 	Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
 
 	screen.SetView(this); // oh dear...
 
+	
+
 	// Create ObjectRenderers - new's match delete's in View::~View
 	//TODO: Don't forget to put new renderers here or things will be segfaultastic
-	m_object_renderers[RECT_FILLED] = new RectFilledRenderer();
-	m_object_renderers[RECT_OUTLINE] = new RectOutlineRenderer();
-	m_object_renderers[CIRCLE_FILLED] = new CircleFilledRenderer();
-	m_object_renderers[BEZIER] = new BezierRenderer();
-	m_object_renderers[PATH] = new PathRenderer();
+	if (screen.Valid())
+	{
+		m_object_renderers[RECT_FILLED] = new RectFilledRenderer();
+		m_object_renderers[RECT_OUTLINE] = new RectOutlineRenderer();
+		m_object_renderers[CIRCLE_FILLED] = new CircleFilledRenderer();
+		m_object_renderers[BEZIER] = new BezierRenderer();
+		m_object_renderers[PATH] = new PathRenderer();
+	}
+	else
+	{
+		for (int i = RECT_FILLED; i <= PATH; ++i)
+			m_object_renderers[i] = new FakeRenderer();
+	}
 
 	// To add rendering for a new type of object;
 	// 1. Add enum to ObjectType in ipdf.h
@@ -69,14 +79,19 @@ View::~View()
  */
 void View::Translate(Real x, Real y)
 {
+	if (!m_use_gpu_transform)
+		m_buffer_dirty = true;
+	m_bounds_dirty = true;
+	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+	m_document.TranslateObjects(-x, -y);
+	#endif
 	x *= m_bounds.w;
 	y *= m_bounds.h;
 	m_bounds.x += x;
 	m_bounds.y += y;
 	//Debug("View Bounds => %s", m_bounds.Str().c_str());
-	if (!m_use_gpu_transform)
-		m_buffer_dirty = true;
-	m_bounds_dirty = true;
+
+	
 }
 
 /**
@@ -101,8 +116,18 @@ void View::SetBounds(const Rect & bounds)
  */
 void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 {
+	
+	// (x0, y0, w, h) -> (x*w - (x*w - x0)*s, y*h - (y*h - y0)*s, w*s, h*s)
 	// x and y are coordinates in the window
 	// Convert to local coords.
+	if (!m_use_gpu_transform)
+		m_buffer_dirty = true;
+	m_bounds_dirty = true;
+	
+	
+	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+	m_document.ScaleObjectsAboutPoint(x, y, scale_amount);
+	#endif
 	x *= m_bounds.w;
 	y *= m_bounds.h;
 	x += m_bounds.x;
@@ -119,9 +144,8 @@ void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 	m_bounds.w *= scale_amount;
 	m_bounds.h *= scale_amount;
 	//Debug("Scale at {%s, %s} by %s View Bounds => %s", x.Str().c_str(), y.Str().c_str(), scale_amount.Str().c_str(), m_bounds.Str().c_str());
-	if (!m_use_gpu_transform)
-		m_buffer_dirty = true;
-	m_bounds_dirty = true;
+	
+	
 }
 
 /**
@@ -132,6 +156,9 @@ void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
  */
 Rect View::TransformToViewCoords(const Rect& inp) const
 {
+	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+		return inp;
+	#endif
 	Rect out;
 	out.x = (inp.x - m_bounds.x) / m_bounds.w;
 	out.y = (inp.y - m_bounds.y) / m_bounds.h;
@@ -149,6 +176,7 @@ Rect View::TransformToViewCoords(const Rect& inp) const
  */
 void View::Render(int width, int height)
 {
+	if (!m_screen.Valid()) return;
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION,42,-1, "Beginning View::Render()");
 	// View dimensions have changed (ie: Window was resized)
 	int prev_width = m_cached_display.GetWidth();
@@ -160,7 +188,7 @@ void View::Render(int width, int height)
 	}
 
 	// View bounds have not changed; blit the FrameBuffer as it is
-	if (!m_bounds_dirty)
+	if (!m_bounds_dirty && m_lazy_rendering)
 	{
 		m_cached_display.UnBind();
 		m_cached_display.Blit();
@@ -171,7 +199,7 @@ void View::Render(int width, int height)
 	m_cached_display.Clear();
 
 #ifndef QUADTREE_DISABLED
-	if (m_bounds_dirty)
+	if (m_bounds_dirty || !m_lazy_rendering)
 	{
 		if ( (m_bounds.x > 1.0 || m_bounds.x < 0.0 || m_bounds.y > 1.0 || m_bounds.y < 0.0 || m_bounds.w > 1.0 || m_bounds.h > 1.0))
 		{
@@ -376,13 +404,21 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 	if (m_render_dirty) // document has changed
 		PrepareRender();
 
-	if (m_buffer_dirty || m_bounds_dirty) // object bounds have changed
-		UpdateObjBoundsVBO(first_obj, last_obj);
+	if (m_buffer_dirty || m_bounds_dirty || !m_lazy_rendering) // object bounds have changed
+	{
+		if (m_use_gpu_rendering)
+			UpdateObjBoundsVBO(first_obj, last_obj);
+	}
 
 	if (m_use_gpu_transform)
 	{
+		#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+				GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f,
+					0.0f, 0.0f, float(width), float(height)};
+		#else
 		GLfloat glbounds[] = {static_cast<GLfloat>(Float(m_bounds.x)), static_cast<GLfloat>(Float(m_bounds.y)), static_cast<GLfloat>(Float(m_bounds.w)), static_cast<GLfloat>(Float(m_bounds.h)),
 					0.0, 0.0, static_cast<GLfloat>(width), static_cast<GLfloat>(height)};
+		#endif
 		m_bounds_ubo.Upload(sizeof(float)*8, glbounds);
 	}
 	else
@@ -477,10 +513,13 @@ void View::PrepareRender()
 {
 	Debug("Recreate buffers with %u objects", m_document.ObjectCount());
 	// Prepare bounds vbo
-	m_bounds_ubo.Invalidate();
-	m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
-	m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
-	m_bounds_ubo.SetName("m_bounds_ubo: Screen bounds.");
+	if (UsingGPURendering())
+	{
+		m_bounds_ubo.Invalidate();
+		m_bounds_ubo.SetType(GraphicsBuffer::BufferTypeUniform);
+		m_bounds_ubo.SetUsage(GraphicsBuffer::BufferUsageStreamDraw);
+		m_bounds_ubo.SetName("m_bounds_ubo: Screen bounds.");
+	}
 	
 	// Instead of having each ObjectRenderer go through the whole document
 	//  we initialise them, go through the document once adding to the appropriate Renderers
@@ -503,11 +542,31 @@ void View::PrepareRender()
 		//Debug("Object of type %d", type);
 	}
 
+
 	// Finish the buffers
 	for (unsigned i = 0; i < m_object_renderers.size(); ++i)
 	{
 		m_object_renderers[i]->FinaliseBuffers();
 	}
-	dynamic_cast<BezierRenderer*>(m_object_renderers[BEZIER])->PrepareBezierGPUBuffer(m_document.m_objects);
+	if (UsingGPURendering())
+		dynamic_cast<BezierRenderer*>(m_object_renderers[BEZIER])->PrepareBezierGPUBuffer(m_document.m_objects);
 	m_render_dirty = false;
+}
+
+void View::SaveCPUBMP(const char * filename)
+{
+	bool prev = UsingGPURendering();
+	SetGPURendering(false);
+	Render(800, 600);
+	ObjectRenderer::SaveBMP({m_cpu_rendering_pixels, 800, 600}, filename);
+	SetGPURendering(prev);
+}
+
+void View::SaveGPUBMP(const char * filename)
+{
+	bool prev = UsingGPURendering();
+	SetGPURendering(true);
+	Render(800,600);
+	m_screen.ScreenShot(filename);
+	SetGPURendering(prev);	
 }

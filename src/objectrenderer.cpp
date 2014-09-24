@@ -24,9 +24,12 @@ ObjectRenderer::ObjectRenderer(const ObjectType & type,
 		const char * vert_glsl_file, const char * frag_glsl_file, const char * geom_glsl_file)
 		: m_type(type), m_shader_program(), m_indexes(), m_buffer_builder(NULL)
 {
-	m_shader_program.InitialiseShaders(vert_glsl_file, frag_glsl_file, geom_glsl_file);
-	m_shader_program.Use();
-	glUniform4f(m_shader_program.GetUniformLocation("colour"), 0,0,0,1); //TODO: Allow different colours
+	if (vert_glsl_file != NULL && frag_glsl_file != NULL && geom_glsl_file != NULL)
+	{
+		m_shader_program.InitialiseShaders(vert_glsl_file, frag_glsl_file, geom_glsl_file);
+		m_shader_program.Use();
+		glUniform4f(m_shader_program.GetUniformLocation("colour"), 0,0,0,1); //TODO: Allow different colours
+	}
 }
 
 /**
@@ -239,8 +242,8 @@ void BezierRenderer::RenderBezierOnCPU(unsigned i, Objects & objects, const View
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,255,0,0));
 	}
 	
-	unsigned blen =	min(max(2U, (unsigned)Int64(Real(target.w)/view.GetBounds().w)), 
-			min((unsigned)(pix_bounds.w+pix_bounds.h)/4 + 1, 100U));
+	unsigned blen =	target.w;//min(max(2U, (unsigned)Int64(Real(target.w)/view.GetBounds().w)), 
+			//min((unsigned)(pix_bounds.w+pix_bounds.h)/4 + 1, 100U));
 		
 		// DeCasteljau Divide the Bezier
 	queue<Bezier> divisions;

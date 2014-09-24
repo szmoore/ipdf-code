@@ -1,7 +1,7 @@
 #Makefile
 ARCH := $(shell uname -m)
 # TODO: stb_truetype doesn't compile with some of these warnings.
-CXX = g++ -std=gnu++0x -g -Wall -Werror -Wshadow -pedantic -rdynamic
+CXX = g++ -std=c++11 -g -Wall -Werror -Wshadow -pedantic -rdynamic
 MAIN = main.o
 OBJ = log.o real.o bezier.o document.o objectrenderer.o view.o screen.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o  path.o paranoidnumber.o quadtree.o
 
@@ -41,7 +41,7 @@ DEF = -DREALTYPE=$(REALTYPE)
 ## Only link with things we care about
 
 ifeq ($(QUADTREE),enabled)
-	OBJ := $(OBJ) quadtree.o
+	OBJ := $(OBJ)
 else
 	DEF := $(DEF) -DQUADTREE_DISABLED
 endif
@@ -71,6 +71,12 @@ endif
 ifeq ($(REALTYPE),7)
 	LIB := $(LIB) -L../contrib/iRRAM/lib -liRRAM -lgmp -lmpfr
 	CFLAGS :=  $(CFLAGS) -I../contrib/iRRAM/include
+endif
+
+
+
+ifeq ($(REALTYPE),9)
+	LIB := $(LIB) -lgmp
 endif
 
 LINKOBJ = $(OBJPATHS)
@@ -104,7 +110,7 @@ movie : $(BIN) ../tools/stream_plot.py
 # To change that you can run as `make DEFS="REALTYPE=X" tests/<target>` where X is your chosen type
 # But remember to make clean first.
 tests/% : tests/%.cpp ../obj/tests/%.o $(LINKOBJ)
-	$(CXX) $(CFLAGS) -o $@.test $(LINKOBJ) ../obj/$@.o $(LIB) $(TESTRPATH)
+	$(CXX) $(CFLAGS) -o $@ $(LINKOBJ) ../obj/$@.o $(LIB) $(TESTRPATH)
 
 -include $(DEPS)
 

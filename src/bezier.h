@@ -28,8 +28,8 @@ namespace IPDF
 		typedef enum {UNKNOWN, LINE, QUADRATIC, CUSP, LOOP, SERPENTINE} Type;
 		Type type;
 		
-		Bezier() = default; // Needed so we can fread/fwrite this struct... for now.
-		Bezier(Real _x0, Real _y0, Real _x1, Real _y1, Real _x2, Real _y2, Real _x3, Real _y3) : x0(_x0), y0(_y0), x1(_x1), y1(_y1), x2(_x2), y2(_y2), x3(_x3), y3(_y3), type(UNKNOWN)
+		//Bezier() = default; // Needed so we can fread/fwrite this struct... for now.
+		Bezier(Real _x0=0, Real _y0=0, Real _x1=0, Real _y1=0, Real _x2=0, Real _y2=0, Real _x3=0, Real _y3=0) : x0(_x0), y0(_y0), x1(_x1), y1(_y1), x2(_x2), y2(_y2), x3(_x3), y3(_y3), type(UNKNOWN)
 		{
 
 		}
@@ -40,20 +40,20 @@ namespace IPDF
 				return type;
 			// From Loop-Blinn 2005, with w0 == w1 == w2 == w3 = 1
 			// Transformed control points: (a0 = x0, b0 = y0)
-			Real a1 = (x1-x0)*3;
-			Real a2 = (x0- x1*2 +x2)*3;
-			Real a3 = (x3 - x0 + (x1 - x2)*3);
+			Real a1 = (x1-x0)*Real(3);
+			Real a2 = (x0- x1*Real(2) +x2)*Real(3);
+			Real a3 = (x3 - x0 + (x1 - x2)*Real(3));
 			
-			Real b1 = (y1-y0)*3;
-			Real b2 = (y0- y1*2 +y2)*3;
-			Real b3 = (y3 - y0 + (y1 - y2)*3);
+			Real b1 = (y1-y0)*Real(3);
+			Real b2 = (y0- y1*Real(2) +y2)*Real(3);
+			Real b3 = (y3 - y0 + (y1 - y2)*Real(3));
 			
 			// d vector (d0 = 0 since all w = 1)
 			Real d1 = a2*b3 - a3*b2;
 			Real d2 = a3*b1 - a1*b3;
 			Real d3 = a1*b2 - a2*b1;
 			
-			if (Abs(d1+d2+d3) < 1e-6)
+			if (Abs(d1+d2+d3) < Real(1e-6))
 			{
 				type = LINE;
 				//Debug("LINE %s", Str().c_str());
@@ -63,7 +63,7 @@ namespace IPDF
 			Real delta1 = -(d1*d1);
 			Real delta2 = d1*d2;
 			Real delta3 = d1*d3 -(d2*d2);
-			if (Abs(delta1+delta2+delta3) < 1e-6)
+			if (Abs(delta1+delta2+delta3) < Real(1e-6))
 			{
 				type = QUADRATIC;
 				
@@ -71,13 +71,13 @@ namespace IPDF
 				return type;
 			}
 			
-			Real discriminant = d1*d3*4 -d2*d2;
-			if (Abs(discriminant) < 1e-6)
+			Real discriminant = d1*d3*Real(4) -d2*d2;
+			if (Abs(discriminant) < Real(1e-6))
 			{
 				type = CUSP;
 				//Debug("CUSP %s", Str().c_str());
 			}
-			else if (discriminant > 0)
+			else if (discriminant > Real(0))
 			{
 				type = SERPENTINE;
 				//Debug("SERPENTINE %s", Str().c_str());
@@ -146,7 +146,7 @@ namespace IPDF
 			// (So can't just use the Copy constructor on the inverse of bounds)
 			// Rect inverse = {-bounds.x/bounds.w, -bounds.y/bounds.h, Real(1)/bounds.w, Real(1)/bounds.h};
 			Bezier result;
-			if (bounds.w == 0)
+			if (bounds.w == Real(0))
 			{
 				result.x0 = 0;
 				result.x1 = 0;
@@ -161,7 +161,7 @@ namespace IPDF
 				result.x3 = (x3 - bounds.x)/bounds.w;
 			}
 
-			if (bounds.h == 0)
+			if (bounds.h == Real(0))
 			{
 				result.y0 = 0;
 				result.y1 = 0;
@@ -297,7 +297,7 @@ namespace IPDF
 			{
 				Real t1 = *it;
 				if (t1 == t0) continue;
-				Debug(" -- t0: %f to t1: %f: %f", Double(t0), Double(t1), (t1 + t0)/Real(2));
+				Debug(" -- t0: %f to t1: %f: %f", Double(t0), Double(t1), Double((t1 + t0)/Real(2)));
 				Real ptx, pty;
 				Evaluate(ptx, pty, ((t1 + t0) / Real(2)));
 				if (r.PointIn(ptx, pty))

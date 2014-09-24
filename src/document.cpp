@@ -316,7 +316,7 @@ unsigned Document::AddBezier(const Bezier & bezier)
 	Bezier data = bezier.ToRelative(bounds); // Relative
 	if (data.ToAbsolute(bounds) != bezier)
 	{
-		Warn("%s != %s", data.ToAbsolute(Rect(0,0,1,1)).Str().c_str(),
+		Warn("%s != %s", data.ToAbsolute(bounds).Str().c_str(),
 			bezier.Str().c_str());
 		Warn("ToAbsolute on ToRelative does not give original Bezier");
 	}
@@ -409,12 +409,12 @@ static void GetXYPair(const string & d, Real & x, Real & y, unsigned & i,const s
 {
 	string token("");
 	while (GetToken(d, token, i, delims) == ",");
-	x = strtod(token.c_str(),NULL);
+	x = RealFromStr(token);
 	if (GetToken(d, token, i, delims) != ",")
 	{
 		Fatal("Expected \",\" seperating x,y pair");
 	}
-	y = strtod(GetToken(d, token, i, delims).c_str(),NULL);
+	y = RealFromStr(GetToken(d,token,i,delims));
 }
 
 static bool GetKeyValuePair(const string & d, string & key, string & value, unsigned & i, const string & delims = "()[],{}<>;:=")
@@ -477,11 +477,11 @@ void Document::ParseSVGTransform(const string & s, SVGMatrix & transform)
 		}
 		else if (command == "scale")
 		{
-			delta.a = (strtod(GetToken(s,token,i).c_str(), NULL));
+			delta.a = RealFromStr(GetToken(s,token,i));
 			GetToken(s, token, i);
 			if (token == ",")
 			{
-				delta.d = (strtod(GetToken(s,token,i).c_str(), NULL));
+				delta.d = RealFromStr(GetToken(s,token,i));
 				assert(GetToken(s, token, i) == ")");
 			}
 			else
@@ -527,7 +527,7 @@ inline Colour ParseColourString(const string & colour_str)
 		c = {255,255,255,255};
 	else if (colour_str.size() == 7 && colour_str[0] == '#')
 	{
-		Debug("Parse colour string: \"%s\"", colour_str.c_str());
+		//Debug("Parse colour string: \"%s\"", colour_str.c_str());
 		char comp[3] = {colour_str[1], colour_str[2], '\0'};
 		c.r = strtoul(comp, NULL, 16);
 		comp[0] = colour_str[3]; comp[1] = colour_str[4];
@@ -535,7 +535,7 @@ inline Colour ParseColourString(const string & colour_str)
 		comp[0] = colour_str[5]; comp[1] = colour_str[6];
 		c.b = strtoul(comp, NULL, 16);
 		c.a = 255;
-		Debug("Colour is: %u, %u, %u, %u", c.r, c.g, c.b, c.a);
+		//Debug("Colour is: %u, %u, %u, %u", c.r, c.g, c.b, c.a);
 	}
 	return c;
 }
@@ -544,7 +544,16 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 {
 	//Debug("Parse node <%s>", root.name());
 
-		
+	
+	// Centre the SVGs
+	if (strcmp(root.name(),"svg") == 0)
+	{
+		Real ww = RealFromStr(root.attribute("width").as_string());
+		Real hh = RealFromStr(root.attribute("height").as_string());
+		parent_transform.e -= parent_transform.a * ww/Real(2);
+		parent_transform.f -= parent_transform.d * hh/Real(2);
+	}
+	
 	for (pugi::xml_node child = root.first_child(); child; child = child.next_sibling())
 	{
 		SVGMatrix transform(parent_transform);	
@@ -569,7 +578,7 @@ void Document::ParseSVGNode(pugi::xml_node & root, SVGMatrix & parent_transform)
 			//Debug("Path data attribute is \"%s\"", d.c_str());
 			bool closed = false;
 			pair<unsigned, unsigned> range = ParseSVGPathData(d, transform, closed);
-			if (true)//(closed)
+			if (true && range.first < m_count && range.second < m_count)//(closed)
 			{
 				
 				string colour_str("");
@@ -726,7 +735,7 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 	
 	input.close();
 						// a c e, b d f
-	SVGMatrix transform = {bounds.w, 0,bounds.x, 0,bounds.h,bounds.y};
+	SVGMatrix transform = {bounds.w,0 ,bounds.x, 0,bounds.h,bounds.y};
 	ParseSVGNode(doc_xml, transform);
 }
 
@@ -772,9 +781,9 @@ pair<unsigned, unsigned> Document::ParseSVGPathData(const string & d, const SVGM
 		if (command == "m" || command == "M")
 		{
 			//Debug("Construct moveto command");
-			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+			Real dx = RealFromStr(GetToken(d,token,i,delims));
 			assert(GetToken(d,token,i,delims) == ",");
-			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+			Real dy = RealFromStr(GetToken(d,token,i,delims));
 			
 			x[0] = (relative) ? x[0] + dx : dx;
 			y[0] = (relative) ? y[0] + dy : dy;
@@ -787,25 +796,25 @@ pair<unsigned, unsigned> Document::ParseSVGPathData(const string & d, const SVGM
 		else if (command == "c" || command == "C" || command == "q" || command == "Q")
 		{
 			//Debug("Construct curveto command");
-			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+			Real dx = RealFromStr(GetToken(d,token,i,delims));
 			assert(GetToken(d,token,i,delims) == ",");
-			Real dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+			Real dy = RealFromStr(GetToken(d,token,i,delims));
 			
 			x[1] = (relative) ? x[0] + dx : dx;
 			y[1] = (relative) ? y[0] + dy : dy;
 			
-			dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+			dx = RealFromStr(GetToken(d,token,i,delims));
 			assert(GetToken(d,token,i,delims) == ",");
-			dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+			dy = RealFromStr(GetToken(d,token,i,delims));
 			
 			x[2] = (relative) ? x[0] + dx : dx;
 			y[2] = (relative) ? y[0] + dy : dy;
 			
 			if (command != "q" && command != "Q")
 			{
-				dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+				dx = RealFromStr(GetToken(d,token,i,delims));
 				assert(GetToken(d,token,i,delims) == ",");
-				dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+				dy = RealFromStr(GetToken(d,token,i,delims));
 				x[3] = (relative) ? x[0] + dx : dx;
 				y[3] = (relative) ? y[0] + dy : dy;
 			}
@@ -838,12 +847,12 @@ pair<unsigned, unsigned> Document::ParseSVGPathData(const string & d, const SVGM
 		{
 			//Debug("Construct lineto command, relative %d", relative);
 		
-			Real dx = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
-			Real dy;
+			Real dx = RealFromStr(GetToken(d,token,i,delims));
+			Real dy = 0;
 			if (command == "l" || command == "L")
 			{
 				assert(GetToken(d,token,i,delims) == ",");
-				dy = Real(strtod(GetToken(d,token,i,delims).c_str(),NULL));
+				dy = RealFromStr(GetToken(d,token,i,delims));
 			}
 			else if (command == "v" || command == "V")
 			{
@@ -1031,4 +1040,43 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 	//Debug("Added Glyph \"%c\" at %f %f, scale %f", (char)character, Float(x), Float(y), Float(scale));
 
 	stbtt_FreeShape(font, instructions);
+}
+
+void Document::TransformObjectBounds(const SVGMatrix & transform)
+{
+	for (unsigned i = 0; i < m_count; ++i)
+	{
+		TransformXYPair(m_objects.bounds[i].x, m_objects.bounds[i].y, transform);
+		m_objects.bounds[i].w *= transform.a;
+		m_objects.bounds[i].h *= transform.d;
+	}
+}
+
+void Document::TranslateObjects(const Real & dx, const Real & dy)
+{
+	for (unsigned i = 0; i < m_count; ++i)
+	{
+		m_objects.bounds[i].x += dx;
+		m_objects.bounds[i].y += dy;
+	}
+}
+
+void Document::ScaleObjectsAboutPoint(const Real & x, const Real & y, const Real & scale_amount)
+{
+	for (unsigned i = 0; i < m_count; ++i)
+	{
+		m_objects.bounds[i].w /= scale_amount;
+		m_objects.bounds[i].h /= scale_amount;
+		//m_objects.bounds[i].x = x + (m_objects.bounds[i].x-x)/scale_amount;
+		//m_objects.bounds[i].y = y + (m_objects.bounds[i].y-x)/scale_amount;
+		m_objects.bounds[i].x -= x;
+		m_objects.bounds[i].x /= scale_amount;
+		m_objects.bounds[i].x += x;
+		
+		m_objects.bounds[i].y -= y;
+		m_objects.bounds[i].y /= scale_amount;
+		m_objects.bounds[i].y += y;
+
+	}	
+	
 }

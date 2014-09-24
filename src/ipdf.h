@@ -13,7 +13,7 @@ namespace IPDF
 
 	inline Real Random(Real max=1, Real min=0)
 	{
-		return min + (max-min) * (Real(rand() % (int)1e6) / Real(1e6));
+		return min + (max-min) * (Real(rand() % (int)100) / Real(100));
 	}
 
 	typedef unsigned ObjectID;

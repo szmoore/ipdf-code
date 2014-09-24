@@ -18,7 +18,7 @@ namespace IPDF
 	class Screen
 	{
 	public:
-		Screen();
+		Screen(bool visible = true);
 		~Screen();
 
 		// 'Pumps' the system event queue.
@@ -75,6 +75,8 @@ namespace IPDF
 		
 		void ShowDebugFont(bool show = true) {m_show_debug_font = show;}
 		bool DebugFontShown() const {return m_show_debug_font;}
+
+		bool Valid() const {return m_window != NULL;}
 	private:
 		void ResizeViewport(int width, int height);
 		void DebugFontFlush();

@@ -7,13 +7,44 @@
 #include <string>
 #include "log.h"
 #include <fenv.h>
+#include <vector>
+#include <cmath>
+#include <cassert> // it's going to be ok
+#include <set>
 
-#define PARANOID_DIGIT_T float // we could theoretically replace this with a template
+#define PARANOID_DIGIT_T double // we could theoretically replace this with a template
 								// but let's not do that...
+								
+
+//#define PARANOID_CACHE_RESULTS
+
+//#define PARANOID_USE_ARENA
+#define PARANOID_SIZE_LIMIT 1
+
+
+// Define to compare all ops against double ops and check within epsilon
+#define PARANOID_COMPARE_EPSILON 1e-6
+#define CompareForSanity(...) ParanoidNumber::CompareForSanityEx(__func__, __FILE__, __LINE__, __VA_ARGS__)
 
 namespace IPDF
 {
-	typedef enum {ADD, SUBTRACT, MULTIPLY, DIVIDE} Optype;
+	typedef enum {ADD, SUBTRACT, MULTIPLY, DIVIDE, NOP} Optype;
+	inline Optype InverseOp(Optype op)
+	{
+		return ((op == ADD) ? SUBTRACT :
+				(op == SUBTRACT) ? ADD :
+				(op == MULTIPLY) ? DIVIDE :
+				(op == DIVIDE) ? MULTIPLY :
+				(op == NOP) ? NOP : NOP);
+	}
+	
+
+	inline char OpChar(int op) 
+	{
+		static char opch[] = {'+','-','*','/'};
+		return (op < NOP && op >= 0) ? opch[op] : '?';
+	}
+	
 
 	/** Performs an operation, returning if the result was exact **/
 	// NOTE: DIFFERENT to ParanoidOp (although that wraps to this...)
@@ -30,123 +61,96 @@ namespace IPDF
 		}
 		return false;
 	}
-
-
 	template <> bool TrustingOp<float>(float & a, const float & b, Optype op);
 	template <> bool TrustingOp<double>(double & a, const double & b, Optype op);
 	template <> bool TrustingOp<int8_t>(int8_t & a, const int8_t & b, Optype op);
 	
-	// Attempt to comine two terms: a*b + c*d or a/b + c/d
-	template <class T> bool CombineTerms(T & aa, Optype aop, T & bb, T & cc, Optype cop, T & dd)
-	{
-		T a(aa); T b(bb); T c(cc); T d(dd);
-		if (aop == MULTIPLY && cop == MULTIPLY) // a*b + c*d
-		{
-
-			if ((ParanoidOp<T>(c, b, DIVIDE) || ParanoidOp(d, b, DIVIDE))
-				&& TrustingOp<T>(c, d, MULTIPLY) && TrustingOp<T>(a,c,ADD)
-				&& TrustingOp<T>(a, b, MULTIPLY)) // (a + (cd)/b) * b
-			{
-				aa = a;
-				bb = 1;
-				cc = 1;
-				dd = 1;
-				return true;
-			}
-			if ((ParanoidOp<T>(a, d, DIVIDE) || ParanoidOp(b, d, DIVIDE))
-				&& TrustingOp<T>(a, b, MULTIPLY) && TrustingOp<T>(a,c,ADD)
-				&& TrustingOp<T>(a, d, MULTIPLY)) // ((ab)/d + c)*d
-			{
-				aa = a;
-				bb = 1;
-				cc = 1;
-				dd = 1;
-				return true;
-			}
-			return false;
-		}
-		else if (aop == DIVIDE && cop == DIVIDE)
-		{
-
-	
-			if (TrustingOp<T>(a, d, MULTIPLY) && TrustingOp<T>(c, b, MULTIPLY)
-				&& TrustingOp<T>(a, c, ADD) && TrustingOp<T>(b, d, MULTIPLY))
-			{
-				cc = 1;
-				dd = 1;
-				if (ParanoidOp<T>(a, b, DIVIDE))
-				{
-					aa = a;
-					bb = 1;
-					return true;
-				}
-				aa = a;
-				bb = b;
-				return true;
-			}
-			return false;
-		}
-		return false;
-	}
-
+	/**
+	 * A ParanoidNumber
+	 * Idea: Perform regular floating point arithmetic but rearrange operations to only ever use exact results
+	 * Memory Usage: O(all of it)
+	 * CPU Usage: O(all of it)
+	 * Accuracy: O(gives better result for 0.3+0.3+0.3, gives same result for everything else, or worse result)
+	 * 
+	 * The ParanoidNumber basically stores 4 linked lists which can be split into two "dimensions"
+	 *  1. Terms to ADD and terms to SUBTRACT
+	 *  2. Factors to MULTIPLY and DIVIDE
+	 * Because ADD and SUBTRACT are inverse operations and MULTIPLY and DIVIDE are inverse operations
+	 * See paranoidnumber.cpp and the ParanoidNumber::Operation function
+	 */
 	class ParanoidNumber
 	{
 		
 		public:
 			typedef PARANOID_DIGIT_T digit_t;
 
-			ParanoidNumber(digit_t value=0, Optype type = ADD) : m_value(value), m_op(type), m_next_term(NULL), m_next_factor(NULL)
+			ParanoidNumber(PARANOID_DIGIT_T value=0) : m_value(value), m_next()
 			{
-				Construct();
+				#ifdef PARANOID_SIZE_LIMIT
+					m_size = 0;
+				#endif
+				#ifdef PARANOID_CACHE_RESULTS
+					m_cached_result = value;
+				#endif 
 			}
 			
-			ParanoidNumber(const ParanoidNumber & cpy) : m_value(cpy.m_value), m_op(cpy.m_op), m_next_term(NULL), m_next_factor(NULL)
+			ParanoidNumber(const ParanoidNumber & cpy) : m_value(cpy.m_value), m_next()
 			{
-				if (cpy.m_next_term != NULL)
+				
+				#ifdef PARANOID_SIZE_LIMIT
+					m_size = cpy.m_size;
+				#endif
+				#ifdef PARANOID_CACHE_RESULTS
+					m_cached_result = cpy.m_cached_result;
+				#endif 
+				for (int i = 0; i < NOP; ++i)
 				{
-					m_next_term = new ParanoidNumber(*(cpy.m_next_term));
+					for (auto next : cpy.m_next[i])
+					{
+						if (next != NULL) // why would this ever be null
+							m_next[i].push_back(new ParanoidNumber(*next)); // famous last words...
+					}
 				}
-				if (cpy.m_next_factor != NULL)
-				{
-					m_next_factor = new ParanoidNumber(*(cpy.m_next_factor));
-				}
-				Construct();
+				#ifdef PARANOID_COMPARE_EPSILON
+					CompareForSanity(cpy.Digit(), cpy.Digit());
+				#endif
+				//assert(SanityCheck());
 			}
 			
-			ParanoidNumber(const ParanoidNumber & cpy, Optype type) : ParanoidNumber(cpy)
-			{
-				m_op = type;
-			}
+			//ParanoidNumber(const char * str);
+			ParanoidNumber(const std::string & str);// : ParanoidNumber(str.c_str()) {}
 			
-			ParanoidNumber(const char * str);
-			ParanoidNumber(const std::string & str) : ParanoidNumber(str.c_str()) {Construct();}
-			
-			virtual ~ParanoidNumber()
-			{
-				if (m_next_term != NULL)
-					delete m_next_term;
-				if (m_next_factor != NULL)
-					delete m_next_factor;
-				g_count--;
-			}
-			
-			inline void Construct() {g_count++;}
-			
-			
-			template <class T> T Convert() const;
-			template <class T> T AddTerms() const;
-			template <class T> T MultiplyFactors() const;
-			template <class T> T Head() const {return (m_op == SUBTRACT) ? T(-m_value) : T(m_value);}
-			
+			virtual ~ParanoidNumber();
 
 			
+			bool SanityCheck(std::set<ParanoidNumber*> & visited) const;
+			bool SanityCheck() const 
+			{
+				std::set<ParanoidNumber*> s; 
+				return SanityCheck(s);
+			}
 			
-			double ToDouble() const {return Convert<double>();}
-			float ToFloat() const {return Convert<float>();}
-			digit_t Digit() const {return Convert<digit_t>();}
+			template <class T> T Convert() const;
+			digit_t GetFactors() const;
+			digit_t GetTerms() const;
+		
+			// This function is declared const purely to trick the compiler.
+			// It is not actually const, and therefore, none of the other functions that call it are const either.
+			digit_t Digit() const;
 			
-			bool Floating() const {return (m_next_term == NULL && m_next_factor == NULL);}
+			// Like this one. It isn't const.
+			double ToDouble() const {return (double)Digit();}
+			
+			// This one is probably const.
+			bool Floating() const 
+			{
+				return NoFactors() && NoTerms();
+			}
 			bool Sunken() const {return !Floating();} // I could not resist...
+			
+			bool NoFactors() const {return (m_next[MULTIPLY].size() == 0 && m_next[DIVIDE].size() == 0);}
+			bool NoTerms() const {return (m_next[ADD].size() == 0 && m_next[SUBTRACT].size() == 0);}
+			
 			
 			ParanoidNumber & operator+=(const ParanoidNumber & a);
 			ParanoidNumber & operator-=(const ParanoidNumber & a);
@@ -154,92 +158,170 @@ namespace IPDF
 			ParanoidNumber & operator/=(const ParanoidNumber & a);
 			ParanoidNumber & operator=(const ParanoidNumber & a);
 			
+			ParanoidNumber & operator+=(const digit_t & a);
+			ParanoidNumber & operator-=(const digit_t & a);
+			ParanoidNumber & operator*=(const digit_t & a);
+			ParanoidNumber & operator/=(const digit_t & a);
+			ParanoidNumber & operator=(const digit_t & a);
 			
-			bool operator<(const ParanoidNumber & a) const {return ToDouble() < a.ToDouble();}
-			bool operator<=(const ParanoidNumber & a) const {return this->operator<(a) || this->operator==(a);}
-			bool operator>(const ParanoidNumber & a) const {return !(this->operator<=(a));}
-			bool operator>=(const ParanoidNumber & a) const {return !(this->operator<(a));}
-			bool operator==(const ParanoidNumber & a) const {return ToDouble() == a.ToDouble();}
-			bool operator!=(const ParanoidNumber & a) const {return !(this->operator==(a));}
+			
+			ParanoidNumber * OperationTerm(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point = NULL, Optype * mop = NULL);
+			ParanoidNumber * OperationFactor(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point = NULL, Optype * mop = NULL);
+			ParanoidNumber * TrivialOp(ParanoidNumber * b, Optype op);
+			ParanoidNumber * Operation(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point = NULL, Optype * mop = NULL);
+			bool Simplify(Optype op);
+			bool FullSimplify();
+			
+			
+			// None of these are actually const
+			bool operator<(const ParanoidNumber & a) const {return Digit() < a.Digit();}
+			bool operator<=(const ParanoidNumber & a) const {return Digit() <= a.Digit();}
+			bool operator>(const ParanoidNumber & a) const {return Digit() > a.Digit();}
+			bool operator>=(const ParanoidNumber & a) const {return Digit() >= a.Digit();}
+			bool operator==(const ParanoidNumber & a) const {return Digit() == a.Digit();}
+			bool operator!=(const ParanoidNumber & a) const {return Digit() != a.Digit();}
+			
+			ParanoidNumber operator-() const
+			{
+				ParanoidNumber neg(*this);
+				neg.Negate();
+				#ifdef PARANOID_COMPARE_EPSILON
+					neg.CompareForSanity(-Digit(), Digit());
+				#endif
+				return neg;
+			}
+			
+			void Negate();
+			
 			
 			ParanoidNumber operator+(const ParanoidNumber & a) const
 			{
 				ParanoidNumber result(*this);
 				result += a;
+				#ifdef PARANOID_COMPARE_EPSILON
+					result.CompareForSanity(Digit()+a.Digit(), a.Digit());
+				#endif
 				return result;
 			}
 			ParanoidNumber operator-(const ParanoidNumber & a) const
 			{
 				ParanoidNumber result(*this);
 				result -= a;
+				#ifdef PARANOID_COMPARE_EPSILON
+					result.CompareForSanity(Digit()-a.Digit(), a.Digit());
+				#endif
 				return result;
 			}
 			ParanoidNumber operator*(const ParanoidNumber & a) const
 			{
 				ParanoidNumber result(*this);
 				result *= a;
+				#ifdef PARANOID_COMPARE_EPSILON
+					result.CompareForSanity(Digit()*a.Digit(), a.Digit());
+				#endif
 				return result;
 			}
 			ParanoidNumber operator/(const ParanoidNumber & a) const
 			{
 				ParanoidNumber result(*this);
 				result /= a;
+				#ifdef PARANOID_COMPARE_EPSILON
+					result.CompareForSanity(Digit()/a.Digit(), a.Digit());
+				#endif
 				return result;
 			}
 			
 			std::string Str() const;
-			static char OpChar(Optype op) 
+
+			inline void CompareForSanityEx(const char * func, const char * file, int line, const digit_t & compare, const digit_t & arg, const digit_t & eps = PARANOID_COMPARE_EPSILON)
 			{
-				static char opch[] = {'+','-','*','/'};
-				return opch[(int)op];
+				if (!SanityCheck())
+					Fatal("This is insane!");
+				if (fabs(Digit() - compare) > eps)
+				{
+					Error("Called via %s(%lf) (%s:%d)", func, arg, file, line);
+					Error("Failed: %s", Str().c_str());
+					Fatal("This: %.30lf vs Expected: %.30lf", Digit(), compare);
+				}
 			}
-		
-			static int64_t Paranoia() {return g_count;}
+
+			
+			std::string PStr() const;
+			
+			#ifdef PARANOID_USE_ARENA
+			void * operator new(size_t byes);
+			void operator delete(void * p);
+			#endif //PARANOID_USE_ARENA
 		
 		private:
-			static int64_t g_count;
+		
 			void Simplify();
 			void SimplifyTerms();
 			void SimplifyFactors();
 			
+			digit_t m_value;	
+			#ifdef PARANOID_CACHE_RESULTS
+				digit_t m_cached_result;
+			#endif
+			std::vector<ParanoidNumber*> m_next[4];
+			#ifdef PARANOID_SIZE_LIMIT
+				int64_t m_size;
+			#endif //PARANOID_SIZE_LIMIT
 			
-			digit_t m_value;
-			Optype m_op;
-			ParanoidNumber * m_next_term;
-			ParanoidNumber * m_next_factor;
+			#ifdef PARANOID_USE_ARENA
+			class Arena
+			{
+				public:
+					Arena(int64_t block_size = 10000000);
+					~Arena();
+					
+					void * allocate(size_t bytes);
+					void deallocate(void * p);
+					
+				private:
+					struct Block
+					{
+						void * memory;
+						int64_t used;
+					};
+				
+					std::vector<Block> m_blocks;
+					int64_t m_block_size;
+					
+					void * m_spare;
+				
+			};
+			
+			static Arena g_arena;
+			#endif //PARANOID_USE_ARENA
+
+		
 	};
-
-template <class T>
-T ParanoidNumber::AddTerms() const
-{
-	T value(0);
-	for (ParanoidNumber * a = m_next_term; a != NULL; a = a->m_next_term)
-	{
-		value += a->Head<T>() * a->MultiplyFactors<T>();
-	}
-	return value;
-}
-
-template <class T>
-T ParanoidNumber::MultiplyFactors() const
-{
-	T value(1);
-	for (ParanoidNumber * a = m_next_factor; a != NULL; a = a->m_next_factor)
-	{
-		if (a->m_op == DIVIDE)
-			value /= (a->Head<T>() + a->AddTerms<T>());	
-		else
-			value *= (a->Head<T>() + a->AddTerms<T>());	
-	}
-	return value;
-}
+	
 
 
 
 template <class T>
 T ParanoidNumber::Convert() const
 {
-	return Head<T>() * MultiplyFactors<T>() + AddTerms<T>();
+	#ifdef PARANOID_CACHE_RESULTS
+	if (!isnan((float(m_cached_result))))
+		return (T)m_cached_result;
+	#endif
+	T value(m_value);
+	for (auto mul : m_next[MULTIPLY])
+	{
+		value *= mul->Convert<T>();
+	}
+	for (auto div : m_next[DIVIDE])
+	{
+		value /= div->Convert<T>();
+	}
+	for (auto add : m_next[ADD])
+		value += add->Convert<T>();
+	for (auto sub : m_next[SUBTRACT])
+		value -= sub->Convert<T>();
+	return value;
 }
 
 

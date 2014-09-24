@@ -13,6 +13,8 @@
 #define REAL_RATIONAL_ARBINT 5
 #define REAL_MPFRCPP 6
 #define REAL_IRRAM 7
+#define REAL_PARANOIDNUMBER 8
+#define REAL_GMPRAT 9
 
 #ifndef REALTYPE
 	#error "REALTYPE was not defined!"
@@ -40,32 +42,46 @@
 	#include "../contrib/iRRAM/include/iRRAM/lib.h"
 #endif
 
+#if REALTYPE == REAL_PARANOIDNUMBER
+	#include "paranoidnumber.h"
+#endif
+
+#if REALTYPE == REAL_GMPRAT
+	#include "gmprat.h"
+#endif 
+
 namespace IPDF
 {	
 	extern const char * g_real_name[];
 
 #if REALTYPE == REAL_SINGLE
 	typedef float Real;
+	inline Real RealFromStr(const char * str) {return strtof(str, NULL);}
 #elif REALTYPE == REAL_DOUBLE
 	typedef double Real;
+	inline Real RealFromStr(const char * str) {return strtod(str, NULL);}
 #elif REALTYPE == REAL_LONG_DOUBLE
 	typedef long double Real;
+	inline Real RealFromStr(const char * str) {return strtold(str, NULL);}
 #elif REALTYPE == REAL_VFPU
 	typedef VFPU::VFloat Real;
 	inline float Float(const Real & r) {return r.m_value;}
 	inline double Double(const Real & r) {return r.m_value;}
+	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 #elif REALTYPE == REAL_RATIONAL
 	typedef Rational<int64_t> Real;
 	inline float Float(const Real & r) {return (float)r.ToDouble();}
 	inline double Double(const Real & r) {return r.ToDouble();}
+	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 #elif REALTYPE == REAL_RATIONAL_ARBINT
-	#define ARBINT Gmpint // Set to Gmpint or Arbint here
+	#define ARBINT Arbint // Set to Gmpint or Arbint here
 	
 	typedef Rational<ARBINT> Real;
 	inline float Float(const Real & r) {return (float)r.ToDouble();}
 	inline double Double(const Real & r) {return r.ToDouble();}
 	inline int64_t Int64(const Real & r) {return r.ToInt64();}
 	inline Rational<ARBINT> Sqrt(const Rational<ARBINT> & r) {return r.Sqrt();}
+	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 #elif REALTYPE == REAL_MPFRCPP
 	typedef mpfr::mpreal Real;
 	inline double Double(const Real & r) {return r.toDouble();}
@@ -73,12 +89,31 @@ namespace IPDF
 	inline int64_t Int64(const Real & r) {return r.toLong();}
 	inline Real Sqrt(const Real & r) {return mpfr::sqrt(r, mpfr::mpreal::get_default_rnd());}
 	inline Real Abs(const Real & r) {return mpfr::abs(r, mpfr::mpreal::get_default_rnd());}
+	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 #elif REALTYPE == REAL_IRRAM
 	typedef iRRAM::REAL Real;
 	inline double Double(const Real & r) {return r.as_double(53);}
 	inline float Float(const Real & r) {return r.as_double(53);}
 	inline int64_t Int64(const Real & r) {return (int64_t)r.as_double(53);}
 	inline Real Sqrt(const Real & r) {return iRRAM::sqrt(r);}
+	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
+#elif REALTYPE == REAL_PARANOIDNUMBER
+	typedef ParanoidNumber Real;
+	inline double Double(const Real & r) {return r.Digit();}
+	inline float Float(const Real & r) {return r.Digit();}
+	inline int64_t Int64(const Real & r) {return (int64_t)r.Digit();}
+	inline Real Sqrt(const Real & r) {return Real(sqrt(r.Digit()));}
+	inline Real RealFromStr(const char * str) {return Real(str);}	
+	inline Real Abs(const Real & a) {return Real(fabs(a.Digit()));}
+#elif REALTYPE == REAL_GMPRAT
+	typedef Gmprat Real;
+	inline double Double(const Real & r) {return r.ToDouble();}
+	inline float Float(const Real & r) {return (float)(r.ToDouble());}
+	inline int64_t Int64(const Real & r) {return (int64_t)r.ToDouble();}
+	inline Real Sqrt(const Real & r) {return Real(sqrt(r.ToDouble()));}
+	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
+	inline Real Abs(const Real & a) {return (a > Real(0)) ? a : Real(0)-a;}
+	
 #else
 	#error "Type of Real unspecified."
 #endif //REALTYPE
@@ -110,7 +145,7 @@ namespace IPDF
 	{
 		Real x;
 		Real y;
-		Vec2() : x(0), y(0) {}
+		Vec2() : x(0.0), y(0.0) {}
 		Vec2(Real _x, Real _y) : x(_x), y(_y) {}
 		Vec2(const std::pair<Real, Real> & p) : x(p.first), y(p.second) {}
 		#if REALTYPE != REAL_IRRAM
@@ -137,8 +172,13 @@ namespace IPDF
 	
 	};
 
+	//TODO: Make sure there is actually a RealFromStr(const char * str) function
+	// 		Or this will recurse infinitely
+	//		(If you remove this it will also break).
+	inline Real RealFromStr(const std::string & str) {return RealFromStr(str.c_str());}
 
 
+	inline void DebugRealInfo() {Debug("Compiled with REAL = %d => \"%s\" sizeof(Real) == %d bytes", REALTYPE, g_real_name[REALTYPE], sizeof(Real));}
 
 }
 
