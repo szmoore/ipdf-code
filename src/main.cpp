@@ -10,6 +10,7 @@
 #include <signal.h>
 
 bool ignore_sigfpe = false;
+const char *script_filename;
 
 void sigfpe_handler(int sig)
 {
@@ -153,6 +154,12 @@ int main(int argc, char ** argv)
 			case 'Q':
 				hide_control_panel = true;
 				window_visible = !window_visible;
+				break;
+			case 's':
+				hide_control_panel = true;
+				if (++i >= argc)
+					Fatal("Expected filename after -s switch");
+				script_filename = argv[i];
 				break;
 		}	
 	}

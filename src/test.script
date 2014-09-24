@@ -1,0 +1,6 @@
+# Test script for IPDF automation.
+loop 1000 pxzoom 400 300 1
+translate 10.0 -3.0
+loop 100 wait
+loop 1000 zoom 0.5 0.5 0.95
+quit

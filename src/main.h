@@ -3,11 +3,15 @@
 #include "document.h"
 #include "view.h"
 #include "screen.h"
+#include "debugscript.h"
 #include <unistd.h>
 
 
 using namespace std;
 using namespace IPDF;
+
+
+extern const char *script_filename;
 
 inline void OverlayBMP(Document & doc, const char * input, const char * output, const Rect & bounds = Rect(0,0,1,1), const Colour & c = Colour(0.f,0.f,0.f,1.f))
 {
@@ -73,9 +77,15 @@ void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 inline void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 {
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
+	DebugScript script;
 
 	scr.DebugFontInit("fonts/DejaVuSansMono.ttf");
 	scr.SetMouseHandler(RatCatcher);
+
+	if (script_filename)
+	{
+		script.Load(script_filename);
+	}
 
 	double total_cpu_time = 0;
 	double total_gpu_time = 0;
@@ -98,6 +108,12 @@ inline void MainLoop(Document & doc, Screen & scr, View & view, int max_frames =
 		//view.ForceBoundsDirty();
 		//view.ForceBufferDirty();
 		//view.ForceRenderDirty();
+
+		if (script_filename)
+		{
+			if (script.Execute(&view, &scr))
+				return;
+		}
 
 		view.Render(scr.ViewportWidth(), scr.ViewportHeight());
 
