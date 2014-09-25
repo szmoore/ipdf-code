@@ -87,7 +87,7 @@ namespace IPDF
 			ParanoidNumber(PARANOID_DIGIT_T value=0) : m_value(value), m_next()
 			{
 				#ifdef PARANOID_SIZE_LIMIT
-					m_size = 0;
+					m_size = 1;
 				#endif
 				#ifdef PARANOID_CACHE_RESULTS
 					m_cached_result = value;

@@ -84,6 +84,11 @@ void DebugScript::ParseAction()
 	{
 		currentAction.type = AT_Quit;
 	}
+	else if (actionType == "loadsvg")
+	{
+		currentAction.type = AT_LoadSVG;
+		inp >> currentAction.filename;
+	}
 }
 
 bool DebugScript::Execute(View *view, Screen *scr)
@@ -120,6 +125,19 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		break;
 	case AT_DisableLazyRendering:
 		view->SetLazyRendering(false);
+		break;
+	case AT_LoadSVG:
+		#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+			view->Doc().LoadSVG(currentAction.filename, Rect(Real(1)/Real(2),Real(1)/Real(2),Real(1)/Real(800),Real(1)/Real(600)));	
+		#else
+			Rect & bounds = view->GetBounds();
+			view->Doc().LoadSVG(currentAction.filename, Rect(bounds.x+bounds.w/Real(2),bounds.y+bounds.h/Real(2),bounds.w/Real(800),bounds.h/Real(600)));
+		#endif
+		currentAction.type = AT_WaitFrame;
+		view->ForceRenderDirty();
+		view->ForceBufferDirty();
+		view->ForceBoundsDirty();
+		currentAction.loops = 0;
 		break;
 	default:
 		Fatal("Unknown script command in queue.");

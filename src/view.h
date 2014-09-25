@@ -69,6 +69,8 @@ namespace IPDF
 			void SaveCPUBMP(const char * filename);
 			void SaveGPUBMP(const char * filename);
 
+			Document & Doc() {return m_document;}
+
 		private:
 			struct GPUObjBounds
 			{

@@ -29,7 +29,7 @@ ParanoidNumber::~ParanoidNumber()
 ParanoidNumber::ParanoidNumber(const string & str) : m_value(0), m_next()
 {
 	#ifdef PARANOID_SIZE_LIMIT
-		m_size = 0;
+		m_size = 1;
 	#endif
 	#ifdef PARANOID_CACHE_RESULTS
 	m_cached_result = NAN;
@@ -430,15 +430,15 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 	m_cached_result = NAN;
 	#endif
 	#ifdef PARANOID_SIZE_LIMIT
-		if (m_size >= PARANOID_SIZE_LIMIT)
+		if (m_size + b->m_size >= PARANOID_SIZE_LIMIT)
 		{
 			this->operator=(this->Digit());
 			if (op == ADD)
 				m_value += b->Digit();
 			else
 				m_value -= b->Digit();
-			m_size = 0;
-			Debug("Cut off %p", this);
+			m_size = 1;
+			//Debug("Cut off %p", this);
 			return b;
 		}
 		//Debug("At size limit %d", m_size);
@@ -541,7 +541,7 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 		//merge->m_next[*merge_op].push_back(b);
 		m_next[op].push_back(b);
 		#ifdef PARANOID_SIZE_LIMIT
-			m_size += 1+b->m_size;
+			m_size += b->m_size;
 		#endif	
 	}
 	else
@@ -564,16 +564,16 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 	m_cached_result = NAN;
 	#endif
 	#ifdef PARANOID_SIZE_LIMIT
-		if (m_size >= PARANOID_SIZE_LIMIT)
+		if (m_size + b->m_size >= PARANOID_SIZE_LIMIT)
 		{
 			this->operator=(this->Digit());
 			if (op == MULTIPLY)
 				m_value *= b->Digit();
 			else
 				m_value /= b->Digit();
-			m_size = 0;
+			m_size = 1;
 			
-			Debug("Cut off %p", this);
+			//Debug("Cut off %p", this);
 			return b;
 			
 		}
@@ -690,7 +690,7 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 			delete(sub->OperationFactor(new ParanoidNumber(*cpy_b), op));
 			
 		#ifdef PARANOID_SIZE_LIMIT
-			m_size += 1+b->m_size;
+			m_size += b->m_size;
 		#endif	
 	}
 	//assert(SanityCheck());
@@ -783,7 +783,7 @@ bool ParanoidNumber::Simplify(Optype op)
 			if (result != NULL)
 			{
 				#ifdef PARANOID_SIZE_LIMIT
-					m_size -= (1+result->m_size);
+					m_size -= result->m_size;
 				#endif
 				*m = NULL;
 				delete(result);
@@ -800,7 +800,7 @@ bool ParanoidNumber::Simplify(Optype op)
 			#ifdef PARANOID_SIZE_LIMIT
 				if (Operation(n, op) == n)
 				{
-					m_size -= (1+n->m_size);
+					m_size -= n->m_size;
 					delete n;
 				}
 			#else	

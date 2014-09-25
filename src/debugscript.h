@@ -30,6 +30,7 @@ private:
 		AT_SetGPURendering,
 		AT_EnableLazyRendering,
 		AT_DisableLazyRendering,
+		AT_LoadSVG,
 		AT_Quit
 	};
 
@@ -41,6 +42,7 @@ private:
 		Real z;
 		int iz;
 		int loops;
+		std::string filename;
 		Action() : type(AT_WaitFrame), x(0), y(0), ix(0), iy(0), z(0), loops(0) {}
 	};
 

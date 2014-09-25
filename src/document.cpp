@@ -731,7 +731,7 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 	if (!result)
 		Error("Couldn't load \"%s\" - %s", filename.c_str(), result.description());
 		
-	Debug("Loaded XML - %s", result.description());
+	Debug("Loaded XML from \"%s\" - %s", filename.c_str(), result.description());
 	
 	input.close();
 						// a c e, b d f
