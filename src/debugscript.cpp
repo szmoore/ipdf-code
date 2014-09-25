@@ -46,39 +46,32 @@ void DebugScript::ParseAction()
 		currentAction.x = RealFromStr(_x.c_str());
 		currentAction.y = RealFromStr(_y.c_str());
 		currentAction.z = RealFromStr(_z.c_str());
-		return;
 	}
 	else if (actionType == "pxtranslate")
 	{
 		inp >> currentAction.ix >> currentAction.iy;
 		currentAction.type = AT_TranslatePx;
-		return;
 	}
 	else if (actionType == "pxzoom")
 	{
 		inp >> currentAction.ix >> currentAction.iy >> currentAction.iz;
 		currentAction.type = AT_ZoomPx;
-		return;
 	}
 	else if (actionType == "gpu")
 	{
 		currentAction.type = AT_SetGPURendering;
-		return;
 	}
 	else if (actionType == "cpu")
 	{
 		currentAction.type = AT_SetCPURendering;
-		return;
 	}
 	else if (actionType == "lazy")
 	{
 		currentAction.type = AT_EnableLazyRendering;
-		return;
 	}
 	else if (actionType == "nolazy")
 	{
 		currentAction.type = AT_DisableLazyRendering;
-		return;
 	}
 	else if (actionType == "quit")
 	{
@@ -87,14 +80,42 @@ void DebugScript::ParseAction()
 	else if (actionType == "loadsvg")
 	{
 		currentAction.type = AT_LoadSVG;
-		inp >> currentAction.filename;
+		inp >> currentAction.textargs;
+	}
+	else if (actionType == "label")
+	{
+		currentAction.type = AT_Label;
+		inp >> currentAction.textargs;
+	}
+	else if (actionType == "goto")
+	{
+		currentAction.type = AT_Goto;
+		inp >> currentAction.textargs;
+	}
+	else if (actionType == "debug")
+	{
+		currentAction.type = AT_Debug;
+		getline(inp,currentAction.textargs);
 	}
 }
 
 bool DebugScript::Execute(View *view, Screen *scr)
 {
 	if (currentAction.loops <= 0)
-		ParseAction();
+	{
+		if (m_index >= m_actions.size())
+		{
+			ParseAction();
+			if (m_labels.size() > 0)
+			{
+				m_actions.push_back(currentAction);
+				m_index++;
+			}
+				
+		}
+		else
+			currentAction = m_actions[m_index++];
+	}
 
 	switch(currentAction.type)
 	{
@@ -127,17 +148,33 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		view->SetLazyRendering(false);
 		break;
 	case AT_LoadSVG:
+	{
 		#ifdef TRANSFORM_OBJECTS_NOT_VIEW
-			view->Doc().LoadSVG(currentAction.filename, Rect(Real(1)/Real(2),Real(1)/Real(2),Real(1)/Real(800),Real(1)/Real(600)));	
+			view->Doc().LoadSVG(currentAction.textargs, Rect(Real(1)/Real(2),Real(1)/Real(2),Real(1)/Real(800),Real(1)/Real(600)));	
 		#else
-			Rect & bounds = view->GetBounds();
-			view->Doc().LoadSVG(currentAction.filename, Rect(bounds.x+bounds.w/Real(2),bounds.y+bounds.h/Real(2),bounds.w/Real(800),bounds.h/Real(600)));
+			const Rect & bounds = view->GetBounds();
+			view->Doc().LoadSVG(currentAction.textargs, Rect(bounds.x+bounds.w/Real(2),bounds.y+bounds.h/Real(2),bounds.w/Real(800),bounds.h/Real(600)));
 		#endif
 		currentAction.type = AT_WaitFrame;
 		view->ForceRenderDirty();
 		view->ForceBufferDirty();
 		view->ForceBoundsDirty();
 		currentAction.loops = 1;
+		break;
+	}
+	case AT_Label:
+		m_labels[currentAction.textargs] = m_index;
+		currentAction.type = AT_WaitFrame;
+		currentAction.loops = 1;
+		break;
+	case AT_Goto:
+		m_index = m_labels[currentAction.textargs];
+		currentAction.loops = 1;
+		break;
+	case AT_Debug:
+		Debug("View bounds: %s", view->GetBounds().Str().c_str());
+		if (currentAction.textargs.size() > 0)
+			Debug("%s", currentAction.textargs.c_str());
 		break;
 	default:
 		Fatal("Unknown script command in queue.");

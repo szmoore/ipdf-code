@@ -413,6 +413,7 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 	if (m_use_gpu_transform)
 	{
 		#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+			//Debug("Transform objects, not view");
 				GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f,
 					0.0f, 0.0f, float(width), float(height)};
 		#else
@@ -470,11 +471,14 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 	//m_objbounds_vbo.Invalidate();
 	m_objbounds_vbo.SetType(GraphicsBuffer::BufferTypeVertex);
 	m_objbounds_vbo.SetName("Object Bounds VBO");
+	
+	#ifndef TRANSFORM_OBJECTS_NOT_VIEW
 	if (m_use_gpu_transform)
 	{
 		m_objbounds_vbo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
 	}
 	else
+	#endif //TRANSFORM_OBJECTS_NOT_VIEW
 	{
 		m_objbounds_vbo.SetUsage(GraphicsBuffer::BufferUsageDynamicCopy);
 	}
@@ -499,6 +503,7 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 			(float)Float(obj_bounds.x + obj_bounds.w),
 			(float)Float(obj_bounds.y + obj_bounds.h)
 		};
+
 		obj_bounds_builder.Add(gpu_bounds);
 
 	}
