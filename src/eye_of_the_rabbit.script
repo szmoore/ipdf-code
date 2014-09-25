@@ -1,0 +1,11 @@
+# Test how well document scales back to original...
+cpu
+nolazy
+loadsvg svg-tests/rabbit_simple.svg
+loop 200 pxzoom 508 305 1
+loadsvg svg-tests/rabbit_simple.svg
+loop 200 pxzoom 508 305 1
+loadsvg svg-tests/rabbit_simple.svg
+loop 400 pxzoom 508 305 -1
+loop 400 pxzoom 508 305 1
+wait

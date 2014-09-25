@@ -93,7 +93,7 @@ void DebugScript::ParseAction()
 
 bool DebugScript::Execute(View *view, Screen *scr)
 {
-	if (currentAction.loops == 0)
+	if (currentAction.loops <= 0)
 		ParseAction();
 
 	switch(currentAction.type)
@@ -137,7 +137,7 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		view->ForceRenderDirty();
 		view->ForceBufferDirty();
 		view->ForceBoundsDirty();
-		currentAction.loops = 0;
+		currentAction.loops = 1;
 		break;
 	default:
 		Fatal("Unknown script command in queue.");
