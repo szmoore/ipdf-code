@@ -26,6 +26,10 @@ private:
 		AT_Zoom,
 		AT_TranslatePx,
 		AT_ZoomPx,
+		AT_SetCPURendering,
+		AT_SetGPURendering,
+		AT_EnableLazyRendering,
+		AT_DisableLazyRendering,
 		AT_Quit
 	};
 

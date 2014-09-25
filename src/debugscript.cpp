@@ -60,6 +60,26 @@ void DebugScript::ParseAction()
 		currentAction.type = AT_ZoomPx;
 		return;
 	}
+	else if (actionType == "gpu")
+	{
+		currentAction.type = AT_SetGPURendering;
+		return;
+	}
+	else if (actionType == "cpu")
+	{
+		currentAction.type = AT_SetCPURendering;
+		return;
+	}
+	else if (actionType == "lazy")
+	{
+		currentAction.type = AT_EnableLazyRendering;
+		return;
+	}
+	else if (actionType == "nolazy")
+	{
+		currentAction.type = AT_DisableLazyRendering;
+		return;
+	}
 	else if (actionType == "quit")
 	{
 		currentAction.type = AT_Quit;
@@ -88,6 +108,18 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		break;
 	case AT_ZoomPx:
 		view->ScaleAroundPoint(Real(currentAction.ix)/Real(scr->ViewportWidth()),Real(currentAction.iy)/Real(scr->ViewportHeight()), Real(expf(-currentAction.iz/20.f)));
+		break;
+	case AT_SetGPURendering:
+		view->SetGPURendering(true);
+		break;
+	case AT_SetCPURendering:
+		view->SetGPURendering(false);
+		break;
+	case AT_EnableLazyRendering:
+		view->SetLazyRendering(true);
+		break;
+	case AT_DisableLazyRendering:
+		view->SetLazyRendering(false);
 		break;
 	default:
 		Fatal("Unknown script command in queue.");
