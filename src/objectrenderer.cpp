@@ -243,14 +243,14 @@ void BezierRenderer::RenderBezierOnCPU(const Bezier & relative, const Rect & bou
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,255,0,0));
 	}
 	
-	unsigned blen =	pix_bounds.w;//min(max(2U, (unsigned)Int64(Real(target.w)/view.GetBounds().w)), 
+	int64_t blen =	min(50L,pix_bounds.w);//min(max(2U, (unsigned)Int64(Real(target.w)/view.GetBounds().w)), 
 			//min((unsigned)(pix_bounds.w+pix_bounds.h)/4 + 1, 100U));
 		
 		// DeCasteljau Divide the Bezier
 	#ifdef BEZIER_CPU_DECASTELJAU
 	queue<Bezier> divisions;
 	divisions.push(control);
-	while(divisions.size() < blen)
+	while(divisions.size() < (uint64_t)(blen))
 	{
 		Bezier & current = divisions.front();
 		//if (current.GetType() == Bezier::LINE)
@@ -328,7 +328,7 @@ void BezierRenderer::RenderUsingCPU(Objects & objects, const View & view, const 
 					break;
 			}
 		}
-		Rect & bounds = objects.bounds[m_indexes[i]];
+		Rect bounds = view.TransformToViewCoords(objects.bounds[m_indexes[i]]);
 		Bezier & bez = objects.beziers[objects.data_indices[m_indexes[i]]];
 		RenderBezierOnCPU(bez, bounds, view, target, c);
 	}
@@ -408,9 +408,10 @@ void PathRenderer::RenderUsingCPU(Objects & objects, const View & view, const CP
 		if (m_indexes[i] >= last_obj_id) continue;
 		
 		
-		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
-		PixelBounds pix_bounds(bounds);
+	
 		Path & path = objects.paths[objects.data_indices[m_indexes[i]]];
+		Rect bounds(CPURenderBounds(path.GetBounds(objects), view, target));
+		PixelBounds pix_bounds(bounds);
 		
 		if (view.ShowingFillPoints())
 		{
@@ -638,6 +639,14 @@ void ObjectRenderer::FloodFillOnCPU(int64_t x, int64_t y, const PixelBounds & bo
 		traverse.push(PixelPoint(cur.first, cur.second-1));
 		traverse.push(PixelPoint(cur.first, cur.second+1)); 
 	}
+}
+
+ObjectRenderer::PixelBounds::PixelBounds(const Rect & bounds)
+{
+	x = Int64(Double(bounds.x));
+	y = Int64(Double(bounds.y));
+	w = Int64(Double(bounds.w));
+	h = Int64(Double(bounds.h));
 }
 
 }

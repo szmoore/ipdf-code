@@ -10,6 +10,7 @@
 #include "graphicsbuffer.h"
 #include "shaderprogram.h"
 #include "bufferbuilder.h"
+#include <cstdint>
 
 #define BEZIER_CPU_DECASTELJAU
 
@@ -76,7 +77,7 @@ namespace IPDF
 			struct PixelBounds
 			{
 				int64_t x; int64_t y; int64_t w; int64_t h;
-				PixelBounds(const Rect & bounds) : x(Double(bounds.x)), y(Double(bounds.y)), w(Double(bounds.w)), h(Double(bounds.h)) {}
+				PixelBounds(const Rect & bounds);
 			};
 			
 			typedef std::pair<int64_t, int64_t> PixelPoint;

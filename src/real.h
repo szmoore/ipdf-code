@@ -128,7 +128,14 @@ namespace IPDF
 	inline double Double(long double f) {return (double)(f);}
 	inline double Sqrt(double f) {return sqrt(f);}
 	inline double Abs(double a) {return fabs(a);}
-	inline int64_t Int64(double a){return (int64_t)a;}
+	inline int64_t Int64(double a)
+	{
+		if (a < INT64_MIN)
+			return INT64_MIN;
+		if (a > INT64_MAX)
+			return INT64_MAX;
+		return (int64_t)(a);
+	}
 	
 	inline Real Power(const Real & a, int n)
 	{

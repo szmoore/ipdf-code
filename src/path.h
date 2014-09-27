@@ -9,7 +9,9 @@
 #ifdef QUADTREE_DISABLED
 
 #define TRANSFORM_BEZIERS_TO_PATH
-
+#ifdef TRANSFORM_BEZIERS_TO_PATH
+#include "gmprat.h"
+#endif
 
 #endif
 
@@ -35,7 +37,7 @@ namespace IPDF
 	{
 		Path(Objects & objects, unsigned _start, unsigned _end, const Colour & _fill = Colour(128,128,128,255), const Colour & _stroke = Colour(0,0,0,0));
 		
-		Rect SolveBounds(const Objects & objects) const;
+		Rect SolveBounds(const Objects & objects);
 		Rect & GetBounds(Objects & objects);
 		std::vector<Vec2> & FillPoints(const Objects & objects, const View & view);
 		
@@ -52,6 +54,13 @@ namespace IPDF
 		Vec2 m_right;
 		
 		std::vector<Vec2> m_fill_points;
+		
+		#ifdef TRANSFORM_BEZIERS_TO_PATH
+		Gmprat x;
+		Gmprat y;
+		Gmprat w;
+		Gmprat h;
+		#endif
 		
 		Colour m_fill;	// colour to fill with	
 		Colour m_stroke; // colour to outline with

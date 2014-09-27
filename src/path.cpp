@@ -55,6 +55,11 @@ Path::Path(Objects & objects, unsigned start, unsigned end, const Colour & fill,
 	m_right = objects.beziers[objects.data_indices[right]].ToAbsolute(objects.bounds[right]).GetRight();	
 	
 	#ifdef TRANSFORM_BEZIERS_TO_PATH
+	x = m_left.x;
+	y = m_top.y;
+	w = m_right.x - m_left.x;
+	h = m_bottom.y - m_top.y;
+	
 	Rect bounds = SolveBounds(objects);
 	for (unsigned i = m_start; i <= m_end; ++i)
 	{
@@ -191,13 +196,20 @@ vector<Vec2> & Path::FillPoints(const Objects & objects, const View & view)
 	return m_fill_points;
 }
 
-Rect Path::SolveBounds(const Objects & objects) const
+Rect Path::SolveBounds(const Objects & objects)
 {
-	return Rect(m_left.x, m_top.y, m_right.x-m_left.x, m_bottom.y-m_top.y);
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		return Rect(Real(x.ToDouble()), Real(y.ToDouble()), Real(w.ToDouble()), Real(h.ToDouble()));
+	#else
+		return Rect(m_left.x, m_top.y, m_right.x-m_left.x, m_bottom.y-m_top.y);
+	#endif
 }
 
 Rect & Path::GetBounds(Objects & objects) 
 {
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		objects.bounds[m_index] = Rect(Real(x.ToDouble()), Real(y.ToDouble()), Real(w.ToDouble()), Real(h.ToDouble()));
+	#endif
 	return objects.bounds[m_index];
 }
 

@@ -4,6 +4,8 @@
 #include <cmath>
 #include <algorithm>
 
+
+
 using namespace std;
 
 namespace IPDF
@@ -424,3 +426,4 @@ Rect Bezier::SolveBounds() const
 }
 
 } // end namespace
+

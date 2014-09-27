@@ -1,19 +1,19 @@
 # Test how well document scales back to original...
-cpu
+gpu
 lazy
 label start
 debug Add rabbit 1
 loadsvg svg-tests/rabbit_simple.svg
-loop 200 pxzoom 508 305 1
+loop 250 pxzoom 508 305 1
 debug Add rabbit 2
 loadsvg svg-tests/rabbit_simple.svg
-loop 200 pxzoom 508 305 1
+loop 250 pxzoom 508 305 1
 debug Add rabbit 3
 loadsvg svg-tests/rabbit_simple.svg
-loop 400 pxzoom 508 305 -1
-loop 200 pxzoom 508 305 1
+loop 500 pxzoom 508 305 -1
+loop 250 pxzoom 508 305 1
 loop 1000 wait
-loop 200 pxzoom 508 305 1
+loop 250 pxzoom 508 305 1
 debug Repeat
 #goto start
 wait

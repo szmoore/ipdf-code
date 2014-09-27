@@ -32,6 +32,7 @@ class Gmprat
 		}
 		
 		Gmprat & operator=(const Gmprat & equ) {mpq_set(m_op, equ.m_op); return *this;}
+		Gmprat & operator=(const double & equ) {mpq_set_d(m_op, equ); return *this;}
 		Gmprat & operator+=(const Gmprat & add) {mpq_add(m_op, m_op, add.m_op); return *this;}
 		Gmprat & operator-=(const Gmprat & sub) {mpq_sub(m_op, m_op, sub.m_op); return *this;}
 		Gmprat & operator*=(const Gmprat & mul) {mpq_mul(m_op, m_op, mul.m_op); return *this;}
