@@ -11,6 +11,7 @@
 #include "shaderprogram.h"
 #include "bufferbuilder.h"
 
+#define BEZIER_CPU_DECASTELJAU
 
 namespace IPDF
 {
@@ -143,7 +144,7 @@ namespace IPDF
 			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 			void PrepareBezierGPUBuffer(Objects & objects);
 			
-			static void RenderBezierOnCPU(unsigned index, Objects & objects, const View & view, const CPURenderTarget & target, const Colour & c=Colour(0,0,0,255));
+			static void RenderBezierOnCPU(const Bezier & relative, const Rect & bounds, const View & view, const CPURenderTarget & target, const Colour & c=Colour(0,0,0,255));
 			
 		private:
 			GraphicsBuffer m_bezier_coeffs;
@@ -165,11 +166,12 @@ namespace IPDF
 	class PathRenderer : public ObjectRenderer
 	{
 		public:
-			PathRenderer() : ObjectRenderer(PATH, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
+			PathRenderer() : ObjectRenderer(PATH, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/bezier_texbug_geom.glsl") {}
 			virtual ~PathRenderer() {}
 			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 			// do nothing on GPU
 			virtual void RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id) {}
+
 	};
 
 	class FakeRenderer : public ObjectRenderer

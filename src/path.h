@@ -6,6 +6,13 @@
 #include "rect.h"
 #include "real.h"
 
+#ifdef QUADTREE_DISABLED
+
+#define TRANSFORM_BEZIERS_TO_PATH
+
+
+#endif
+
 namespace IPDF
 {
 	
@@ -26,9 +33,10 @@ namespace IPDF
 	
 	struct Path
 	{
-		Path(const Objects & objects, unsigned _start, unsigned _end, const Colour & _fill = Colour(128,128,128,255), const Colour & _stroke = Colour(0,0,0,0));
+		Path(Objects & objects, unsigned _start, unsigned _end, const Colour & _fill = Colour(128,128,128,255), const Colour & _stroke = Colour(0,0,0,0));
 		
 		Rect SolveBounds(const Objects & objects) const;
+		Rect & GetBounds(Objects & objects);
 		std::vector<Vec2> & FillPoints(const Objects & objects, const View & view);
 		
 		// Is point inside shape?

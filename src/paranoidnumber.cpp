@@ -32,7 +32,7 @@ ParanoidNumber::ParanoidNumber(const string & str) : m_value(0), m_next()
 		m_size = 1;
 	#endif
 	#ifdef PARANOID_CACHE_RESULTS
-	m_cached_result = NAN;
+	m_cache_valid = false;
 	#endif
 	
 	int dp = 0;
@@ -85,8 +85,9 @@ ParanoidNumber & ParanoidNumber::operator=(const ParanoidNumber & a)
 	#endif
 	
 	m_value = a.m_value;
-	#ifdef PARANOID_CACHE_RESULT
+	#ifdef PARANOID_CACHE_RESULTS
 	m_cached_result = a.m_cached_result;
+	m_cache_valid = a.m_cache_valid;
 	#endif
 	for (int i = 0; i < NOP; ++i)
 	{
@@ -411,8 +412,9 @@ ParanoidNumber & ParanoidNumber::operator=(const digit_t & a)
 		m_next[i].clear();
 	}
 	m_value = a;
-	#ifdef PARANOID_CACHE_RESULT
+	#ifdef PARANOID_CACHE_RESULTS
 	m_cached_result = a;
+	m_cache_valid = true;
 	#endif
 
 	#ifdef PARANOID_COMPARE_EPSILON
@@ -427,7 +429,7 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 {
 	////assert(b->SanityCheck());
 	#ifdef PARANOID_CACHE_RESULTS
-	m_cached_result = NAN;
+	m_cache_valid = false;
 	#endif
 	#ifdef PARANOID_SIZE_LIMIT
 		if (m_size + b->m_size >= PARANOID_SIZE_LIMIT)
@@ -438,7 +440,10 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 			else
 				m_value -= b->Digit();
 			m_size = 1;
-			//Debug("Cut off %p", this);
+			#ifdef PARANOID_CACHE_RESULTS
+				m_cached_result = m_value;
+				m_cache_valid = true;
+			#endif
 			return b;
 		}
 		//Debug("At size limit %d", m_size);
@@ -561,7 +566,7 @@ ParanoidNumber * ParanoidNumber::OperationTerm(ParanoidNumber * b, Optype op, Pa
 ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, ParanoidNumber ** merge_point, Optype * merge_op)
 {
 	#ifdef PARANOID_CACHE_RESULTS
-	m_cached_result = NAN;
+	m_cache_valid = false;
 	#endif
 	#ifdef PARANOID_SIZE_LIMIT
 		if (m_size + b->m_size >= PARANOID_SIZE_LIMIT)
@@ -572,7 +577,10 @@ ParanoidNumber * ParanoidNumber::OperationFactor(ParanoidNumber * b, Optype op, 
 			else
 				m_value /= b->Digit();
 			m_size = 1;
-			
+			#ifdef PARANOID_CACHE_RESULTS
+				m_cached_result = m_value;
+				m_cache_valid = true;
+			#endif
 			//Debug("Cut off %p", this);
 			return b;
 			
@@ -838,10 +846,11 @@ ParanoidNumber::digit_t ParanoidNumber::Digit() const
 
 	// Get around the absurd requirement that const correctness be observed.
 	#ifdef PARANOID_CACHE_RESULTS
+	if (m_cache_valid) // le sigh ambiguous function compiler warnings
+		return m_cached_result;
+		
 	digit_t & result = ((ParanoidNumber*)(this))->m_cached_result;
 	
-	if (!isnan(float(result))) // le sigh ambiguous function compiler warnings
-		return result;
 	#else
 		digit_t result;
 	#endif
@@ -858,6 +867,10 @@ ParanoidNumber::digit_t ParanoidNumber::Digit() const
 		result += add->Digit();
 	for (auto sub : m_next[SUBTRACT])
 		result -= sub->Digit();
+		
+	#ifdef PARANOID_CACHE_RESULTS
+		((ParanoidNumber*)(this))->m_cache_valid = true;
+	#endif
 	return result;
 		
 }
@@ -932,6 +945,9 @@ void ParanoidNumber::Negate()
 {
 	swap(m_next[ADD], m_next[SUBTRACT]);
 	m_value = -m_value;
+	#ifdef PARANOID_CACHE_RESULTS
+		m_cached_result = -m_cached_result;
+	#endif
 }
 
 #ifdef PARANOID_USE_ARENA

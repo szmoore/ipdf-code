@@ -54,11 +54,13 @@ static void CubicSolveSegment(vector<Real> & roots, const Real & a, const Real &
 	Real l = a*tl*tl*tl + b*tl*tl + c*tl + d;
 	Real u = a*tu*tu*tu + b*tu*tu + c*tu + d;
 	if ((l < 0 && u < 0) || (l > 0 && u > 0))
-		Debug("Discarding segment (no roots) l = %f (%f), u = %f (%f)", Double(tl), Double(l), Double(tu), Double(u));
+	{
+		//Debug("Discarding segment (no roots) l = %f (%f), u = %f (%f)", Double(tl), Double(l), Double(tu), Double(u));
 		//return;
+	}
 	
 	bool negative = (u < l); // lower point > 0, upper point < 0
-	Debug("%ft^3 + %ft^2 + %ft + %f is negative (%f < %f) %d", Double(a),Double(b),Double(c),Double(d),Double(u),Double(l), negative);
+	//Debug("%ft^3 + %ft^2 + %ft + %f is negative (%f < %f) %d", Double(a),Double(b),Double(c),Double(d),Double(u),Double(l), negative);
 	while (tu - tl > delta)
 	{
 		Real t(tu+tl);
@@ -89,7 +91,7 @@ vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Re
 	Real tu(max);
 	Real tl(min);
 	vector<Real> turns(SolveQuadratic(a*3, b*2, c));
-	Debug("%u turning points", turns.size());
+	//Debug("%u turning points", turns.size());
 	for (unsigned i = 1; i < turns.size(); ++i)
 	{
 		tu = turns[i];

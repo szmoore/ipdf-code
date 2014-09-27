@@ -224,7 +224,7 @@ void GraphicsBuffer::Upload(size_t length, const void* data)
 	if (!RecreateBuffer(data))
 	{
 		Bind();
-		glBufferData(target, length, data, usage);
+		glBufferData(target, length+1, data, usage);
 	}
 	if (data != NULL)
 		m_invalidated = false;
@@ -243,7 +243,7 @@ void GraphicsBuffer::UploadRange(size_t length, intptr_t offset, const void* dat
 
 void GraphicsBuffer::Resize(size_t length)
 {
-	if (m_invalidated)
+	if (m_invalidated && m_buffer_size > length)
 	{
 		m_buffer_size = length;
 	}

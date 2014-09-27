@@ -6,6 +6,8 @@
 
 #include "real.h"
 #include "rect.h"
+
+
 namespace IPDF
 {
 	extern int Factorial(int n);
