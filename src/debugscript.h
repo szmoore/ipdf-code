@@ -13,6 +13,8 @@ namespace IPDF
 class DebugScript
 {
 public:
+	DebugScript() : inp(), currentAction(), m_actions(), m_labels(), m_index(0) {}
+	virtual ~DebugScript() {}
 	void Load(const char *filename)
 	{
 		inp.open(filename);
@@ -30,6 +32,10 @@ private:
 		AT_SetGPURendering,
 		AT_EnableLazyRendering,
 		AT_DisableLazyRendering,
+		AT_LoadSVG,
+		AT_Label,
+		AT_Goto,
+		AT_Debug,
 		AT_Quit
 	};
 
@@ -41,13 +47,16 @@ private:
 		Real z;
 		int iz;
 		int loops;
-		Action() : type(AT_WaitFrame), x(0), y(0), ix(0), iy(0), z(0), loops(0) {}
+		std::string textargs;
+		Action() : type(AT_WaitFrame), x(0), y(0), ix(0), iy(0), z(0), loops(0), textargs("") {}
 	};
 
 	std::ifstream inp;
 
 	Action currentAction;
-
+	std::vector<Action> m_actions;
+	std::map<std::string, int> m_labels;
+	unsigned m_index;
 	void ParseAction();
 };
 

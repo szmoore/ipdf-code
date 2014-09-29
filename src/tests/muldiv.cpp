@@ -10,9 +10,9 @@ int main(int argc, char ** argv)
 	DebugRealInfo();
 	
 	Debug("Repeated Multiplications and Divisions - Should give one");
-	first_clock = clock();
-	elapsed = 0;
-	for (int i = 1; i < 2; ++i)
+	clock_t first_clock = clock();
+	clock_t elapsed = 0;
+	for (int i = 1; i < 100; ++i)
 	{
 		for (int j = 1; j < 100; ++j)
 		{

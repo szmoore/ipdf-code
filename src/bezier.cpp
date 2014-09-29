@@ -4,6 +4,8 @@
 #include <cmath>
 #include <algorithm>
 
+
+
 using namespace std;
 
 namespace IPDF
@@ -54,11 +56,13 @@ static void CubicSolveSegment(vector<Real> & roots, const Real & a, const Real &
 	Real l = a*tl*tl*tl + b*tl*tl + c*tl + d;
 	Real u = a*tu*tu*tu + b*tu*tu + c*tu + d;
 	if ((l < 0 && u < 0) || (l > 0 && u > 0))
-		Debug("Discarding segment (no roots) l = %f (%f), u = %f (%f)", tl, l, tu, u);
+	{
+		//Debug("Discarding segment (no roots) l = %f (%f), u = %f (%f)", Double(tl), Double(l), Double(tu), Double(u));
 		//return;
+	}
 	
 	bool negative = (u < l); // lower point > 0, upper point < 0
-	//Debug("%ft^3 + %ft^2 + %ft + %f is negative (%f < %f) %d", a,b,c,d,u,l, negative);
+	//Debug("%ft^3 + %ft^2 + %ft + %f is negative (%f < %f) %d", Double(a),Double(b),Double(c),Double(d),Double(u),Double(l), negative);
 	while (tu - tl > delta)
 	{
 		Real t(tu+tl);
@@ -422,3 +426,4 @@ Rect Bezier::SolveBounds() const
 }
 
 } // end namespace
+

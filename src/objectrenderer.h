@@ -10,7 +10,9 @@
 #include "graphicsbuffer.h"
 #include "shaderprogram.h"
 #include "bufferbuilder.h"
+#include <cstdint>
 
+#define BEZIER_CPU_DECASTELJAU
 
 namespace IPDF
 {
@@ -75,7 +77,7 @@ namespace IPDF
 			struct PixelBounds
 			{
 				int64_t x; int64_t y; int64_t w; int64_t h;
-				PixelBounds(const Rect & bounds) : x(Double(bounds.x)), y(Double(bounds.y)), w(Double(bounds.w)), h(Double(bounds.h)) {}
+				PixelBounds(const Rect & bounds);
 			};
 			
 			typedef std::pair<int64_t, int64_t> PixelPoint;
@@ -143,7 +145,7 @@ namespace IPDF
 			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 			void PrepareBezierGPUBuffer(Objects & objects);
 			
-			static void RenderBezierOnCPU(unsigned index, Objects & objects, const View & view, const CPURenderTarget & target, const Colour & c=Colour(0,0,0,255));
+			static void RenderBezierOnCPU(const Bezier & relative, const Rect & bounds, const View & view, const CPURenderTarget & target, const Colour & c=Colour(0,0,0,255));
 			
 		private:
 			GraphicsBuffer m_bezier_coeffs;
@@ -165,11 +167,12 @@ namespace IPDF
 	class PathRenderer : public ObjectRenderer
 	{
 		public:
-			PathRenderer() : ObjectRenderer(PATH, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/rect_outline_geom.glsl") {}
+			PathRenderer() : ObjectRenderer(PATH, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/bezier_texbug_geom.glsl") {}
 			virtual ~PathRenderer() {}
 			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 			// do nothing on GPU
 			virtual void RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id) {}
+
 	};
 
 	class FakeRenderer : public ObjectRenderer

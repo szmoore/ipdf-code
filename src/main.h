@@ -156,6 +156,12 @@ inline void MainLoop(Document & doc, Screen & scr, View & view, int max_frames =
 			scr.DebugFontPrint("Doing coordinate transform on the CPU.\n");
 		}
 		#endif
+		
+		#ifdef TRANSFORM_BEZIERS_TO_PATH
+			scr.DebugFontPrint("Beziers have been transformed to Path\n");
+		#endif
+
+		
 		if (view.UsingGPURendering())
 		{
 			scr.DebugFontPrint("Doing rendering using GPU.\n");

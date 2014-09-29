@@ -6,6 +6,9 @@
 
 #include "real.h"
 #include "rect.h"
+
+
+
 namespace IPDF
 {
 	extern int Factorial(int n);
@@ -353,5 +356,7 @@ namespace IPDF
 
 
 }
+
+#undef Real
 
 #endif //_BEZIER_H

@@ -42,10 +42,10 @@ namespace IPDF
 		Rect out;
 		Real w = (view.w == Real(0))?Real(1):view.w;
 		Real h = (view.h == Real(0))?Real(1):view.h;
-		out.x = (r.x - view.x) / w;
-		out.y = (r.y - view.y) / h;
-		out.w = r.w / w;
-		out.h = r.h / h;
+		out.x = (r.x - view.x) / w; //r.x = out.x *w + view.x
+		out.y = (r.y - view.y) / h; // r.y = out.y*h + view.y
+		out.w = r.w / w; // r.w = out.w * w
+		out.h = r.h / h; // r.h = out.h * h
 		return out;
 	}
 

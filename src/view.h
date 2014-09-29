@@ -10,7 +10,11 @@
 #define USE_GPU_RENDERING true
 #define USE_SHADING !(USE_GPU_RENDERING) && true
 
-//#define TRANSFORM_OBJECTS_NOT_VIEW
+#ifdef QUADTREE_DISABLED
+
+#define TRANSFORM_OBJECTS_NOT_VIEW
+
+#endif
 
 namespace IPDF
 {
@@ -68,6 +72,8 @@ namespace IPDF
 			
 			void SaveCPUBMP(const char * filename);
 			void SaveGPUBMP(const char * filename);
+
+			Document & Doc() {return m_document;}
 
 		private:
 			struct GPUObjBounds

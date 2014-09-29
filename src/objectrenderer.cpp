@@ -228,11 +228,12 @@ ObjectRenderer::PixelPoint ObjectRenderer::CPUPointLocation(const Vec2 & point, 
 }
 	
 	
-void BezierRenderer::RenderBezierOnCPU(unsigned i, Objects & objects, const View & view, const CPURenderTarget & target, const Colour & c)
+void BezierRenderer::RenderBezierOnCPU(const Bezier & relative, const Rect & bounds, const View & view, const CPURenderTarget & target, const Colour & c)
 {
-	const Rect & bounds = objects.bounds[i];
+	//const Rect & bounds = objects.bounds[i];
 	PixelBounds pix_bounds(CPURenderBounds(bounds,view,target));
-	Bezier control(objects.beziers[objects.data_indices[i]].ToAbsolute(bounds),CPURenderBounds(Rect(0,0,1,1), view, target));
+	//Bezier control(objects.beziers[objects.data_indices[i]].ToAbsolute(bounds),CPURenderBounds(Rect(0,0,1,1), view, target));
+	Bezier control(relative.ToAbsolute(bounds), Rect(0,0,target.w, target.h)); 
 
 	if (view.ShowingBezierBounds())
 	{
@@ -242,20 +243,21 @@ void BezierRenderer::RenderBezierOnCPU(unsigned i, Objects & objects, const View
 		ObjectRenderer::RenderLineOnCPU(pix_bounds.x+pix_bounds.w, pix_bounds.y, pix_bounds.x+pix_bounds.w, pix_bounds.y+pix_bounds.h, target, Colour(0,255,0,0));
 	}
 	
-	unsigned blen =	target.w;//min(max(2U, (unsigned)Int64(Real(target.w)/view.GetBounds().w)), 
+	int64_t blen =	min(50L,pix_bounds.w);//min(max(2U, (unsigned)Int64(Real(target.w)/view.GetBounds().w)), 
 			//min((unsigned)(pix_bounds.w+pix_bounds.h)/4 + 1, 100U));
 		
 		// DeCasteljau Divide the Bezier
+	#ifdef BEZIER_CPU_DECASTELJAU
 	queue<Bezier> divisions;
 	divisions.push(control);
-	while(divisions.size() < blen)
+	while(divisions.size() < (uint64_t)(blen))
 	{
 		Bezier & current = divisions.front();
-		if (current.GetType() == Bezier::LINE)
-		{
-			--blen;
-			continue;
-		}
+		//if (current.GetType() == Bezier::LINE)
+		//{
+		//	--blen;
+		//	continue;
+		//}
 		divisions.push(current.DeCasteljauSubdivideRight(Real(1)/Real(2)));	
 		divisions.push(current.DeCasteljauSubdivideLeft(Real(1)/Real(2)));
 		divisions.pop();
@@ -266,6 +268,21 @@ void BezierRenderer::RenderBezierOnCPU(unsigned i, Objects & objects, const View
 		RenderLineOnCPU(Int64(current.x0), Int64(current.y0), Int64(current.x3), Int64(current.y3), target, c);
 		divisions.pop();
 	}		
+	#else
+		Real invblen(1); invblen /= Real(blen);
+		
+		Real t(invblen);
+		Vec2 v0;
+		Vec2 v1;
+		control.Evaluate(v0.x, v0.y, 0);
+		for (int64_t j = 1; j <= blen; ++j)
+		{
+			control.Evaluate(v1.x, v1.y, t);
+			RenderLineOnCPU(v0.x, v0.y, v1.x, v1.y, target);
+			t += invblen;
+			v0 = v1;
+		}
+	#endif //BEZIER_CPU_DECASTELJAU
 }
 
 /**
@@ -274,6 +291,9 @@ void BezierRenderer::RenderBezierOnCPU(unsigned i, Objects & objects, const View
  */
 void BezierRenderer::RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id)
 {
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		return;
+	#endif
 	if (view.PerformingShading())
 		return;
 		
@@ -308,7 +328,9 @@ void BezierRenderer::RenderUsingCPU(Objects & objects, const View & view, const 
 					break;
 			}
 		}
-		RenderBezierOnCPU(m_indexes[i], objects, view, target, c);
+		Rect bounds = view.TransformToViewCoords(objects.bounds[m_indexes[i]]);
+		Bezier & bez = objects.beziers[objects.data_indices[m_indexes[i]]];
+		RenderBezierOnCPU(bez, bounds, view, target, c);
 	}
 }
 
@@ -319,11 +341,10 @@ void BezierRenderer::PrepareBezierGPUBuffer(Objects & objects)
 	m_bezier_coeffs.Resize(objects.beziers.size()*sizeof(GPUBezierCoeffs));
 	BufferBuilder<GPUBezierCoeffs> builder(m_bezier_coeffs.Map(false, true, true), m_bezier_coeffs.GetSize());
 
-
+	
 	for (unsigned i = 0; i < objects.beziers.size(); ++i)
 	{
 		const Bezier & bez = objects.beziers[i];
-		
 		GPUBezierCoeffs coeffs = {
 			Float(bez.x0), Float(bez.y0),
 			Float(bez.x1), Float(bez.y1),
@@ -332,6 +353,7 @@ void BezierRenderer::PrepareBezierGPUBuffer(Objects & objects)
 			};
 		builder.Add(coeffs);
 	}
+	
 	m_bezier_coeffs.UnMap();
 	glGenTextures(1, &m_bezier_buffer_texture);
 	glBindTexture(GL_TEXTURE_BUFFER, m_bezier_buffer_texture);
@@ -350,6 +372,7 @@ void BezierRenderer::PrepareBezierGPUBuffer(Objects & objects)
 
 void BezierRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 {
+
 	if (!m_shader_program.Valid())
 		Warn("Shader is invalid (objects are of type %d)", m_type);
 
@@ -385,9 +408,10 @@ void PathRenderer::RenderUsingCPU(Objects & objects, const View & view, const CP
 		if (m_indexes[i] >= last_obj_id) continue;
 		
 		
-		Rect bounds(CPURenderBounds(objects.bounds[m_indexes[i]], view, target));
-		PixelBounds pix_bounds(bounds);
+	
 		Path & path = objects.paths[objects.data_indices[m_indexes[i]]];
+		Rect bounds(CPURenderBounds(path.GetBounds(objects), view, target));
+		PixelBounds pix_bounds(bounds);
 		
 		if (view.ShowingFillPoints())
 		{
@@ -400,13 +424,41 @@ void PathRenderer::RenderUsingCPU(Objects & objects, const View & view, const CP
 			}
 		}
 		
+		#ifndef TRANSFORM_BEZIERS_TO_PATH
 		if (!view.PerformingShading())
 			continue;
-		
 		for (unsigned b = path.m_start; b <= path.m_end; ++b)
 		{
-			BezierRenderer::RenderBezierOnCPU(b,objects,view,target,path.m_stroke);
+			Rect & bbounds = objects.bounds[b];
+			Bezier & bez = objects.beziers[objects.data_indices[b]];
+			BezierRenderer::RenderBezierOnCPU(bez,bbounds,view,target,path.m_stroke);
 		}
+		#else
+		// Outlines still get drawn if using TRANSFORM_BEZIERS_TO_PATH
+		for (unsigned b = path.m_start; b <= path.m_end; ++b)
+		{
+			Colour stroke = (view.PerformingShading()) ? path.m_stroke : Colour(0,0,0,255);
+			// bezier's bounds are relative to this object's bounds, convert back to view bounds
+			Rect bbounds = objects.bounds[b];
+			bbounds.x *= objects.bounds[m_indexes[i]].w;
+			bbounds.x += objects.bounds[m_indexes[i]].x;
+			bbounds.y *= objects.bounds[m_indexes[i]].h;
+			bbounds.y += objects.bounds[m_indexes[i]].y;
+			bbounds.w *= objects.bounds[m_indexes[i]].w;
+			bbounds.h *= objects.bounds[m_indexes[i]].h;
+			bbounds = view.TransformToViewCoords(bbounds);
+			//Debug("Bounds: %s", objects.bounds[m_indexes[i]].Str().c_str());
+			//Debug("Relative Bez Bounds: %s", objects.bounds[b].Str().c_str());
+			//Debug("Bez Bounds: %s", bbounds.Str().c_str());
+			
+			Bezier & bez = objects.beziers[objects.data_indices[b]];
+			
+			BezierRenderer::RenderBezierOnCPU(bez,bbounds,view,target, stroke);
+		}
+		if (!view.PerformingShading())
+			continue;
+		#endif
+		
 		
 		if (pix_bounds.w*pix_bounds.h > 100)
 		{
@@ -443,6 +495,9 @@ void PathRenderer::RenderUsingCPU(Objects & objects, const View & view, const CP
 	}	
 }
 
+
+
+
 /**
  * For debug, save pixels to bitmap
  */
@@ -463,6 +518,9 @@ void ObjectRenderer::SaveBMP(const CPURenderTarget & target, const char * filena
 	// Cleanup
 	SDL_FreeSurface(surf);
 }
+
+
+
 
 /**
  * Bresenham's lines
@@ -581,6 +639,14 @@ void ObjectRenderer::FloodFillOnCPU(int64_t x, int64_t y, const PixelBounds & bo
 		traverse.push(PixelPoint(cur.first, cur.second-1));
 		traverse.push(PixelPoint(cur.first, cur.second+1)); 
 	}
+}
+
+ObjectRenderer::PixelBounds::PixelBounds(const Rect & bounds)
+{
+	x = Int64(Double(bounds.x));
+	y = Int64(Double(bounds.y));
+	w = Int64(Double(bounds.w));
+	h = Int64(Double(bounds.h));
 }
 
 }

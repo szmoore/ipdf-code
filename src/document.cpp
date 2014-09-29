@@ -303,6 +303,7 @@ unsigned Document::AddPath(unsigned start_index, unsigned end_index, const Colou
 	unsigned data_index = AddPathData(path);
 	Rect bounds = path.SolveBounds(m_objects);
 	unsigned result = Add(PATH, bounds,data_index);
+	m_objects.paths[data_index].m_index = result;
 	//Debug("Added path %u -> %u (%u objects) colour {%u,%u,%u,%u}, stroke {%u,%u,%u,%u}", start_index, end_index, (end_index - start_index), fill.r, fill.g, fill.b, fill.a, stroke.r, stroke.g, stroke.b, stroke.a);
 	return result;
 }
@@ -731,7 +732,7 @@ void Document::LoadSVG(const string & filename, const Rect & bounds)
 	if (!result)
 		Error("Couldn't load \"%s\" - %s", filename.c_str(), result.description());
 		
-	Debug("Loaded XML - %s", result.description());
+	Debug("Loaded XML from \"%s\" - %s", filename.c_str(), result.description());
 	
 	input.close();
 						// a c e, b d f
@@ -1052,19 +1053,51 @@ void Document::TransformObjectBounds(const SVGMatrix & transform)
 	}
 }
 
-void Document::TranslateObjects(const Real & dx, const Real & dy)
+void Document::TranslateObjects(const Real & dx, const Real & dy, ObjectType type)
 {
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		for (unsigned i = 0; i < m_objects.paths.size(); ++i)
+		{
+			Path & p = m_objects.paths[i];
+			p.x += dx;
+			p.y += dy;
+		}
+		return;
+	#endif	
+	
 	for (unsigned i = 0; i < m_count; ++i)
 	{
-		m_objects.bounds[i].x += dx;
-		m_objects.bounds[i].y += dy;
+		if (type == NUMBER_OF_OBJECT_TYPES || m_objects.types[i] == type)
+		{
+			m_objects.bounds[i].x += dx;
+			m_objects.bounds[i].y += dy;
+		}
 	}
 }
 
-void Document::ScaleObjectsAboutPoint(const Real & x, const Real & y, const Real & scale_amount)
+void Document::ScaleObjectsAboutPoint(const Real & x, const Real & y, const Real & scale_amount, ObjectType type)
 {
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		for (unsigned i = 0; i < m_objects.paths.size(); ++i)
+		{
+			Path & p = m_objects.paths[i];
+			p.w /= scale_amount;
+			p.h /= scale_amount;
+			p.x -= x;
+			p.x /= scale_amount;
+			p.x += x;
+			p.y -= y;
+			p.y /= scale_amount;
+			p.y += y;
+		}
+		return;
+	#endif
+	
 	for (unsigned i = 0; i < m_count; ++i)
 	{
+		if (type != NUMBER_OF_OBJECT_TYPES && m_objects.types[i] != type)
+			continue;
+		
 		m_objects.bounds[i].w /= scale_amount;
 		m_objects.bounds[i].h /= scale_amount;
 		//m_objects.bounds[i].x = x + (m_objects.bounds[i].x-x)/scale_amount;
@@ -1076,7 +1109,8 @@ void Document::ScaleObjectsAboutPoint(const Real & x, const Real & y, const Real
 		m_objects.bounds[i].y -= y;
 		m_objects.bounds[i].y /= scale_amount;
 		m_objects.bounds[i].y += y;
+	}
 
-	}	
-	
 }
+
+

@@ -184,10 +184,7 @@ int main(int argc, char ** argv)
 	{
 		doc.AddText(input_text, bounds.h/Real(2), bounds.x, bounds.y+bounds.h/Real(2));
 	}
-	else
-	{
-		doc.Add(RECT_OUTLINE, Rect(0,0,0,0),0); // hack to stop segfault if document is empty (:S)
-	}
+
 
 
 	#ifndef CONTROLPANEL_DISABLED

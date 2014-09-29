@@ -4,6 +4,7 @@
 
 #include "main.h"
 #include "real.h"
+#include "progressbar.h"
 
 using namespace std;
 using namespace IPDF;
@@ -27,8 +28,10 @@ int main(int argc, char ** argv)
 	unsigned failures = 0;
 	Real acumulate(0);
 	double dacumulate = 0;
+	
 	for (unsigned i = 0; i < TEST_CASES; ++i)
 	{
+		ProgressBar(i, TEST_CASES, 50);
 		//Debug("Test %u of %u", i, TEST_CASES);
 		double da = (double)(rand() + 1) / (double)(rand() + 1);
 		double db = (double)(rand() + 1) / (double)(rand() + 1);
@@ -181,7 +184,6 @@ int main(int argc, char ** argv)
 				Debug("\tStrings are a = %s, b = %s, aa = %s, bb = %s", a.Str().c_str(), b.Str().c_str(), aa.Str().c_str(), bb.Str().c_str());
 			#endif
 		}
-
 	}
 	Debug("Completed %u test cases with total of %u operations, %u failures", TEST_CASES, 18*TEST_CASES, failures);
 	Debug("Total accumulated difference between Real and Double operations was %f", g_totalerror);

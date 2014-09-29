@@ -7,22 +7,22 @@
      width="400" height="400"
    >
 	<g   transform="translate(-230,-250)">
-    <path
+    <!--<path
        style="fill:#ac9d93;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;fill-opacity:1"
        d="m 478.78564,339.0153 -16.66751,-1.01016 -36.11296,-47.7297 -12.6269,-33.0825 28.53681,17.17259 23.2335,24.4962 10.35407,21.97082 z"
        id="path4374"
-       inkscape:connector-curvature="0" />
-    <path
+       inkscape:connector-curvature="0" />-->
+    <!--<path
        style="fill:#ac9d93;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;fill-opacity:1"
        d="m 451.25899,350.37951 -51.26524,-30.55711 -27.52666,-37.12311 -0.25254,-6.81853 30.30458,4.29315 23.23351,11.11168 24.74873,26.5165 12.62691,21.71828 z"
        id="path4370"
-       inkscape:connector-curvature="0" />
+       inkscape:connector-curvature="0" />-->
        
-           <path
+           <!--<path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="M 25,158.21333 36.071428,144.28476 l 20,20 Z"
        id="path4498"
        inkscape:connector-curvature="0"
-       transform="translate(227.32245,266.11266)" />
+       transform="translate(227.32245,266.11266)" />-->
        </g>
  </svg>

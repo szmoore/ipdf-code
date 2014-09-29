@@ -7,6 +7,13 @@
 	#include "controlpanel.h"
 #endif //CONTROLPANEL_DISABLED
 
+
+#ifdef TRANSFORM_BEZIERS_TO_PATH 
+	#ifndef TRANSFORM_OBJECTS_NOT_VIEW
+	//#error Cannot TRANSFORM_BEZIERS_TO_PATH _without_ TRANSFORM_OBJECTS_NOT_VIEW
+	#endif
+#endif
+
 using namespace IPDF;
 using namespace std;
 
@@ -83,7 +90,11 @@ void View::Translate(Real x, Real y)
 		m_buffer_dirty = true;
 	m_bounds_dirty = true;
 	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
-	m_document.TranslateObjects(-x, -y);
+	ObjectType type = NUMBER_OF_OBJECT_TYPES;
+		#ifdef TRANSFORM_BEZIERS_TO_PATH
+			type = PATH;
+		#endif
+	m_document.TranslateObjects(-x, -y, type);
 	#endif
 	x *= m_bounds.w;
 	y *= m_bounds.h;
@@ -126,7 +137,11 @@ void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 	
 	
 	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
-	m_document.ScaleObjectsAboutPoint(x, y, scale_amount);
+	ObjectType type = NUMBER_OF_OBJECT_TYPES;
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		type = PATH;
+	#endif
+	m_document.ScaleObjectsAboutPoint(x, y, scale_amount, type);
 	#endif
 	x *= m_bounds.w;
 	y *= m_bounds.h;
@@ -159,12 +174,7 @@ Rect View::TransformToViewCoords(const Rect& inp) const
 	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
 		return inp;
 	#endif
-	Rect out;
-	out.x = (inp.x - m_bounds.x) / m_bounds.w;
-	out.y = (inp.y - m_bounds.y) / m_bounds.h;
-	out.w = inp.w / m_bounds.w;
-	out.h = inp.h / m_bounds.h;
-	return out;
+	return TransformRectCoordinates(m_bounds, inp);
 }
 
 /**
@@ -446,6 +456,7 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 	if (m_use_gpu_transform)
 	{
 		#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+			//Debug("Transform objects, not view");
 				GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f,
 					0.0f, 0.0f, float(width), float(height)};
 		#else
@@ -503,11 +514,14 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 	//m_objbounds_vbo.Invalidate();
 	m_objbounds_vbo.SetType(GraphicsBuffer::BufferTypeVertex);
 	m_objbounds_vbo.SetName("Object Bounds VBO");
+	
+	#ifndef TRANSFORM_OBJECTS_NOT_VIEW
 	if (m_use_gpu_transform)
 	{
 		m_objbounds_vbo.SetUsage(GraphicsBuffer::BufferUsageStaticDraw);
 	}
 	else
+	#endif //TRANSFORM_OBJECTS_NOT_VIEW
 	{
 		m_objbounds_vbo.SetUsage(GraphicsBuffer::BufferUsageDynamicCopy);
 	}
@@ -515,6 +529,7 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 
 	BufferBuilder<GPUObjBounds> obj_bounds_builder(m_objbounds_vbo.MapRange(first_obj*sizeof(GPUObjBounds), (last_obj-first_obj)*sizeof(GPUObjBounds), false, true, true), m_objbounds_vbo.GetSize());
 
+	#ifndef TRANSFORM_BEZIERS_TO_PATH
 	for (unsigned id = first_obj; id < last_obj; ++id)
 	{
 		Rect obj_bounds;
@@ -532,9 +547,48 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 			(float)Float(obj_bounds.x + obj_bounds.w),
 			(float)Float(obj_bounds.y + obj_bounds.h)
 		};
-		obj_bounds_builder.Add(gpu_bounds);
 
+		obj_bounds_builder.Add(gpu_bounds);
 	}
+	#else
+	for (unsigned i = 0; i < m_document.m_objects.paths.size(); ++i)
+	{
+		Path & path = m_document.m_objects.paths[i];
+		Rect & pbounds = path.GetBounds(m_document.m_objects); // Not very efficient...
+		for (unsigned id = path.m_start; id <= path.m_end; ++id)
+		{
+			if (id < first_obj || id >= last_obj)
+				continue;
+				
+			Rect obj_bounds = m_document.m_objects.bounds[id];
+
+			obj_bounds.x *= pbounds.w;
+			obj_bounds.x += pbounds.x;
+			obj_bounds.y *= pbounds.h;
+			obj_bounds.y += pbounds.y;
+			obj_bounds.w *= pbounds.w;
+			obj_bounds.h *= pbounds.h;
+			
+			if (!m_use_gpu_transform)
+				obj_bounds = TransformToViewCoords(obj_bounds);
+			GPUObjBounds gpu_bounds = {
+				Float(obj_bounds.x),
+				Float(obj_bounds.y),
+				Float(obj_bounds.x + obj_bounds.w),
+				Float(obj_bounds.y + obj_bounds.h)
+			};
+			obj_bounds_builder.Add(gpu_bounds);
+			//Debug("Path %d %s -> %s via %s", id, m_document.m_objects.bounds[id].Str().c_str(), obj_bounds.Str().c_str(), pbounds.Str().c_str()); 
+		}
+		GPUObjBounds p_gpu_bounds = {
+				Float(pbounds.x),
+				Float(pbounds.y),
+				Float(pbounds.x + pbounds.w),
+				Float(pbounds.y + pbounds.h)
+		};		
+		obj_bounds_builder.Add(p_gpu_bounds);
+	}
+	#endif
 	m_objbounds_vbo.UnMap();
 }
 /**
@@ -582,7 +636,9 @@ void View::PrepareRender()
 		m_object_renderers[i]->FinaliseBuffers();
 	}
 	if (UsingGPURendering())
+	{
 		dynamic_cast<BezierRenderer*>(m_object_renderers[BEZIER])->PrepareBezierGPUBuffer(m_document.m_objects);
+	}
 	m_render_dirty = false;
 }
 

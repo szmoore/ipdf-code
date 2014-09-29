@@ -12,19 +12,21 @@
 #include <cassert> // it's going to be ok
 #include <set>
 
-#define PARANOID_DIGIT_T double // we could theoretically replace this with a template
+#define PARANOID_DIGIT_T float // we could theoretically replace this with a template
 								// but let's not do that...
 								
 
 //#define PARANOID_CACHE_RESULTS
 
 //#define PARANOID_USE_ARENA
-#define PARANOID_SIZE_LIMIT 1
+//#define PARANOID_SIZE_LIMIT 3
 
 
 // Define to compare all ops against double ops and check within epsilon
-#define PARANOID_COMPARE_EPSILON 1e-6
+//#define PARANOID_COMPARE_EPSILON 1e-6
+#ifdef PARANOID_COMPARE_EPSILON
 #define CompareForSanity(...) ParanoidNumber::CompareForSanityEx(__func__, __FILE__, __LINE__, __VA_ARGS__)
+#endif
 
 namespace IPDF
 {
@@ -87,10 +89,11 @@ namespace IPDF
 			ParanoidNumber(PARANOID_DIGIT_T value=0) : m_value(value), m_next()
 			{
 				#ifdef PARANOID_SIZE_LIMIT
-					m_size = 0;
+					m_size = 1;
 				#endif
 				#ifdef PARANOID_CACHE_RESULTS
 					m_cached_result = value;
+					m_cache_valid = true;
 				#endif 
 			}
 			
@@ -102,6 +105,7 @@ namespace IPDF
 				#endif
 				#ifdef PARANOID_CACHE_RESULTS
 					m_cached_result = cpy.m_cached_result;
+					m_cache_valid = cpy.m_cache_valid;
 				#endif 
 				for (int i = 0; i < NOP; ++i)
 				{
@@ -233,6 +237,7 @@ namespace IPDF
 			
 			std::string Str() const;
 
+			#ifdef PARANOID_COMPARE_EPSILON
 			inline void CompareForSanityEx(const char * func, const char * file, int line, const digit_t & compare, const digit_t & arg, const digit_t & eps = PARANOID_COMPARE_EPSILON)
 			{
 				if (!SanityCheck())
@@ -244,7 +249,7 @@ namespace IPDF
 					Fatal("This: %.30lf vs Expected: %.30lf", Digit(), compare);
 				}
 			}
-
+			#endif
 			
 			std::string PStr() const;
 			
@@ -262,6 +267,7 @@ namespace IPDF
 			digit_t m_value;	
 			#ifdef PARANOID_CACHE_RESULTS
 				digit_t m_cached_result;
+				bool m_cache_valid;
 			#endif
 			std::vector<ParanoidNumber*> m_next[4];
 			#ifdef PARANOID_SIZE_LIMIT
@@ -272,7 +278,7 @@ namespace IPDF
 			class Arena
 			{
 				public:
-					Arena(int64_t block_size = 10000000);
+					Arena(int64_t block_size = 10000);
 					~Arena();
 					
 					void * allocate(size_t bytes);
@@ -305,7 +311,7 @@ template <class T>
 T ParanoidNumber::Convert() const
 {
 	#ifdef PARANOID_CACHE_RESULTS
-	if (!isnan((float(m_cached_result))))
+	if (m_cache_valid)
 		return (T)m_cached_result;
 	#endif
 	T value(m_value);
