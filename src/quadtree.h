@@ -13,6 +13,7 @@ namespace IPDF
 
 	typedef int QuadTreeIndex;
 	static const QuadTreeIndex QUADTREE_EMPTY = -1;
+	class Document;
 
 	enum QuadTreeNodeChildren
 	{
@@ -49,7 +50,7 @@ namespace IPDF
 		QuadTreeIndex root_id;
 		std::vector<QuadTreeNode> nodes;
 
-		QuadTreeIndex GetNeighbour(QuadTreeIndex start, int xdir, int ydir) const;
+		QuadTreeIndex GetNeighbour(QuadTreeIndex start, int xdir, int ydir, Document *doc) const;
 
 	};
 

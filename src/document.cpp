@@ -168,7 +168,7 @@ int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type)
 {
 	QuadTreeIndex new_index = m_quadtree.nodes.size();
-	Debug("-------------- Generating Quadtree Node %d (parent %d) ----------------------", new_index, parent);
+	Debug("-------------- Generating Quadtree Node %d (parent %d, type %d) ----------------------", new_index, parent, type);
 	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, parent, type, 0, 0, -1});
 
 	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();

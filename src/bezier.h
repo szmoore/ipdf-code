@@ -235,16 +235,16 @@ namespace IPDF
 
 		Bezier ReParametrise(const Real& t0, const Real& t1)
 		{
-			Debug("Reparametrise: %f -> %f",Double(t0),Double(t1));
+			//Debug("Reparametrise: %f -> %f",Double(t0),Double(t1));
 			Bezier new_bezier;
 			// Subdivide to get from [0,t1]
 			new_bezier = DeCasteljauSubdivideLeft(t1);
 			// Convert t0 from [0,1] range to [0, t1]
 			Real new_t0 = t0 / t1;
-			Debug("New t0 = %f", Double(new_t0));
+			//Debug("New t0 = %f", Double(new_t0));
 			new_bezier = new_bezier.DeCasteljauSubdivideRight(new_t0);
 
-			Debug("%s becomes %s", this->Str().c_str(), new_bezier.Str().c_str());
+			//Debug("%s becomes %s", this->Str().c_str(), new_bezier.Str().c_str());
 			return new_bezier;
 		}
 		
@@ -256,21 +256,21 @@ namespace IPDF
 
 			// Find its roots.
 			std::vector<Real> x_intersection = SolveXParam(r.x);
-			Debug("Found %d intersections on left edge", x_intersection.size());
+			//Debug("Found %d intersections on left edge", x_intersection.size());
 
 			// And for the other side.
 
 			std::vector<Real> x_intersection_pt2 = SolveXParam(r.x + r.w);
 			x_intersection.insert(x_intersection.end(), x_intersection_pt2.begin(), x_intersection_pt2.end());
-			Debug("Found %d intersections on right edge (total x: %d)", x_intersection_pt2.size(), x_intersection.size());
+			//Debug("Found %d intersections on right edge (total x: %d)", x_intersection_pt2.size(), x_intersection.size());
 
 			// Find its roots.
 			std::vector<Real> y_intersection = SolveYParam(r.y);
-			Debug("Found %d intersections on top edge", y_intersection.size());
+			//Debug("Found %d intersections on top edge", y_intersection.size());
 
 			std::vector<Real> y_intersection_pt2 = SolveYParam(r.y+r.h);
 			y_intersection.insert(y_intersection.end(), y_intersection_pt2.begin(), y_intersection_pt2.end());
-			Debug("Found %d intersections on bottom edge (total y: %d)", y_intersection_pt2.size(), y_intersection.size());
+			//Debug("Found %d intersections on bottom edge (total y: %d)", y_intersection_pt2.size(), y_intersection.size());
 
 			// Merge and sort.
 			x_intersection.insert(x_intersection.end(), y_intersection.begin(), y_intersection.end());
@@ -278,13 +278,13 @@ namespace IPDF
 			x_intersection.push_back(Real(1));
 			std::sort(x_intersection.begin(), x_intersection.end());
 
-			Debug("Found %d intersections.\n", x_intersection.size());
-			for(auto t : x_intersection)
+			//Debug("Found %d intersections.\n", x_intersection.size());
+			/*for(auto t : x_intersection)
 			{
 				Real ptx, pty;
 				Evaluate(ptx, pty, t);
 				Debug("Root: t = %f, (%f,%f)", Double(t), Double(ptx), Double(pty));
-			}
+			}*/
 			
 			std::vector<Bezier> all_beziers;
 			if (x_intersection.size() <= 2)
@@ -297,17 +297,17 @@ namespace IPDF
 			{
 				Real t1 = *it;
 				if (t1 == t0) continue;
-				Debug(" -- t0: %f to t1: %f: %f", Double(t0), Double(t1), Double((t1 + t0)/Real(2)));
+				//Debug(" -- t0: %f to t1: %f: %f", Double(t0), Double(t1), Double((t1 + t0)/Real(2)));
 				Real ptx, pty;
 				Evaluate(ptx, pty, ((t1 + t0) / Real(2)));
 				if (r.PointIn(ptx, pty))
 				{
-					Debug("Adding segment: (point at %f, %f)", Double(ptx), Double(pty));
+					//Debug("Adding segment: (point at %f, %f)", Double(ptx), Double(pty));
 					all_beziers.push_back(this->ReParametrise(t0, t1));
 				}
 				else
 				{
-					Debug("Segment removed (point at %f, %f)", Double(ptx), Double(pty));
+					//Debug("Segment removed (point at %f, %f)", Double(ptx), Double(pty));
 				}
 				t0 = t1;
 			}
