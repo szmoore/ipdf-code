@@ -74,7 +74,7 @@ void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 }
 
 
-inline void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
+void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 {
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
 	DebugScript script;

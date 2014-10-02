@@ -1,22 +1,26 @@
 #ifndef _PATH_H
 #define _PATH_H
 
+#include "transformationtype.h"
 #include <vector>
 #include <algorithm>
 #include "rect.h"
 #include "real.h"
 
-#ifdef QUADTREE_DISABLED
-
-#define TRANSFORM_BEZIERS_TO_PATH
 #ifdef TRANSFORM_BEZIERS_TO_PATH
-#include "gmprat.h"
-#endif
+	#include "gmprat.h"
 
 #endif
+
 
 namespace IPDF
 {
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		typedef Gmprat PReal;
+	#else
+		typedef Real PReal;
+	#endif
+	typedef TRect<PReal> PRect;
 	
 	struct Colour
 	{
@@ -55,12 +59,8 @@ namespace IPDF
 		
 		std::vector<Vec2> m_fill_points;
 		
-		#ifdef TRANSFORM_BEZIERS_TO_PATH
-		Gmprat x;
-		Gmprat y;
-		Gmprat w;
-		Gmprat h;
-		#endif
+		PRect m_bounds;
+
 		
 		Colour m_fill;	// colour to fill with	
 		Colour m_stroke; // colour to outline with

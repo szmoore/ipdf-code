@@ -36,6 +36,10 @@ private:
 		AT_Label,
 		AT_Goto,
 		AT_Debug,
+		AT_ClearDocument,
+		AT_ClearPerformance,
+		AT_PrintPerformance,
+		AT_RecordPerformance,
 		AT_Quit
 	};
 
@@ -57,6 +61,20 @@ private:
 	std::vector<Action> m_actions;
 	std::map<std::string, int> m_labels;
 	unsigned m_index;
+	
+	struct PerformanceData
+	{
+		clock_t clock;
+		unsigned object_count;
+		Rect view_bounds;
+	};
+	
+	PerformanceData m_perf_start;
+	PerformanceData m_perf_last;
+	
+	void PrintPerformance(View * view, Screen * scr);
+	void ClearPerformance(View * view, Screen * scr);
+	
 	void ParseAction();
 };
 

@@ -51,6 +51,15 @@ namespace IPDF
 		std::vector<Bezier> beziers; // bezier curves - look up by data_indices
 		/** Used by PATH only **/
 		std::vector<Path> paths;
+		
+		void Clear()
+		{
+			types.clear();
+			bounds.clear();
+			data_indices.clear();
+			beziers.clear();
+			paths.clear();
+		}
 	};
 
 	class View;

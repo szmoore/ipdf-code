@@ -97,6 +97,22 @@ void DebugScript::ParseAction()
 		currentAction.type = AT_Debug;
 		getline(inp,currentAction.textargs);
 	}
+	else if (actionType == "clear")
+	{
+		currentAction.type = AT_ClearDocument;
+	}
+	else if (actionType == "clearperf")
+	{
+		currentAction.type = AT_ClearPerformance;
+	}
+	else if (actionType == "printperf")
+	{
+		currentAction.type = AT_PrintPerformance;
+	}
+	else if (actionType == "recordperf")
+	{
+		currentAction.type = AT_RecordPerformance;
+	}
 }
 
 bool DebugScript::Execute(View *view, Screen *scr)
@@ -176,9 +192,49 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		if (currentAction.textargs.size() > 0)
 			Debug("%s", currentAction.textargs.c_str());
 		break;
+	case AT_ClearDocument:
+		view->Doc().ClearObjects();
+		currentAction.loops = 1;
+		break;
+	case AT_ClearPerformance:
+		ClearPerformance(view, scr);
+		currentAction.loops = 1;
+		break;
+	case AT_PrintPerformance:
+		PrintPerformance(view, scr);
+		currentAction.loops = 1;	
+		break;
+	case AT_RecordPerformance:
+		PrintPerformance(view, scr);
+		break;
 	default:
 		Fatal("Unknown script command in queue.");
 	}
 	currentAction.loops--;
 	return false;
+}
+
+void DebugScript::ClearPerformance(View * view, Screen * scr)
+{
+	m_perf_start.clock = clock();
+	m_perf_start.object_count = view->Doc().ObjectCount();
+	m_perf_start.view_bounds = view->GetBounds();
+	m_perf_last = m_perf_start;
+}
+
+void DebugScript::PrintPerformance(View * view, Screen * scr)
+{
+	DebugScript::PerformanceData now;
+	now.clock = clock();
+	now.object_count = view->Doc().ObjectCount();
+	now.view_bounds = view->GetBounds();
+	// object_count delta clock delta x deltax y deltay w deltaw h deltah
+	printf("%d\t%d\t%lu\t%lu\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n", 
+		now.object_count, now.object_count - m_perf_last.object_count,
+		(uint64_t)now.clock, (uint64_t)(now.clock - m_perf_last.clock),
+		Double(now.view_bounds.x), Double(now.view_bounds.x - m_perf_last.view_bounds.x),
+		Double(now.view_bounds.y), Double(now.view_bounds.y - m_perf_last.view_bounds.y),
+		Double(now.view_bounds.w), Double(now.view_bounds.w - m_perf_last.view_bounds.w),
+		Double(now.view_bounds.h), Double(now.view_bounds.h - m_perf_last.view_bounds.h));
+	m_perf_last = now;
 }

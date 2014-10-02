@@ -24,7 +24,7 @@ using namespace std;
  * @param bounds - Initial bounds of the View
  * @param colour - Colour to use for rendering this view. TODO: Make sure this actually works, or just remove it
  */
-View::View(Document & document, Screen & screen, const Rect & bounds, const Colour & colour)
+View::View(Document & document, Screen & screen, const VRect & bounds, const Colour & colour)
 	: m_use_gpu_transform(USE_GPU_TRANSFORM), m_use_gpu_rendering(USE_GPU_RENDERING), m_bounds_dirty(true), m_buffer_dirty(true), 
 		m_render_dirty(true), m_document(document), m_screen(screen), m_cached_display(), m_bounds(bounds), m_colour(colour), m_bounds_ubo(), 
 		m_objbounds_vbo(), m_object_renderers(NUMBER_OF_OBJECT_TYPES), m_cpu_rendering_pixels(NULL),
@@ -84,7 +84,7 @@ View::~View()
  * Translate the view
  * @param x, y - Amount to translate
  */
-void View::Translate(Real x, Real y)
+void View::Translate(VReal x, VReal y)
 {
 	if (!m_use_gpu_transform)
 		m_buffer_dirty = true;
@@ -94,7 +94,7 @@ void View::Translate(Real x, Real y)
 		#ifdef TRANSFORM_BEZIERS_TO_PATH
 			type = PATH;
 		#endif
-	m_document.TranslateObjects(-x, -y, type);
+	m_document.TranslateObjects(-x.ToDouble(), -y.ToDouble(), type);
 	#endif
 	x *= m_bounds.w;
 	y *= m_bounds.h;
@@ -125,7 +125,7 @@ void View::SetBounds(const Rect & bounds)
  * @param x, y - Coordinates to scale at (eg: Mouse cursor position)
  * @param scale_amount - Amount to scale by
  */
-void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
+void View::ScaleAroundPoint(VReal x, VReal y, VReal scale_amount)
 {
 	
 	// (x0, y0, w, h) -> (x*w - (x*w - x0)*s, y*h - (y*h - y0)*s, w*s, h*s)
@@ -148,8 +148,8 @@ void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 	x += m_bounds.x;
 	y += m_bounds.y;
 	
-	Real top = y - m_bounds.y;
-	Real left = x - m_bounds.x;
+	VReal top = y - m_bounds.y;
+	VReal left = x - m_bounds.x;
 	
 	top *= scale_amount;
 	left *= scale_amount;

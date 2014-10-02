@@ -94,6 +94,13 @@ namespace IPDF
 			int ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type);
 #endif
 
+			void ClearObjects()
+			{
+				m_count = 0;
+				m_objects.Clear();
+			}
+
+
 		private:
 			friend class View;
 			Objects m_objects;

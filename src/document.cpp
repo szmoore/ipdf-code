@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "../contrib/pugixml-1.4/src/pugixml.cpp"
+#include "transformationtype.h"
 
 #include "stb_truetype.h"
 
@@ -1059,8 +1060,8 @@ void Document::TranslateObjects(const Real & dx, const Real & dy, ObjectType typ
 		for (unsigned i = 0; i < m_objects.paths.size(); ++i)
 		{
 			Path & p = m_objects.paths[i];
-			p.x += dx;
-			p.y += dy;
+			p.m_bounds.x += dx;
+			p.m_bounds.y += dy;
 		}
 		return;
 	#endif	
@@ -1081,14 +1082,14 @@ void Document::ScaleObjectsAboutPoint(const Real & x, const Real & y, const Real
 		for (unsigned i = 0; i < m_objects.paths.size(); ++i)
 		{
 			Path & p = m_objects.paths[i];
-			p.w /= scale_amount;
-			p.h /= scale_amount;
-			p.x -= x;
-			p.x /= scale_amount;
-			p.x += x;
-			p.y -= y;
-			p.y /= scale_amount;
-			p.y += y;
+			p.m_bounds.w /= scale_amount;
+			p.m_bounds.h /= scale_amount;
+			p.m_bounds.x -= x;
+			p.m_bounds.x /= scale_amount;
+			p.m_bounds.x += x;
+			p.m_bounds.y -= y;
+			p.m_bounds.y /= scale_amount;
+			p.m_bounds.y += y;
 		}
 		return;
 	#endif

@@ -20,6 +20,10 @@
 	#error "REALTYPE was not defined!"
 #endif
 
+#define XSTR(x) STR(x)
+#define STR(x) #x
+#pragma message "REALTYPE = " XSTR(REALTYPE)
+
 #if REALTYPE == REAL_VFPU
 	#include "vfpu.h"
 #endif
@@ -57,12 +61,15 @@ namespace IPDF
 #if REALTYPE == REAL_SINGLE
 	typedef float Real;
 	inline Real RealFromStr(const char * str) {return strtof(str, NULL);}
+	inline std::string Str(const Real & a) {std::stringstream s; s << a; return s.str();}
 #elif REALTYPE == REAL_DOUBLE
 	typedef double Real;
 	inline Real RealFromStr(const char * str) {return strtod(str, NULL);}
+	inline std::string Str(const Real & a) {std::stringstream s; s << a; return s.str();}
 #elif REALTYPE == REAL_LONG_DOUBLE
 	typedef long double Real;
 	inline Real RealFromStr(const char * str) {return strtold(str, NULL);}
+	inline std::string Str(const Real & a) {std::stringstream s; s << a; return s.str();}
 #elif REALTYPE == REAL_VFPU
 	typedef VFPU::VFloat Real;
 	inline float Float(const Real & r) {return r.m_value;}
@@ -113,6 +120,7 @@ namespace IPDF
 	inline Real Sqrt(const Real & r) {return Real(sqrt(r.ToDouble()));}
 	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 	inline Real Abs(const Real & a) {return (a > Real(0)) ? a : Real(0)-a;}
+	inline std::string Str(const Real & a) {return a.Str();}
 	
 #else
 	#error "Type of Real unspecified."
@@ -128,6 +136,8 @@ namespace IPDF
 	inline double Double(long double f) {return (double)(f);}
 	inline double Sqrt(double f) {return sqrt(f);}
 	inline double Abs(double a) {return fabs(a);}
+
+
 	inline int64_t Int64(double a)
 	{
 		if (a < INT64_MIN)
@@ -194,7 +204,6 @@ namespace IPDF
 			#endif
 		#endif
 	}
-
 }
 
 #endif //_REAL_H

@@ -5,19 +5,26 @@
 #include "document.h"
 #include "framebuffer.h"
 #include "objectrenderer.h"
+#include "path.h"
+#include "transformationtype.h"
 
 #define USE_GPU_TRANSFORM true 
 #define USE_GPU_RENDERING true
 #define USE_SHADING !(USE_GPU_RENDERING) && true
 
-#ifdef QUADTREE_DISABLED
-
-#define TRANSFORM_OBJECTS_NOT_VIEW
-
+#ifdef TRANSFORM_BEZIERS_TO_PATH
+#include "gmprat.h"
 #endif
 
 namespace IPDF
 {
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		typedef Gmprat VReal;
+	#else
+		typedef Real VReal;
+	#endif
+	typedef TRect<VReal> VRect;
+	
 	class Screen;
 	/**
 	 * The View class manages a rectangular view into the document.
@@ -27,18 +34,18 @@ namespace IPDF
 	class View
 	{
 		public:
-			View(Document & document, Screen & screen, const Rect & bounds = Rect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f));
+			View(Document & document, Screen & screen, const VRect & bounds = VRect(0,0,1,1), const Colour & colour = Colour(0.f,0.f,0.f,1.f));
 			virtual ~View();
 
 			void Render(int width = 0, int height = 0);
 			
-			void Translate(Real x, Real y);
-			void ScaleAroundPoint(Real x, Real y, Real scale_amount);
+			void Translate(VReal x, VReal y);
+			void ScaleAroundPoint(VReal x, VReal y, VReal scale_amount);
 			void SetBounds(const Rect & new_bounds);
 			
 			Rect TransformToViewCoords(const Rect& inp) const;
 			
-			const Rect& GetBounds() const { return m_bounds; }
+			const VRect& GetBounds() const { return m_bounds; }
 			
 			
 			const bool UsingGPUTransform() const { return m_use_gpu_transform; } // whether view transform calculated on CPU or GPU
@@ -95,7 +102,7 @@ namespace IPDF
 			Document & m_document;
 			Screen & m_screen;
 			FrameBuffer m_cached_display;
-			Rect m_bounds;
+			VRect m_bounds;
 			Colour m_colour;
 
 			// Stores the view bounds.

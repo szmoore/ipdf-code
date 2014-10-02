@@ -11,32 +11,32 @@ using namespace std;
 namespace IPDF
 {
 
-vector<Real> SolveQuadratic(const Real & a, const Real & b, const Real & c, const Real & min, const Real & max)
+vector<BReal> SolveQuadratic(const BReal & a, const BReal & b, const BReal & c, const BReal & min, const BReal & max)
 {
-	vector<Real> roots; roots.reserve(2);
+	vector<BReal> roots; roots.reserve(2);
 	if (a == 0 && b != 0)
 	{
 		roots.push_back(-c/b);
 		return roots;
 	}
-	Real disc(b*b - Real(4)*a*c);
+	BReal disc(b*b - BReal(4)*a*c);
 	if (disc < 0)
 	{
 		return roots;
 	}
 	else if (disc == 0)
 	{
-		Real x(-b/Real(2)*a);
+		BReal x(-b/BReal(2)*a);
 		if (x >= min && x <= max)
 			roots.push_back(x);
 		return roots;
 	}
 	
-	Real x0((-b - Sqrt(b*b - Real(4)*a*c))/(Real(2)*a));
-	Real x1((-b + Sqrt(b*b - Real(4)*a*c))/(Real(2)*a));
+	BReal x0((-b - Sqrt(b*b - BReal(4)*a*c))/(BReal(2)*a));
+	BReal x1((-b + Sqrt(b*b - BReal(4)*a*c))/(BReal(2)*a));
 	if (x0 > x1)
 	{
-		Real tmp(x0);
+		BReal tmp(x0);
 		x0 = x1;
 		x1 = tmp;
 	}
@@ -51,10 +51,10 @@ vector<Real> SolveQuadratic(const Real & a, const Real & b, const Real & c, cons
  * Finds the root (if it exists) in a monotonicly in(de)creasing segment of a Cubic
  */
 
-static void CubicSolveSegment(vector<Real> & roots, const Real & a, const Real & b, const Real & c, const Real & d, Real & tl, Real & tu, const Real & delta)
+static void CubicSolveSegment(vector<BReal> & roots, const BReal & a, const BReal & b, const BReal & c, const BReal & d, BReal & tl, BReal & tu, const BReal & delta)
 {
-	Real l = a*tl*tl*tl + b*tl*tl + c*tl + d;
-	Real u = a*tu*tu*tu + b*tu*tu + c*tu + d;
+	BReal l = a*tl*tl*tl + b*tl*tl + c*tl + d;
+	BReal u = a*tu*tu*tu + b*tu*tu + c*tu + d;
 	if ((l < 0 && u < 0) || (l > 0 && u > 0))
 	{
 		//Debug("Discarding segment (no roots) l = %f (%f), u = %f (%f)", Double(tl), Double(l), Double(tu), Double(u));
@@ -65,9 +65,9 @@ static void CubicSolveSegment(vector<Real> & roots, const Real & a, const Real &
 	//Debug("%ft^3 + %ft^2 + %ft + %f is negative (%f < %f) %d", Double(a),Double(b),Double(c),Double(d),Double(u),Double(l), negative);
 	while (tu - tl > delta)
 	{
-		Real t(tu+tl);
+		BReal t(tu+tl);
 		t /= 2;
-		Real m = a*t*t*t + b*t*t + c*t + d;
+		BReal m = a*t*t*t + b*t*t + c*t + d;
 		if (m > 0)
 		{
 			if (negative)
@@ -87,12 +87,12 @@ static void CubicSolveSegment(vector<Real> & roots, const Real & a, const Real &
 	}
 	roots.push_back(tl);
 }
-vector<Real> SolveCubic(const Real & a, const Real & b, const Real & c, const Real & d, const Real & min, const Real & max, const Real & delta)
+vector<BReal> SolveCubic(const BReal & a, const BReal & b, const BReal & c, const BReal & d, const BReal & min, const BReal & max, const BReal & delta)
 {
-	vector<Real> roots; roots.reserve(3);
-	Real tu(max);
-	Real tl(min);
-	vector<Real> turns(SolveQuadratic(a*3, b*2, c));
+	vector<BReal> roots; roots.reserve(3);
+	BReal tu(max);
+	BReal tl(min);
+	vector<BReal> turns(SolveQuadratic(a*3, b*2, c));
 	//Debug("%u turning points", turns.size());
 	for (unsigned i = 1; i < turns.size(); ++i)
 	{
@@ -137,9 +137,9 @@ int BinomialCoeff(int n, int k)
 /**
  * Bernstein Basis Polynomial
  */
-Real Bernstein(int k, int n, const Real & u)
+BReal Bernstein(int k, int n, const BReal & u)
 {
-	return Real(BinomialCoeff(n, k)) * Power(u, k) * Power(Real(1.0) - u, n-k);
+	return BReal(BinomialCoeff(n, k)) * Power(u, k) * Power(BReal(1.0) - u, n-k);
 }
 
 
@@ -148,42 +148,42 @@ Real Bernstein(int k, int n, const Real & u)
  * In one coordinate direction
  */
 
-pair<Real, Real> BezierTurningPoints(const Real & p0, const Real & p1, const Real & p2, const Real & p3)
+pair<BReal, BReal> BezierTurningPoints(const BReal & p0, const BReal & p1, const BReal & p2, const BReal & p3)
 {
 	// straight line
 	if (p1 == p2 && p2 == p3)
 	{
-		return pair<Real,Real>(0, 1);
+		return pair<BReal,BReal>(0, 1);
 	}
-	Real a = ((p1-p2)*3 + p3 - p0);
-	Real b = (p2 - p1*2 + p0)*2;
-	Real c = (p1-p0);
+	BReal a = ((p1-p2)*3 + p3 - p0);
+	BReal b = (p2 - p1*2 + p0)*2;
+	BReal c = (p1-p0);
 	if (a == 0)
 	{
 		if (b == 0)
-			return pair<Real, Real>(0,1);
-		Real t = -c/b;
+			return pair<BReal, BReal>(0,1);
+		BReal t = -c/b;
 		if (t > 1) t = 1;
 		if (t < 0) t = 0;
-		return pair<Real, Real>(t, t);
+		return pair<BReal, BReal>(t, t);
 	}
 	//Debug("a, b, c are %f, %f, %f", Float(a), Float(b), Float(c));
 	if (b*b - a*c*4 < 0)
 	{
 		//Debug("No real roots");
-		return pair<Real, Real>(0,1);
+		return pair<BReal, BReal>(0,1);
 	}
-	vector<Real> tsols = SolveQuadratic(a, b, c);
+	vector<BReal> tsols = SolveQuadratic(a, b, c);
 	if (tsols.size() == 1)
-		return pair<Real,Real>(tsols[0], tsols[0]);
+		return pair<BReal,BReal>(tsols[0], tsols[0]);
 	else if (tsols.size() == 0)
-		return pair<Real, Real>(0,1);
+		return pair<BReal, BReal>(0,1);
 	
-	return pair<Real,Real>(tsols[0], tsols[1]);
+	return pair<BReal,BReal>(tsols[0], tsols[1]);
 	
 }
 
-inline bool CompRealByPtr(const Real * a, const Real * b) 
+inline bool CompBRealByPtr(const BReal * a, const BReal * b) 
 {
 	return (*a) < (*b);
 }
@@ -191,20 +191,20 @@ inline bool CompRealByPtr(const Real * a, const Real * b)
 /**
  * Get top most *point* on Bezier curve
  */
-pair<Real,Real> Bezier::GetTop() const
+pair<BReal,BReal> Bezier::GetTop() const
 {
-	pair<Real, Real> tsols = BezierTurningPoints(y0,y1,y2,y3);
-	Real tx0; Real ty0;
-	Real tx1; Real ty1;
+	pair<BReal, BReal> tsols = BezierTurningPoints(y0,y1,y2,y3);
+	BReal tx0; BReal ty0;
+	BReal tx1; BReal ty1;
 	Evaluate(tx0, ty0, tsols.first);
 	Evaluate(tx1, ty1, tsols.second);
-	vector<const Real*> v(4);
+	vector<const BReal*> v(4);
 	v[0] = &y0;
 	v[1] = &y3;
 	v[2] = &ty0;
 	v[3] = &ty1;
-	sort(v.begin(), v.end(), CompRealByPtr);
-	pair<Real,Real> result;
+	sort(v.begin(), v.end(), CompBRealByPtr);
+	pair<BReal,BReal> result;
 	result.second = *v[0];
 	if (v[0] == &y0)
 	{
@@ -228,20 +228,20 @@ pair<Real,Real> Bezier::GetTop() const
 /**
  * Get bottom most *point* on Bezier curve
  */
-pair<Real,Real> Bezier::GetBottom() const
+pair<BReal,BReal> Bezier::GetBottom() const
 {
-	pair<Real, Real> tsols = BezierTurningPoints(y0,y1,y2,y3);
-	Real tx0; Real ty0;
-	Real tx1; Real ty1;
+	pair<BReal, BReal> tsols = BezierTurningPoints(y0,y1,y2,y3);
+	BReal tx0; BReal ty0;
+	BReal tx1; BReal ty1;
 	Evaluate(tx0, ty0, tsols.first);
 	Evaluate(tx1, ty1, tsols.second);
-	vector<const Real*> v(4);
+	vector<const BReal*> v(4);
 	v[0] = &y0;
 	v[1] = &y3;
 	v[2] = &ty0;
 	v[3] = &ty1;
-	sort(v.begin(), v.end(), CompRealByPtr);
-	pair<Real,Real> result;
+	sort(v.begin(), v.end(), CompBRealByPtr);
+	pair<BReal,BReal> result;
 	result.second = *v[3];
 	if (v[3] == &y0)
 	{
@@ -265,20 +265,20 @@ pair<Real,Real> Bezier::GetBottom() const
 /**
  * Get left most *point* on Bezier curve
  */
-pair<Real,Real> Bezier::GetLeft() const
+pair<BReal,BReal> Bezier::GetLeft() const
 {
-	pair<Real, Real> tsols = BezierTurningPoints(x0,x1,x2,x3);
-	Real tx0; Real ty0;
-	Real tx1; Real ty1;
+	pair<BReal, BReal> tsols = BezierTurningPoints(x0,x1,x2,x3);
+	BReal tx0; BReal ty0;
+	BReal tx1; BReal ty1;
 	Evaluate(tx0, ty0, tsols.first);
 	Evaluate(tx1, ty1, tsols.second);
-	vector<const Real*> v(4);
+	vector<const BReal*> v(4);
 	v[0] = &x0;
 	v[1] = &x3;
 	v[2] = &tx0;
 	v[3] = &tx1;
-	sort(v.begin(), v.end(), CompRealByPtr);
-	pair<Real,Real> result;
+	sort(v.begin(), v.end(), CompBRealByPtr);
+	pair<BReal,BReal> result;
 	result.first = *v[0];
 	if (v[0] == &x0)
 	{
@@ -303,20 +303,20 @@ pair<Real,Real> Bezier::GetLeft() const
 /**
  * Get left most *point* on Bezier curve
  */
-pair<Real,Real> Bezier::GetRight() const
+pair<BReal,BReal> Bezier::GetRight() const
 {
-	pair<Real, Real> tsols = BezierTurningPoints(x0,x1,x2,x3);
-	Real tx0; Real ty0;
-	Real tx1; Real ty1;
+	pair<BReal, BReal> tsols = BezierTurningPoints(x0,x1,x2,x3);
+	BReal tx0; BReal ty0;
+	BReal tx1; BReal ty1;
 	Evaluate(tx0, ty0, tsols.first);
 	Evaluate(tx1, ty1, tsols.second);
-	vector<const Real*> v(4);
+	vector<const BReal*> v(4);
 	v[0] = &x0;
 	v[1] = &x3;
 	v[2] = &tx0;
 	v[3] = &tx1;
-	sort(v.begin(), v.end(), CompRealByPtr);
-	pair<Real,Real> result;
+	sort(v.begin(), v.end(), CompBRealByPtr);
+	pair<BReal,BReal> result;
 	result.first = *v[3];
 	if (v[3] == &x0)
 	{
@@ -337,13 +337,13 @@ pair<Real,Real> Bezier::GetRight() const
 	return result;
 }
 
-vector<Real> Bezier::SolveXParam(const Real & x) const
+vector<BReal> Bezier::SolveXParam(const BReal & x) const
 {
-	Real d(x0 - x);
-	Real c((x1 - x0)*Real(3));
-	Real b((x2 - x1)*Real(3) - c);
-	Real a(x3 -x0 - c - b);
-	vector<Real> results(SolveCubic(a, b, c, d));
+	BReal d(x0 - x);
+	BReal c((x1 - x0)*BReal(3));
+	BReal b((x2 - x1)*BReal(3) - c);
+	BReal a(x3 -x0 - c - b);
+	vector<BReal> results(SolveCubic(a, b, c, d));
 	for (unsigned i = 0; i < results.size(); ++i)
 	{
 		Vec2 p;
@@ -353,13 +353,13 @@ vector<Real> Bezier::SolveXParam(const Real & x) const
 }
 
 
-vector<Real> Bezier::SolveYParam(const Real & y) const
+vector<BReal> Bezier::SolveYParam(const BReal & y) const
 {
-	Real d(y0 - y);
-	Real c((y1 - y0)*Real(3));
-	Real b((y2 - y1)*Real(3) - c);
-	Real a(y3 -y0 - c - b);
-	vector<Real> results(SolveCubic(a, b, c, d));
+	BReal d(y0 - y);
+	BReal c((y1 - y0)*BReal(3));
+	BReal b((y2 - y1)*BReal(3) - c);
+	BReal a(y3 -y0 - c - b);
+	vector<BReal> results(SolveCubic(a, b, c, d));
 	for (unsigned i = 0; i < results.size(); ++i)
 	{
 		Vec2 p;
@@ -368,7 +368,7 @@ vector<Real> Bezier::SolveYParam(const Real & y) const
 	return results;
 }
 
-vector<Vec2> Bezier::Evaluate(const vector<Real> & u) const
+vector<Vec2> Bezier::Evaluate(const vector<BReal> & u) const
 {
 	vector<Vec2> result(u.size());
 	for (unsigned i = 0; i < u.size(); ++i)
@@ -381,25 +381,25 @@ vector<Vec2> Bezier::Evaluate(const vector<Real> & u) const
 /**
  * Get Bounds Rectangle of Bezier
  */
-Rect Bezier::SolveBounds() const
+BRect Bezier::SolveBounds() const
 {
-	Rect result;
-	pair<Real, Real> tsols = BezierTurningPoints(x0, x1, x2, x3);
+	BRect result;
+	pair<BReal, BReal> tsols = BezierTurningPoints(x0, x1, x2, x3);
 	
-	Real tp0; Real tp1; Real o;
+	BReal tp0; BReal tp1; BReal o;
 	Evaluate(tp0, o, tsols.first);
 	Evaluate(tp1, o, tsols.second);
 	
 	//Debug("x: tp0 is %f tp1 is %f", Float(tp0), Float(tp1));
 	
-	vector<const Real*> v(4);
+	vector<const BReal*> v(4);
 	v[0] = &x0;
 	v[1] = &x3;
 	v[2] = &tp0;
 	v[3] = &tp1;
 	
 	// Not using a lambda to keep this compiling on cabellera
-	sort(v.begin(), v.end(), CompRealByPtr);
+	sort(v.begin(), v.end(), CompBRealByPtr);
 
 	result.x = *(v[0]);
 	result.w = *(v[3]) - result.x;
@@ -416,7 +416,7 @@ Rect Bezier::SolveBounds() const
 	v[1] = &y3;
 	v[2] = &tp0;
 	v[3] = &tp1;
-	sort(v.begin(), v.end(), CompRealByPtr);
+	sort(v.begin(), v.end(), CompBRealByPtr);
 	
 	result.y = *(v[0]);
 	result.h = *(v[3]) - result.y;

@@ -21,6 +21,7 @@ class Gmprat
 		//operator int64_t() const {return mpq_get_si(m_op);}
 		//operator uint64_t() const {return mpq_get_ui(m_op);}
 		//operator double() const {return mpq_get_d(m_op);}
+		//operator float() const {return (float)ToDouble();}
 		double ToDouble() const {return mpq_get_d(m_op);}
 		std::string Str(int base = 10) const
 		{
@@ -57,8 +58,15 @@ class Gmprat
 		
 		
 	private:
+		friend std::ostream& operator<<(std::ostream& os, const Gmprat & fith);
 		mpq_t m_op;
 };	
+
+std::ostream & operator<<(std::ostream & os, const Gmprat & fith)
+{
+	os << fith.Str();
+	return os;
+}
 
 
 

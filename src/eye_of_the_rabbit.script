@@ -1,7 +1,9 @@
 # Test how well document scales back to original...
 gpu
 lazy
+clearperf
 label start
+printperf
 debug Add rabbit 1
 loadsvg svg-tests/rabbit_simple.svg
 loop 250 pxzoom 508 305 1
@@ -11,9 +13,8 @@ loop 250 pxzoom 508 305 1
 debug Add rabbit 3
 loadsvg svg-tests/rabbit_simple.svg
 loop 500 pxzoom 508 305 -1
-loop 250 pxzoom 508 305 1
-loop 1000 wait
-loop 250 pxzoom 508 305 1
+loop 500 pxzoom 508 305 1
 debug Repeat
-#goto start
+clear
+goto start
 wait
