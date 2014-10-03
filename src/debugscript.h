@@ -40,6 +40,7 @@ private:
 		AT_ClearPerformance,
 		AT_PrintPerformance,
 		AT_RecordPerformance,
+		AT_DebugFont,
 		AT_Quit
 	};
 

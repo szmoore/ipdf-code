@@ -8,6 +8,7 @@
 
 #include <gmp.h>
 #include <string>
+#include <climits>
 
 class Gmprat
 {
@@ -45,39 +46,36 @@ class Gmprat
 			return s.str();
 		}
 		
-		double Log10() const
+		double LogE() const
 		{
-			mpz_t num; mpz_init(num); mpq_get_num(num, m_op);
-			mpz_t den; mpz_init(den); mpq_get_den(den, m_op);
+			// log(a/b) = log(a) - log(b)
+			// And if a is represented in base B as:
+			// a = a_N B^N + a_{N-1} B^{N-1} + ... + a_0
+			// => log(a) \approx log(a_N B^N)
+			// = log(a_N) + N log(B)
+			// where B is the base; ie number of values representable with one digit, ie: ULONG_MAX
 			
-			double lognum = 0;
-			double logden = 0;
-			while (mpz_sizeinbase(num, 10) > 10)
-			{
-
-				mpz_div_ui(num, num, 1e10);
-				lognum += 10;
-			}
-			uint64_t n = mpz_get_ui(num);
-			if (n == 0)
-			{
-				return -INFINITY;
-			}
-			lognum += log(n)/log(10.0);
-			//Debug("%lu", mpz_get_ui(den));
-			while (mpz_sizeinbase(den, 10) > 10)
-			{
-				mpz_div_ui(den, den, 1e10);
-				logden += 10;
-			}
-			uint64_t d = mpz_get_ui(den);
-			// if d is zero, its been rounded down we hope
-			if (d != 0)
-				logden += log(d)/log(10.0);
+			static double logB = log(ULONG_MAX); // compiler should optimise this anyway?
 			
-			return (lognum - logden);
+			// Undefined logs (should probably return NAN if -ve, not -INFINITY, but meh)
+			if (mpz_get_ui(mpq_numref(m_op)) == 0 || mpz_sgn(mpq_numref(m_op)) < 0)
+				return -INFINITY;				
+	
+			// Log of numerator
+			double lognum = log(mpq_numref(m_op)->_mp_d[abs(mpq_numref(m_op)->_mp_size) - 1]);
+			lognum += (abs(mpq_numref(m_op)->_mp_size)-1) * logB;
+			
+			// Subtract log of denominator, if it exists
+			// Note that denominator is not explicitly set to 1, this caused a lot of headache
+			if (abs(mpq_denref(m_op)->_mp_size) > 0)
+			{
+				lognum -= log(mpq_denref(m_op)->_mp_d[abs(mpq_denref(m_op)->_mp_size)-1]);
+				lognum -= (abs(mpq_denref(m_op)->_mp_size)-1) * logB;
+			}
+			return lognum;
 		}
 		
+		double Log10() const {return LogE() / log(10.0);}
 
 		bool Negative() const {return (mpz_sgn(mpq_numref(m_op)) < 0);}
 		

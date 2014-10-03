@@ -1,6 +1,7 @@
 # Test how well document scales back to original...
 gpu
 lazy
+debugfont off
 clearperf
 label start
 printperf

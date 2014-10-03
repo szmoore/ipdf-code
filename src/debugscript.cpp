@@ -113,6 +113,12 @@ void DebugScript::ParseAction()
 	{
 		currentAction.type = AT_RecordPerformance;
 	}
+	else if (actionType == "debugfont")
+	{
+		currentAction.type = AT_DebugFont;
+		inp >> currentAction.textargs;
+	}
+
 }
 
 bool DebugScript::Execute(View *view, Screen *scr)
@@ -206,6 +212,10 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		break;
 	case AT_RecordPerformance:
 		PrintPerformance(view, scr);
+		break;
+	case AT_DebugFont:
+		scr->ShowDebugFont(currentAction.textargs == "1" || currentAction.textargs == "on");
+		currentAction.loops = 1;
 		break;
 	default:
 		Fatal("Unknown script command in queue.");
