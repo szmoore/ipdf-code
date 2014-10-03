@@ -22,7 +22,7 @@
 
 #define XSTR(x) STR(x)
 #define STR(x) #x
-#pragma message "REALTYPE = " XSTR(REALTYPE)
+//#pragma message "REALTYPE = " XSTR(REALTYPE)
 
 #if REALTYPE == REAL_VFPU
 	#include "vfpu.h"

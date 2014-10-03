@@ -12,6 +12,7 @@ namespace IPDF
 		T x; T y; T w; T h;
 		//TRect() = default; // Needed so we can fread/fwrite this struct
 		TRect(T _x=0, T _y=0, T _w=1, T _h=1) : x(_x), y(_y), w(_w), h(_h) {}
+		template <class B> TRect(const TRect<B> & cpy) : x(T(cpy.x)), y(T(cpy.y)), w(T(cpy.w)), h(T(cpy.h)) {}
 		
 		std::string Str() const
 		{
@@ -38,7 +39,16 @@ namespace IPDF
 			return true;
 		}
 		
-		template <class B> TRect<B> Convert() {return TRect<B>(B(x), B(y), B(w), B(h));}
+		template <class B> TRect<B> Convert() const {return TRect<B>(B(x), B(y), B(w), B(h));}
+		
+		template <class B> TRect<T> & operator=(const TRect<B> & equ)
+		{
+			x = T(equ.x);
+			y = T(equ.y);
+			w = T(equ.w);
+			h = T(equ.h);
+			return *this;
+		}
 	};
 
 

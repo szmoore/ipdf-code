@@ -39,8 +39,8 @@ namespace IPDF
 
 			void Render(int width = 0, int height = 0);
 			
-			void Translate(VReal x, VReal y);
-			void ScaleAroundPoint(VReal x, VReal y, VReal scale_amount);
+			void Translate(Real x, Real y);
+			void ScaleAroundPoint(Real x, Real y, Real scale_amount);
 			void SetBounds(const Rect & new_bounds);
 			
 			Rect TransformToViewCoords(const Rect& inp) const;

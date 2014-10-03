@@ -243,7 +243,7 @@ void GraphicsBuffer::UploadRange(size_t length, intptr_t offset, const void* dat
 
 void GraphicsBuffer::Resize(size_t length)
 {
-	if (m_invalidated && m_buffer_size > length)
+	if (m_invalidated && m_buffer_size >= length)
 	{
 		m_buffer_size = length;
 	}

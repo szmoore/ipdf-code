@@ -84,7 +84,7 @@ View::~View()
  * Translate the view
  * @param x, y - Amount to translate
  */
-void View::Translate(VReal x, VReal y)
+void View::Translate(Real x, Real y)
 {
 	if (!m_use_gpu_transform)
 		m_buffer_dirty = true;
@@ -94,12 +94,10 @@ void View::Translate(VReal x, VReal y)
 		#ifdef TRANSFORM_BEZIERS_TO_PATH
 			type = PATH;
 		#endif
-	m_document.TranslateObjects(-x.ToDouble(), -y.ToDouble(), type);
+	m_document.TranslateObjects(-x, -y, type);
 	#endif
-	x *= m_bounds.w;
-	y *= m_bounds.h;
-	m_bounds.x += x;
-	m_bounds.y += y;
+	m_bounds.x += m_bounds.w*VReal(x);
+	m_bounds.y += m_bounds.h*VReal(y);
 	//Debug("View Bounds => %s", m_bounds.Str().c_str());
 
 	
@@ -125,7 +123,7 @@ void View::SetBounds(const Rect & bounds)
  * @param x, y - Coordinates to scale at (eg: Mouse cursor position)
  * @param scale_amount - Amount to scale by
  */
-void View::ScaleAroundPoint(VReal x, VReal y, VReal scale_amount)
+void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 {
 	
 	// (x0, y0, w, h) -> (x*w - (x*w - x0)*s, y*h - (y*h - y0)*s, w*s, h*s)
@@ -143,19 +141,19 @@ void View::ScaleAroundPoint(VReal x, VReal y, VReal scale_amount)
 	#endif
 	m_document.ScaleObjectsAboutPoint(x, y, scale_amount, type);
 	#endif
-	x *= m_bounds.w;
-	y *= m_bounds.h;
-	x += m_bounds.x;
-	y += m_bounds.y;
+	VReal vx = m_bounds.w * VReal(x);
+	VReal vy = m_bounds.h * VReal(y);
+	vx += m_bounds.x;
+	vy += m_bounds.y;
 	
-	VReal top = y - m_bounds.y;
-	VReal left = x - m_bounds.x;
+	VReal top = vy - m_bounds.y;
+	VReal left = vx - m_bounds.x;
 	
 	top *= scale_amount;
 	left *= scale_amount;
 	
-	m_bounds.x = x - left;
-	m_bounds.y = y - top;
+	m_bounds.x = vx - left;
+	m_bounds.y = vy - top;
 	m_bounds.w *= scale_amount;
 	m_bounds.h *= scale_amount;
 	//Debug("Scale at {%s, %s} by %s View Bounds => %s", x.Str().c_str(), y.Str().c_str(), scale_amount.Str().c_str(), m_bounds.Str().c_str());
@@ -174,7 +172,7 @@ Rect View::TransformToViewCoords(const Rect& inp) const
 	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
 		return inp;
 	#endif
-	return TransformRectCoordinates(m_bounds, inp);
+	return TransformRectCoordinates(m_bounds.Convert<Real>(), inp);
 }
 
 /**

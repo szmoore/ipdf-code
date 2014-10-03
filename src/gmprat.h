@@ -20,17 +20,66 @@ class Gmprat
 		
 		//operator int64_t() const {return mpq_get_si(m_op);}
 		//operator uint64_t() const {return mpq_get_ui(m_op);}
-		//operator double() const {return mpq_get_d(m_op);}
+		operator double() const {return mpq_get_d(m_op);}
 		//operator float() const {return (float)ToDouble();}
 		double ToDouble() const {return mpq_get_d(m_op);}
-		std::string Str(int base = 10) const
+		std::string Str() const
 		{
 			//TODO: Make less hacky, if we care.
-			char * buff = mpq_get_str(NULL, 10, m_op);
-			std::string result(buff);
-			free(buff);
-			return result;
+			// Convert to scientific notation
+			if (Negative())
+			{
+				return "-" + operator-().Str();
+			}
+			double p = Log10();
+			if (isinf(p))
+				return "0";
+				
+			int P = (int)p;
+			double C = pow(10.0, p - P);
+			std::stringstream s;
+			s << C;
+			if (P != 0)
+				s << "e"<< P;
+			//s << "("<<ToDouble()<<")";
+			return s.str();
 		}
+		
+		double Log10() const
+		{
+			mpz_t num; mpz_init(num); mpq_get_num(num, m_op);
+			mpz_t den; mpz_init(den); mpq_get_den(den, m_op);
+			
+			double lognum = 0;
+			double logden = 0;
+			while (mpz_sizeinbase(num, 10) > 10)
+			{
+
+				mpz_div_ui(num, num, 1e10);
+				lognum += 10;
+			}
+			uint64_t n = mpz_get_ui(num);
+			if (n == 0)
+			{
+				return -INFINITY;
+			}
+			lognum += log(n)/log(10.0);
+			//Debug("%lu", mpz_get_ui(den));
+			while (mpz_sizeinbase(den, 10) > 10)
+			{
+				mpz_div_ui(den, den, 1e10);
+				logden += 10;
+			}
+			uint64_t d = mpz_get_ui(den);
+			// if d is zero, its been rounded down we hope
+			if (d != 0)
+				logden += log(d)/log(10.0);
+			
+			return (lognum - logden);
+		}
+		
+
+		bool Negative() const {return (mpz_sgn(mpq_numref(m_op)) < 0);}
 		
 		Gmprat & operator=(const Gmprat & equ) {mpq_set(m_op, equ.m_op); return *this;}
 		Gmprat & operator=(const double & equ) {mpq_set_d(m_op, equ); return *this;}
@@ -62,7 +111,7 @@ class Gmprat
 		mpq_t m_op;
 };	
 
-std::ostream & operator<<(std::ostream & os, const Gmprat & fith)
+inline std::ostream & operator<<(std::ostream & os, const Gmprat & fith)
 {
 	os << fith.Str();
 	return os;
