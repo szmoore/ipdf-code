@@ -14,6 +14,7 @@
 using namespace IPDF;
 using namespace std;
 
+#ifndef __MINGW32__
 static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* msg, const void *data)
 {
 	// Don't print out gl Errors we generated.
@@ -22,7 +23,7 @@ static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum 
 	// Spams this message on fglrx, disabling for now because it's damn annoying.
 	// ERROR: opengl_debug_callback (screen.cpp:21) - OpenGL Error (1011): glObjectLabel failed because (depending on the operation) a referenced binding point is empty; a referenced name is not the name of an object; or the given name is otherwise not valid to this operation (GL_INVALID_VALUE)
 }
-
+#endif
 
 Screen::Screen(bool visible)
 {
@@ -72,7 +73,9 @@ Screen::Screen(bool visible)
 	glGenQueries(1, &m_frame_gpu_timer);
 	glBeginQuery(GL_TIME_ELAPSED, m_frame_gpu_timer);
 
+	#ifndef __MINGW32__
 	glDebugMessageCallback(opengl_debug_callback, 0);
+	#endif
 
 	GLuint default_vao;
 	glGenVertexArrays(1, &default_vao);

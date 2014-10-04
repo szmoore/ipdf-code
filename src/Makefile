@@ -1,9 +1,16 @@
 #Makefile
 ARCH := $(shell uname -m)
 # TODO: stb_truetype doesn't compile with some of these warnings.
-CXX = g++ -std=c++0x -g -Wall -Werror -Wshadow -pedantic -rdynamic
+
+# This seemed like a good idea 2 hours ago ok...
+ifeq ($(ARCH), win32)
+	CXX = i686-w64-mingw32-g++ -std=c++11 -g -Wall -Werror -Wshadow -pedantic
+else
+	CXX = g++ -std=c++11 -g -Wall -Werror -Wshadow -pedantic -rdynamic
+endif
+
 MAIN = main.o
-OBJ = log.o real.o bezier.o objectrenderer.o view.o screen.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o  path.o document.o debugscript.o
+OBJ = log.o real.o bezier.o objectrenderer.o view.o screen.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o  path.o document.o debugscript.o paranoidnumber.o
 
 QT_INCLUDE := -I/usr/share/qt4/mkspecs/linux-g++-64 -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -Itests -I.
 QT_DEF := -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB
@@ -12,10 +19,12 @@ QT_LIB :=  -L/usr/lib/x86_64-linux-gnu -lQtGui -lQtCore -lpthread
 LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL -lgmp
 LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL -lgmp
 LIB_i686 = $(LIB_i386)
+LIB_win32 = -mwindows -lmingw32 -L../contrib/win32/lib/ -lSDL2main -lSDL2 -lgmp -static-libgcc -static-libstdc++
 
 MAINRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../contrib/lib'
 MAINRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../contrib/lib32'
 MAINRPATH_i686 = $(MAINRPATH_i386)
+MAINRPATH_win32 = -Wl,-rpath,'$$ORIGIN/../contrib/win32/lib'
 TESTRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib'
 TESTRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib32'
 TESTRPATH_i686 = $(TESTRPATH_i386)
@@ -24,11 +33,13 @@ DEPS := $(OBJPATHS:%.o=%.d)
 CFLAGS_x86_64 := -I../contrib/include/SDL2 -I`pwd`
 CFLAGS_i386 := -I../contrib/include32/SDL2 -I`pwd`
 CFLAGS_i686 := $(CFLAGS_i386)
+CFLAGS_win32 := -I../contrib/win32/include/SDL2 -I`pwd` -I../contrib/win32/include
 
 
 LIB := $(LIB_$(ARCH))
 MAINRPATH := $(MAINRPATH_$(ARCH))
 TESTRPATH := $(TESTRPATH_$(ARCH))
+
 CFLAGS := $(CFLAGS_$(ARCH))
 
 RM = rm -f
@@ -76,7 +87,7 @@ ifeq ($(REALTYPE),7)
 endif
 
 ifeq ($(REALTYPE),8)
-	OBJ := $(OBJ) paranoidnumber.o
+	OBJ := $(OBJ) 
 endif 
 
 ifeq ($(REALTYPE),9)

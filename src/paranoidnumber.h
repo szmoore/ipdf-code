@@ -12,14 +12,14 @@
 #include <cassert> // it's going to be ok
 #include <set>
 
-#define PARANOID_DIGIT_T float // we could theoretically replace this with a template
+#define PARANOID_DIGIT_T double // we could theoretically replace this with a template
 								// but let's not do that...
 								
 
 //#define PARANOID_CACHE_RESULTS
 
 //#define PARANOID_USE_ARENA
-//#define PARANOID_SIZE_LIMIT 3
+#define PARANOID_SIZE_LIMIT 4
 
 
 // Define to compare all ops against double ops and check within epsilon
@@ -144,6 +144,8 @@ namespace IPDF
 			
 			// Like this one. It isn't const.
 			double ToDouble() const {return (double)Digit();}
+			
+			operator double() const {return ToDouble();}
 			
 			// This one is probably const.
 			bool Floating() const 
@@ -329,6 +331,8 @@ T ParanoidNumber::Convert() const
 		value -= sub->Convert<T>();
 	return value;
 }
+
+
 
 
 

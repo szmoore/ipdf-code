@@ -355,8 +355,8 @@ unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index
 		m_quadtree.nodes[overlay].object_end = m_count+1;
 		m_quadtree.nodes[qti].next_overlay = overlay;
 	}
+done: // matches is not amused
 #endif
-done:
 	return (m_count++); // Why can't we just use the size of types or something?
 }
 

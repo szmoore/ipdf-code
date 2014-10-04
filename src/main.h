@@ -90,11 +90,17 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 	double total_cpu_time = 0;
 	double total_gpu_time = 0;
 	double total_real_time = 0;
+
+	// MINGW doesn't support a lot of ctime stuff here
+	#ifndef __MINGW32__	
 	struct timespec real_clock_start;
 	struct timespec real_clock_now;
 	struct timespec real_clock_prev;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &real_clock_start);
 	real_clock_now = real_clock_start;
+	#endif
+
+
 	double frames = 0;
 	double data_rate = 0; // period between data output to stdout (if <= 0 there will be no output)
 	uint64_t data_points = 0;
@@ -102,7 +108,9 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 	int frame_number = 0;
 	while (scr.PumpEvents() && (max_frames < 0 || frame_number++ < max_frames))
 	{
+		#ifndef __MINGW32__
 		real_clock_prev = real_clock_now;
+		#endif
 		++frames;
 		scr.Clear();
 		//view.ForceBoundsDirty();
@@ -119,11 +127,16 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 
 		double cpu_frame = scr.GetLastFrameTimeCPU();
 		double gpu_frame = scr.GetLastFrameTimeGPU();
+		total_cpu_time += cpu_frame; total_gpu_time += gpu_frame;
+		
+		#ifndef __MINGW32__
 		clock_gettime(CLOCK_MONOTONIC_RAW, &real_clock_now);
 		double real_frame = (real_clock_now.tv_sec - real_clock_prev.tv_sec) + 1e-9*(real_clock_now.tv_nsec - real_clock_prev.tv_nsec);
-
-
-		total_real_time += real_frame; total_cpu_time += cpu_frame; total_gpu_time += gpu_frame;
+		#else
+		double real_frame = cpu_frame;
+		#endif
+		
+		total_real_time += real_frame; 
 		if (data_rate > 0 && total_real_time > data_rate*(data_points+1)) 
 		{
 			printf("%lu\t%f\t%f\t%f\t%f\t%f\t%f\n", (long unsigned int)frames, total_real_time, total_cpu_time, total_gpu_time, real_frame, cpu_frame, gpu_frame);

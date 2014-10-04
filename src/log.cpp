@@ -10,7 +10,9 @@
 #include <cstdio>
 #include <unistd.h>
 #include <stdarg.h>
+#ifndef __MINGW32__
 #include <execinfo.h>
+#endif
 
 #ifdef LOG_SYSLOG
 
@@ -145,8 +147,12 @@ void FatalEx(const char * funct, const char * file, int line, ...)
  */
 void Backtrace(int size)
 {
+	#ifndef __MINGW32__
 	void * buffer[100];
 	int actual_size = backtrace(buffer, size);
 	backtrace_symbols_fd(buffer, actual_size, fileno(stderr));
+	#else
+		Error("Backtrace not supported by compiler");
+	#endif
 }
 
