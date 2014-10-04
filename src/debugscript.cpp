@@ -238,13 +238,14 @@ void DebugScript::PrintPerformance(View * view, Screen * scr)
 	now.clock = clock();
 	now.object_count = view->Doc().ObjectCount();
 	now.view_bounds = view->GetBounds();
-	// object_count delta clock delta x deltax y deltay w deltaw h deltah
-	printf("%d\t%d\t%lu\t%lu\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n", 
-		now.object_count, now.object_count - m_perf_last.object_count,
-		(uint64_t)now.clock, (uint64_t)(now.clock - m_perf_last.clock),
-		Double(now.view_bounds.x), Double(now.view_bounds.x - m_perf_last.view_bounds.x),
-		Double(now.view_bounds.y), Double(now.view_bounds.y - m_perf_last.view_bounds.y),
-		Double(now.view_bounds.w), Double(now.view_bounds.w - m_perf_last.view_bounds.w),
-		Double(now.view_bounds.h), Double(now.view_bounds.h - m_perf_last.view_bounds.h));
+
+	// object_count  clock  delta_clock  x  Log10(x)  y  Log10(y)  w  Log10(w)  Size(w)
+	printf("%d\t%lu\t%lu\t%s\t%f\t%s\t%f\t%s\t%f\t%lu\n",
+		now.object_count, (uint64_t)now.clock,
+		(uint64_t)(now.clock - m_perf_last.clock),
+		Str(now.view_bounds.x).c_str(), Log10(now.view_bounds.x),
+		Str(now.view_bounds.y).c_str(), Log10(now.view_bounds.y),
+		Str(now.view_bounds.w).c_str(), Log10(now.view_bounds.w),
+		Size(now.view_bounds.w));
 	m_perf_last = now;
 }

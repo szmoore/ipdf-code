@@ -67,7 +67,7 @@ private:
 	{
 		clock_t clock;
 		unsigned object_count;
-		Rect view_bounds;
+		VRect view_bounds;
 	};
 	
 	PerformanceData m_perf_start;

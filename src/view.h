@@ -19,6 +19,7 @@
 namespace IPDF
 {
 	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		#pragma message "View using Gmprat for bounds"
 		typedef Gmprat VReal;
 	#else
 		typedef Real VReal;

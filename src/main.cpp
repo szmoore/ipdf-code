@@ -46,7 +46,7 @@ int main(int argc, char ** argv)
 	const char * output_bmp = NULL;
 	const char * input_filename = NULL;
 	const char * input_text = NULL;
-	float b[4] = {0,0,1,1};
+	Real b[4] = {0,0,1,1};
 	int max_frames = -1;
 	bool hide_control_panel = false;
 	bool lazy_rendering = true;
@@ -80,10 +80,7 @@ int main(int argc, char ** argv)
 				{
 					if (i+j >= argc)
 						Fatal("No %d bounds component following -b switch", j);
-					char * e;
-					b[j-1] = strtof(argv[i+j], &e);
-					if (*e != '\0')
-						Fatal("Bounds component %d not a valid float", j); 
+					b[j-1] = RealFromStr(argv[i+j]);
 				}
 				i += 4;
 				break;

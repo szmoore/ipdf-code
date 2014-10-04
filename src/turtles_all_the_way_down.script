@@ -1,0 +1,34 @@
+# BECAUSE I CAN
+gpu
+lazy
+debugfont off
+loadsvg svg-tests/turtle.svg
+loop 50 pxzoom 430 170 1
+loadsvg svg-tests/turtle.svg
+loop 50 pxzoom 430 170 1
+loadsvg svg-tests/turtle.svg
+loop 50 pxzoom 430 170 1
+loadsvg svg-tests/turtle.svg
+loop 50 pxzoom 430 170 1
+loadsvg svg-tests/turtle.svg
+loop 50 pxzoom 430 170 1
+loadsvg svg-tests/turtle.svg
+loop 50 pxzoom 430 170 1
+loadsvg svg-tests/turtle.svg
+loop 50 pxzoom 430 170 1
+loadsvg svg-tests/turtle.svg
+loop 50 pxzoom 430 170 1
+loadsvg svg-tests/turtle.svg
+loop 50 pxzoom 430 170 1
+loadsvg svg-tests/turtle.svg
+loop 50 pxzoom 430 170 1
+
+# Hmm, we sort of need a for loop...
+
+clearperf
+label start
+printperf
+loop 500 pxzoom 430 170 -1
+loop 500 pxzoom 430 170 1
+goto start
+wait
