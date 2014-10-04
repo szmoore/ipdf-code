@@ -243,8 +243,8 @@ void DebugScript::PrintPerformance(View * view, Screen * scr)
 	printf("%d\t%lu\t%lu\t%s\t%f\t%s\t%f\t%s\t%f\t%lu\n",
 		now.object_count, (uint64_t)now.clock,
 		(uint64_t)(now.clock - m_perf_last.clock),
-		Str(now.view_bounds.x).c_str(), Log10(now.view_bounds.x),
-		Str(now.view_bounds.y).c_str(), Log10(now.view_bounds.y),
+		Str(now.view_bounds.x).c_str(), Log10(Abs(now.view_bounds.x)),
+		Str(now.view_bounds.y).c_str(), Log10(Abs(now.view_bounds.y)),
 		Str(now.view_bounds.w).c_str(), Log10(now.view_bounds.w),
 		Size(now.view_bounds.w));
 	m_perf_last = now;

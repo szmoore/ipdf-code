@@ -120,7 +120,7 @@ namespace IPDF
 	inline Real Sqrt(const Real & r) {return Real(sqrt(r.ToDouble()));}
 	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 	inline Real Abs(const Real & a) {return (a > Real(0)) ? a : Real(0)-a;}
-	inline std::string Str(const Real & a) {return a.Str();}
+	
 	
 #else
 	#error "Type of Real unspecified."
@@ -139,7 +139,6 @@ namespace IPDF
 	inline double Log10(double a) {return log(a)/log(10.0);}
 	inline size_t Size(double a) {return sizeof(a);}
 	inline size_t Size(float a) {return sizeof(a);}
-	
 
 	inline int64_t Int64(double a)
 	{
@@ -197,6 +196,91 @@ namespace IPDF
 	//		(If you remove this it will also break).
 	inline Real RealFromStr(const std::string & str) {return RealFromStr(str.c_str());}
 
+
+	// things stolen from wikipedia and googling
+	inline const char * HumanScale(double f)
+	{
+		if (f < 1e-36)
+			return "RATHER SMALL";
+		if (f < 1e-35)
+			return "Plank Length";
+		if (f < 1e-25)
+			return "Turtles all the way";
+		if (f < 1e-24)
+			return "More turtles";
+		if (f < 1e-23)
+			return "Turtles";
+		if (f < 1e-22)
+			return "This small";
+		if (f < 1e-21)
+			return "To find things";
+		if (f < 1e-20)
+			return "It is pretty difficult";
+		if (f < 1e-19)
+			return "Not much";
+		if (f < 1e-17)
+			return "Weak Force";
+		if (f < 1e-16)
+			return "Proton";
+		if (f < 1e-15)
+			return "(Classical) Electron";
+		if (f < 1e-11)
+			return "Inter atomic (still)";
+		if (f < 1e-10)
+			return "Inter atomic";
+		if (f < 1e-9)
+			return "Atom";
+		if (f < 1e-8)
+			return "DNA";
+		if (f < 1e-7)
+			return "Virus";
+		if (f < 1e-6)
+			return "Light";
+		if (f < 1e-5)
+			return "Bacteria";
+		if (f < 1e-4)
+			return "4004 Transistor";
+		if (f < 1e-3)
+			return "Ant";
+		if (f < 1e-2)
+			return "Coin";
+		if (f < 1e-1)
+			return "iPhone";
+		if (f < 1e0)
+			return "Person";
+		if (f < 1e1)
+			return "Building";
+		if (f < 1e2)
+			return "Football Field";
+		if (f < 1e3)
+			return "Mountain";
+		if (f < 1e4)
+			return "Clouds";
+		if (f < 1e5)
+			return "Countries";
+		if (f < 1e6)
+			return "Earth";
+		if (f < 1e8)
+			return "Between Earth and Moon";
+		if (f < 1e9)
+			return "Solar System";
+		if (f < 1e13)
+			return "Distance to nearest Star";
+		if (f < 1e21)
+			return "Milky Way";
+		if (f < 1e26)
+			return "Universe";
+		if (f < 1e27)
+			return "A bigger Universe";
+		if (f < 1e28)
+			return "Really big things";
+		if (f < 1e29)
+			return "Almost as big as...";
+		if (f < 1e30)
+			return "Wolfram's Magestic Ego";
+		return "QUITE BIG";
+		
+	}
 
 	inline void DebugRealInfo() 
 	{

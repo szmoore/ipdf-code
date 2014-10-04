@@ -122,7 +122,7 @@ inline std::ostream & operator<<(std::ostream & os, const Gmprat & fith)
 inline std::string Str(const Gmprat & g) {return g.Str();}
 inline double Log10(const Gmprat & g) {return g.Log10();}
 inline size_t Size(const Gmprat & g) {return g.Size();}
-
+inline Gmprat Abs(const Gmprat & g) {return g.Abs();}
 
 
 #endif //_GMPRAT_H

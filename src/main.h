@@ -79,7 +79,7 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
 	DebugScript script;
 
-	scr.DebugFontInit("fonts/DejaVuSansMono.ttf");
+	scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 32);
 	scr.SetMouseHandler(RatCatcher);
 
 	if (script_filename)
@@ -129,6 +129,11 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 			printf("%lu\t%f\t%f\t%f\t%f\t%f\t%f\n", (long unsigned int)frames, total_real_time, total_cpu_time, total_gpu_time, real_frame, cpu_frame, gpu_frame);
 			data_points++;
 		}
+		
+		scr.DebugFontPrintF("View Width = %s m\n", Str(view.GetBounds().w * VReal(22e-3)).c_str());
+		scr.DebugFontPrintF("Similar size: %s\n", HumanScale(view.GetBounds().w * VReal(22e-3)));
+		
+		#if 0
 		scr.DebugFontPrintF("Rendered frame %lu\n", (uint64_t)frames);
 		scr.DebugFontPrintF("Lazy Rendering = %d\n", view.UsingLazyRendering());
 		if (cpu_frame > 0 && total_cpu_time > 0)
@@ -170,6 +175,8 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 		{
 			scr.DebugFontPrint("Doing rendering using CPU.\n");
 		}
+		#endif // 0
+		
 		scr.Present();
 	}
 }

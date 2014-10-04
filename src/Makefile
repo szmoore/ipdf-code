@@ -36,7 +36,9 @@ BIN = ../bin/ipdf
 REALTYPE=1
 CONTROLPANEL=enabled
 QUADTREE=disabled
-DEF = -DREALTYPE=$(REALTYPE) 
+DEF = -DREALTYPE=$(REALTYPE)
+
+
 
 ## Only link with things we care about
 
