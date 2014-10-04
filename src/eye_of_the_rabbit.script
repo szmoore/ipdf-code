@@ -5,6 +5,7 @@ debugfont off
 clearperf
 label start
 printperf
+clear
 debug Add rabbit 1
 loadsvg svg-tests/rabbit_simple.svg
 loop 250 pxzoom 508 305 1
@@ -16,6 +17,5 @@ loadsvg svg-tests/rabbit_simple.svg
 loop 500 pxzoom 508 305 -1
 loop 500 pxzoom 508 305 1
 debug Repeat
-clear
 goto start
 wait

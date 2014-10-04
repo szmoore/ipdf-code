@@ -61,11 +61,11 @@ namespace IPDF
 #if REALTYPE == REAL_SINGLE
 	typedef float Real;
 	inline Real RealFromStr(const char * str) {return strtof(str, NULL);}
-	inline std::string Str(const Real & a) {std::stringstream s; s << a; return s.str();}
+	//inline std::string Str(const Real & a) {std::stringstream s; s << a; return s.str();}
 #elif REALTYPE == REAL_DOUBLE
 	typedef double Real;
 	inline Real RealFromStr(const char * str) {return strtod(str, NULL);}
-	inline std::string Str(const Real & a) {std::stringstream s; s << a; return s.str();}
+	//inline std::string Str(const Real & a) {std::stringstream s; s << a; return s.str();}
 #elif REALTYPE == REAL_LONG_DOUBLE
 	typedef long double Real;
 	inline Real RealFromStr(const char * str) {return strtold(str, NULL);}
@@ -136,7 +136,10 @@ namespace IPDF
 	inline double Double(long double f) {return (double)(f);}
 	inline double Sqrt(double f) {return sqrt(f);}
 	inline double Abs(double a) {return fabs(a);}
-
+	inline double Log10(double a) {return log(a)/log(10.0);}
+	inline size_t Size(double a) {return sizeof(a);}
+	inline size_t Size(float a) {return sizeof(a);}
+	
 
 	inline int64_t Int64(double a)
 	{
