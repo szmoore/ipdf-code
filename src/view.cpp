@@ -207,11 +207,24 @@ void View::Render(int width, int height)
 	m_cached_display.Clear();
 
 #ifndef QUADTREE_DISABLED
+	// I'm going to write this out in comments, so hopefully then I'll understand it. :/
+	//
+	// This code looks at the current bounds and tries to work out how they need to change
+	// to keep the view looking at the correct quadtree node.
+	//
+	// The idea is that the width/height of the view bounds are always 0.5<=wh<=1.0. We then always
+	// try to keep the bottom-right corner of the node on-screen, changing nodes to suit. Why bottom-right,
+	// you may ask. It's an excellent question, with a dubious, hand-wavey answer: because we're manipulating
+	// the bounds, it was easier to do it that way. (The top-left corner of the bounds are within the main
+	// quadtree node).
 	if (m_bounds_dirty || !m_lazy_rendering)
 	{
+		// If we're too far zoomed out, become the parent of the current node.
 		if ( m_bounds.w > 1.0 || m_bounds.h > 1.0)
 		{
-			//TODO: Generate a new parent node.
+			// If a parent node exists, we'll become it.
+			//TODO: Generate a new parent node if none exists, and work out when to change child_type
+			// away from QTC_UNKNOWN
 			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].parent != QUADTREE_EMPTY)
 			{
 				m_bounds = TransformFromQuadChild(m_bounds, m_document.GetQuadTree().nodes[m_current_quadtree_node].child_type);
@@ -219,31 +232,34 @@ void View::Render(int width, int height)
 			}
 		}
 
-		// TODO: Support generating new parent nodes.
-		if (false && m_document.GetQuadTree().nodes[m_current_quadtree_node].parent != QUADTREE_EMPTY)
+		// If we have a parent... (This prevents some crashes, but should disappear.)
+		if (m_document.GetQuadTree().nodes[m_current_quadtree_node].parent != QUADTREE_EMPTY)
 		{
-			if (m_bounds.x < -0.5)
+			// If the current node is off the left-hand side of the screen...
+			while (m_bounds.x > 1)
 			{
-				m_bounds = Rect(m_bounds.x + 1, m_bounds.y, m_bounds.w, m_bounds.h);
-				m_current_quadtree_node = m_document.GetQuadTree().GetNeighbour(m_current_quadtree_node, -1, 0, &m_document);
-			}
-			if (m_bounds.y < -0.5)
-			{
-				m_bounds = Rect(m_bounds.x, m_bounds.y + 1, m_bounds.w, m_bounds.h);
-				m_current_quadtree_node = m_document.GetQuadTree().GetNeighbour(m_current_quadtree_node, 0, -1, &m_document);
-			}
-			if (m_bounds.w + m_bounds.x > 0.5)
-			{
+				//... the current node becomes the node to its right.
 				m_bounds = Rect(m_bounds.x - 1, m_bounds.y, m_bounds.w, m_bounds.h);
 				m_current_quadtree_node = m_document.GetQuadTree().GetNeighbour(m_current_quadtree_node, 1, 0, &m_document);
 			}
-			if (m_bounds.h + m_bounds.y > 0.5)
+			while (m_bounds.y > 1)
 			{
 				m_bounds = Rect(m_bounds.x, m_bounds.y - 1, m_bounds.w, m_bounds.h);
 				m_current_quadtree_node = m_document.GetQuadTree().GetNeighbour(m_current_quadtree_node, 0, 1, &m_document);
 			}
+			while (m_bounds.x < 0)
+			{
+				m_bounds = Rect(m_bounds.x + 1, m_bounds.y, m_bounds.w, m_bounds.h);
+				m_current_quadtree_node = m_document.GetQuadTree().GetNeighbour(m_current_quadtree_node, -1, 0, &m_document);
+			}
+			while (m_bounds.y < 0)
+			{
+				m_bounds = Rect(m_bounds.x, m_bounds.y + 1, m_bounds.w, m_bounds.h);
+				m_current_quadtree_node = m_document.GetQuadTree().GetNeighbour(m_current_quadtree_node, 0, -1, &m_document);
+			}
 		}
 
+		// Recurse into a node if we are completely within it. (If we're okay with having an invalid frame or two, we can remove this.)
 		if (ContainedInQuadChild(m_bounds, QTC_TOP_LEFT))
 		{
 			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].top_left == QUADTREE_EMPTY)
@@ -288,6 +304,20 @@ void View::Render(int width, int height)
 			m_bounds = TransformToQuadChild(m_bounds, QTC_BOTTOM_RIGHT);
 			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].bottom_right;
 		}
+
+		// Otherwise, we'll arbitrarily select the bottom-right.
+		// TODO: Perhaps select based on greatest area?
+		if (m_bounds.w < 0.5 || m_bounds.h < 0.5)
+		{
+			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].bottom_right == QUADTREE_EMPTY)
+			{
+				// We want to reparent into a child node, but none exist. Get the document to create one.
+				m_document.GenQuadChild(m_current_quadtree_node, QTC_BOTTOM_RIGHT);
+				m_render_dirty = true;
+			}
+			m_bounds = TransformToQuadChild(m_bounds, QTC_BOTTOM_RIGHT);
+			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].bottom_right;
+		}
 	}
 
 	m_screen.DebugFontPrintF("Current View QuadTree");
@@ -299,6 +329,12 @@ void View::Render(int width, int height)
 		overlay = m_document.GetQuadTree().nodes[overlay].next_overlay;
 	}
 	m_screen.DebugFontPrintF("\n");
+	m_screen.DebugFontPrintF("Left: %d, Right: %d, Up: %d, Down: %d\n",
+			m_document.GetQuadTree().GetNeighbour(m_current_quadtree_node, -1, 0, 0),
+			m_document.GetQuadTree().GetNeighbour(m_current_quadtree_node, 1, 0, 0),
+			m_document.GetQuadTree().GetNeighbour(m_current_quadtree_node, 0, -1, 0),
+			m_document.GetQuadTree().GetNeighbour(m_current_quadtree_node, 0, 1, 0));
+
 
 	Rect view_top_bounds = m_bounds;
 	QuadTreeIndex tmp = m_current_quadtree_node;
@@ -355,6 +391,7 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 	if (!remaining_depth) return;
 	//Debug("Rendering QT node %d, (objs: %d -- %d)\n", node, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
 	m_bounds_dirty = true;
+	m_render_dirty = m_buffer_dirty = true;
 	QuadTreeIndex overlay = node;
 	while(overlay != -1)
 	{
@@ -362,60 +399,25 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 		overlay = m_document.GetQuadTree().nodes[overlay].next_overlay;
 	}
 
-	if (m_bounds.Intersects(Rect(-1,-1,1,1)))
+	if (m_bounds.Intersects(Rect(1,1,1,1)))
 	{
 		m_bounds = Rect(m_bounds.x - 1, m_bounds.y - 1, m_bounds.w, m_bounds.h);
 		m_bounds_dirty = true;
-		RenderQuadtreeNode(width, height, m_document.GetQuadTree().GetNeighbour(node, -1, -1, &m_document), remaining_depth - 1);
-	}
-	m_bounds = old_bounds;
-	if (m_bounds.Intersects(Rect(-1,0,1,1)))
-	{
-		m_bounds = Rect(m_bounds.x - 1, m_bounds.y, m_bounds.w, m_bounds.h);
-		m_bounds_dirty = true;
-		RenderQuadtreeNode(width, height, m_document.GetQuadTree().GetNeighbour(node, -1, 0, &m_document), remaining_depth - 1);
-	}
-	m_bounds = old_bounds;
-	if (m_bounds.Intersects(Rect(-1,1,1,1)))
-	{
-		m_bounds = Rect(m_bounds.x - 1, m_bounds.y + 1, m_bounds.w, m_bounds.h);
-		m_bounds_dirty = true;
-		RenderQuadtreeNode(width, height, m_document.GetQuadTree().GetNeighbour(node, -1, 1, &m_document), remaining_depth - 1);
-	}
-	m_bounds = old_bounds;
-	if (m_bounds.Intersects(Rect(0,-1,1,1)))
-	{
-		m_bounds = Rect(m_bounds.x, m_bounds.y - 1, m_bounds.w, m_bounds.h);
-		m_bounds_dirty = true;
-		RenderQuadtreeNode(width, height, m_document.GetQuadTree().GetNeighbour(node, 0, -1, &m_document), remaining_depth - 1);
-	}
-	m_bounds = old_bounds;
-	if (m_bounds.Intersects(Rect(0,1,1,1)))
-	{
-		m_bounds = Rect(m_bounds.x, m_bounds.y + 1, m_bounds.w, m_bounds.h);
-		m_bounds_dirty = true;
-		RenderQuadtreeNode(width, height, m_document.GetQuadTree().GetNeighbour(node, 0, 1, &m_document), remaining_depth - 1);
-	}
-	m_bounds = old_bounds;
-	if (m_bounds.Intersects(Rect(1,-1,1,1)))
-	{
-		m_bounds = Rect(m_bounds.x + 1, m_bounds.y - 1, m_bounds.w, m_bounds.h);
-		m_bounds_dirty = true;
-		RenderQuadtreeNode(width, height, m_document.GetQuadTree().GetNeighbour(node, 1, -1, &m_document), remaining_depth - 1);
+		RenderQuadtreeNode(width, height, m_document.GetQuadTree().GetNeighbour(node, 1, 1, &m_document), remaining_depth - 1);
 	}
 	m_bounds = old_bounds;
 	if (m_bounds.Intersects(Rect(1,0,1,1)))
 	{
-		m_bounds = Rect(m_bounds.x + 1, m_bounds.y, m_bounds.w, m_bounds.h);
+		m_bounds = Rect(m_bounds.x - 1, m_bounds.y, m_bounds.w, m_bounds.h);
 		m_bounds_dirty = true;
 		RenderQuadtreeNode(width, height, m_document.GetQuadTree().GetNeighbour(node, 1, 0, &m_document), remaining_depth - 1);
 	}
 	m_bounds = old_bounds;
-	if (m_bounds.Intersects(Rect(1,1,1,1)))
+	if (m_bounds.Intersects(Rect(0,1,1,1)))
 	{
-		m_bounds = Rect(m_bounds.x + 1, m_bounds.y + 1, m_bounds.w, m_bounds.h);
+		m_bounds = Rect(m_bounds.x, m_bounds.y - 1, m_bounds.w, m_bounds.h);
 		m_bounds_dirty = true;
-		RenderQuadtreeNode(width, height, m_document.GetQuadTree().GetNeighbour(node, 1, 1, &m_document), remaining_depth - 1);
+		RenderQuadtreeNode(width, height, m_document.GetQuadTree().GetNeighbour(node, 0, 1, &m_document), remaining_depth - 1);
 	}
 	m_bounds = old_bounds;
 	m_bounds_dirty = true;

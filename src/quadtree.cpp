@@ -70,6 +70,12 @@ QuadTreeIndex QuadTree::GetNeighbour(QuadTreeIndex start, int xdir, int ydir, Do
 {
 	if (!xdir && !ydir) return start;
 
+	if (addTo && (nodes[start].parent == -1) && nodes[start].child_type != QTC_UNKNOWN)
+	{
+		Debug("Adding parent of node %d...", start);
+		addTo->GenQuadParent(start, nodes[start].child_type);
+	}
+
 	QuadTreeIndex newNode;
 	// Try moving to the right if that's easy.
 	if (xdir > 0)
