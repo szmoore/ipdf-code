@@ -19,3 +19,4 @@ tools/*
 !tools/*.py
 !src/tests/*.cpp
 !src/tests/*.h
+src/*.dll

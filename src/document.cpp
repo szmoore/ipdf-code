@@ -439,7 +439,7 @@ unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index
 			m_quadtree.nodes[new_qti].next_overlay = overlay;
 			new_qti = overlay;
 		}
-done:
+done: // matches is not amused, but sulix is nice and moved it inside the #ifdef for him.
 		m_count++;
 		PropagateQuadChanges(qti);
 	}

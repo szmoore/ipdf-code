@@ -14,13 +14,13 @@
 
 #ifdef TRANSFORM_BEZIERS_TO_PATH
 #include "gmprat.h"
+#include "paranoidnumber.h"
 #endif
 
 namespace IPDF
 {
 	#ifdef TRANSFORM_BEZIERS_TO_PATH
-		#pragma message "View using Gmprat for bounds"
-		typedef Gmprat VReal;
+		typedef ParanoidNumber VReal;
 	#else
 		typedef Real VReal;
 	#endif

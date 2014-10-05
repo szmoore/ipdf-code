@@ -33,7 +33,7 @@ class Gmprat
 				return "-" + operator-().Str();
 			}
 			double p = Log10();
-			if (isinf(p))
+			if (std::isinf(p))
 				return "0";
 				
 			int P = (int)p;
