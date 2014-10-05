@@ -42,6 +42,8 @@ namespace IPDF
 		unsigned object_end;
 		// Linked list of "extra" nodes
 		QuadTreeIndex next_overlay;
+		// First object which has not yet been propagated to extant children/parent.
+		unsigned object_dirty;
 	};
 
 	struct QuadTree

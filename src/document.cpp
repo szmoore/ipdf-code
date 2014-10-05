@@ -184,6 +184,8 @@ QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren 
 		}
 	}
 	m_quadtree.nodes[new_index].object_end = m_objects.bounds.size();
+	// No objects are dirty.
+	m_quadtree.nodes[new_index].object_dirty = m_objects.bounds.size();
 	switch (type)
 	{
 		case QTC_TOP_LEFT:
@@ -204,6 +206,80 @@ QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren 
 	return new_index;
 }
 
+void Document::OverlayQuadChildren(QuadTreeIndex orig_parent, QuadTreeIndex parent, QuadTreeNodeChildren type)
+{
+	QuadTreeIndex new_index = m_quadtree.nodes.size();
+	Debug("-------------- Generating Quadtree Node %d (orig %d parent %d, type %d) ----------------------", new_index, orig_parent, parent, type);
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, orig_parent, type, 0, 0, -1});
+
+	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();
+	for (unsigned i = m_quadtree.nodes[parent].object_dirty; i < m_quadtree.nodes[parent].object_end; ++i)
+	{
+		if (IntersectsQuadChild(m_objects.bounds[i], type))
+		{
+			m_count += ClipObjectToQuadChild(i, type);
+		}
+	}
+	m_quadtree.nodes[new_index].object_end = m_objects.bounds.size();
+	QuadTreeIndex orig_node = -1;
+	switch (type)
+	{
+		case QTC_TOP_LEFT:
+			orig_node = m_quadtree.nodes[orig_parent].top_left = new_index;
+			break;
+		case QTC_TOP_RIGHT:
+			orig_node = m_quadtree.nodes[orig_parent].top_right = new_index;
+			break;
+		case QTC_BOTTOM_LEFT:
+			orig_node = m_quadtree.nodes[orig_parent].bottom_left = new_index;
+			break;
+		case QTC_BOTTOM_RIGHT:
+			orig_node = m_quadtree.nodes[orig_parent].bottom_right = new_index;
+			break;
+		default:
+			Fatal("Tried to overlay a QuadTree child of invalid type!");
+	}
+	if (orig_node == -1)
+		Fatal("Tried to overlay a QuadTree child that didn't exist!");
+
+	// Add us to the node's overlay linked list.
+	QuadTreeIndex prev_overlay = orig_node;
+	while (m_quadtree.nodes[prev_overlay].next_overlay != -1);
+	m_quadtree.nodes[prev_overlay].next_overlay = new_index;
+
+	// Recurse into any extant children.
+	if (m_quadtree.nodes[orig_node].top_left != -1)
+		OverlayQuadChildren(orig_node, new_index, QTC_TOP_LEFT);
+	if (m_quadtree.nodes[orig_node].top_right != -1)
+		OverlayQuadChildren(orig_node, new_index, QTC_TOP_RIGHT);
+	if (m_quadtree.nodes[orig_node].bottom_left != -1)
+		OverlayQuadChildren(orig_node, new_index, QTC_BOTTOM_LEFT);
+	if (m_quadtree.nodes[orig_node].bottom_right != -1)
+		OverlayQuadChildren(orig_node, new_index, QTC_BOTTOM_RIGHT);
+
+	m_quadtree.nodes[new_index].object_dirty = m_quadtree.nodes[new_index].object_end;
+}
+
+void Document::PropagateQuadChanges(QuadTreeIndex node)
+{
+	for(QuadTreeIndex overlay = node; overlay != -1; overlay = m_quadtree.nodes[overlay].next_overlay)
+	{
+		// We don't care about clean overlays.
+		if (m_quadtree.nodes[overlay].object_dirty == m_quadtree.nodes[overlay].object_end) continue;
+		// Recurse into any extant children.
+		if (m_quadtree.nodes[node].top_left != -1)
+			OverlayQuadChildren(node, overlay, QTC_TOP_LEFT);
+		if (m_quadtree.nodes[node].top_right != -1)
+			OverlayQuadChildren(node, overlay, QTC_TOP_RIGHT);
+		if (m_quadtree.nodes[node].bottom_left != -1)
+			OverlayQuadChildren(node, overlay, QTC_BOTTOM_LEFT);
+		if (m_quadtree.nodes[node].bottom_right != -1)
+			OverlayQuadChildren(node, overlay, QTC_BOTTOM_RIGHT);
+
+		m_quadtree.nodes[overlay].object_dirty = m_quadtree.nodes[overlay].object_end;
+	}
+}
+
 // Reparent a quadtree node, making it the "type" child of a new node.
 QuadTreeIndex Document::GenQuadParent(QuadTreeIndex child, QuadTreeNodeChildren type)
 {
@@ -222,6 +298,7 @@ QuadTreeIndex Document::GenQuadParent(QuadTreeIndex child, QuadTreeNodeChildren 
 		}
 	}
 	m_quadtree.nodes[new_index].object_end = m_objects.bounds.size();
+	m_quadtree.nodes[new_index].object_dirty = m_objects.bounds.size();
 	switch (type)
 	{
 		case QTC_TOP_LEFT:
@@ -340,24 +417,34 @@ unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index
 #ifndef QUADTREE_DISABLED
 	if (qti != -1)
 	{
-		while (m_quadtree.nodes[qti].next_overlay != -1)
+		QuadTreeIndex new_qti = qti;
+		while (m_quadtree.nodes[new_qti].next_overlay != -1)
 		{
-			if (m_count == m_quadtree.nodes[qti].object_end+1)
+			if (m_count == m_quadtree.nodes[new_qti].object_end+1)
 			{
-				m_quadtree.nodes[qti].object_end++;
+				m_quadtree.nodes[new_qti].object_end++;
 				goto done;
 			}
-			qti = m_quadtree.nodes[qti].next_overlay;
+			new_qti = m_quadtree.nodes[new_qti].next_overlay;
 		}
-		QuadTreeIndex overlay = m_quadtree.nodes.size();
-		m_quadtree.nodes.push_back(m_quadtree.nodes[qti]);
-		m_quadtree.nodes[overlay].object_begin = m_count;
-		m_quadtree.nodes[overlay].object_end = m_count+1;
-		m_quadtree.nodes[qti].next_overlay = overlay;
+		{
+			QuadTreeIndex overlay = m_quadtree.nodes.size();
+			Debug("Adding new overlay, nqti = %d, overlay = %d", new_qti, overlay);
+			m_quadtree.nodes.push_back(m_quadtree.nodes[qti]);
+			m_quadtree.nodes[overlay].object_begin = m_count;
+			// All objects are dirty.
+			m_quadtree.nodes[overlay].object_dirty = m_count;
+			m_quadtree.nodes[overlay].object_end = m_count+1;
+			m_quadtree.nodes[overlay].next_overlay = -1;
+			m_quadtree.nodes[new_qti].next_overlay = overlay;
+			new_qti = overlay;
+		}
+done:
+		m_count++;
+		PropagateQuadChanges(qti);
 	}
 #endif
-done:
-	return (m_count++); // Why can't we just use the size of types or something?
+	return m_count; // Why can't we just use the size of types or something?
 }
 
 unsigned Document::AddBezierData(const Bezier & bezier)

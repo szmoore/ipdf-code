@@ -167,7 +167,7 @@ namespace IPDF
 	class PathRenderer : public ObjectRenderer
 	{
 		public:
-			PathRenderer() : ObjectRenderer(PATH, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/bezier_texbug_geom.glsl") {}
+			PathRenderer() : ObjectRenderer(PATH, "shaders/rect_vert.glsl", "shaders/rect_frag.glsl", "shaders/bezier_texbuf_geom.glsl") {}
 			virtual ~PathRenderer() {}
 			virtual void RenderUsingCPU(Objects & objects, const View & view, const CPURenderTarget & target, unsigned first_obj_id, unsigned last_obj_id);
 			// do nothing on GPU

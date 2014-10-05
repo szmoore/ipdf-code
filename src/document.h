@@ -90,6 +90,8 @@ namespace IPDF
 			inline const QuadTree& GetQuadTree() { if (m_quadtree.root_id == QUADTREE_EMPTY) { GenBaseQuadtree(); } return m_quadtree; }
 			QuadTreeIndex GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type);
 			QuadTreeIndex GenQuadParent(QuadTreeIndex child, QuadTreeNodeChildren mytype);
+			void OverlayQuadChildren(QuadTreeIndex orig_parent, QuadTreeIndex parent, QuadTreeNodeChildren type);
+			void PropagateQuadChanges(QuadTreeIndex node);
 			// Returns the number of objects the current object formed when clipped, the objects in question are added to the end of the document.
 			int ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type);
 #endif

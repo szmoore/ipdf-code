@@ -130,11 +130,13 @@ bool GraphicsBuffer::RecreateBuffer(const void *data)
 	{
 		glDeleteBuffers(1, &m_buffer_handle);
 	}
-	glGenBuffers(1, &m_buffer_handle);
-	glObjectLabel(GL_BUFFER, m_buffer_handle, -1, m_name);
-	m_buffer_shape_dirty = false;
 	if (m_buffer_size)
+	{
+		glGenBuffers(1, &m_buffer_handle);
+		glObjectLabel(GL_BUFFER, m_buffer_handle, -1, m_name);
+		m_buffer_shape_dirty = false;
 		Upload(m_buffer_size, data);
+	}
 	return true;
 }
 
@@ -155,6 +157,10 @@ void* GraphicsBuffer::Map(bool read, bool write, bool invalidate)
 
 	if (m_map_pointer)
 		Warn("Tried to map already mapped buffer!");	
+
+	// Intel really doesn't seem to like this.
+	if (!m_buffer_size)
+		return (m_map_pointer = 0);
 
 
 	if (!read && m_buffer_usage == BufferUsage::BufferUsageStaticDraw)
@@ -180,6 +186,10 @@ void* GraphicsBuffer::MapRange(int offset, int length, bool read, bool write, bo
 
 	if (m_map_pointer)
 		Warn("Tried to map already mapped buffer!");	
+
+	// This sometimes makes Intel corrupt memory?
+	if (!length) return (m_map_pointer = 0);
+
 
 	RecreateBuffer();
 
@@ -243,9 +253,18 @@ void GraphicsBuffer::UploadRange(size_t length, intptr_t offset, const void* dat
 
 void GraphicsBuffer::Resize(size_t length)
 {
+	if (!m_buffer_size)
+	{
+		m_buffer_size = length;
+		return;
+	}
 	if (m_invalidated && m_buffer_size >= length)
 	{
 		m_buffer_size = length;
+	}
+	else if (length <= m_buffer_size)
+	{
+		// Don't need to do anything.
 	}
 	else
 	{
