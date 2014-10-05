@@ -20,3 +20,4 @@ tools/*
 !src/tests/*.cpp
 !src/tests/*.h
 src/*.dll
+*.exe

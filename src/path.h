@@ -16,7 +16,7 @@
 namespace IPDF
 {
 	#ifdef TRANSFORM_BEZIERS_TO_PATH
-		typedef ParanoidNumber PReal;
+		typedef Gmprat PReal;
 	#else
 		typedef Real PReal;
 	#endif

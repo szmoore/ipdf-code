@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include <cmath>
+#include <cfloat>
 
 
 #define REAL_SINGLE 0
@@ -139,6 +140,13 @@ namespace IPDF
 	inline double Log10(double a) {return log(a)/log(10.0);}
 	inline size_t Size(double a) {return sizeof(a);}
 	inline size_t Size(float a) {return sizeof(a);}
+	
+	// Don't cause an exception
+	inline float ClampFloat(double d)
+	{
+		float f = (fabs(d) < FLT_MAX) ? ((fabs(d) > FLT_MIN) ? (float)d : FLT_MIN) : FLT_MAX;
+		return copysign(f, d);
+	}
 
 	inline int64_t Int64(double a)
 	{
