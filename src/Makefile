@@ -19,7 +19,7 @@ QT_LIB :=  -L/usr/lib/x86_64-linux-gnu -lQtGui -lQtCore -lpthread
 LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL -lgmp
 LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL -lgmp
 LIB_i686 = $(LIB_i386)
-LIB_win32 = -mwindows -lmingw32 -L../contrib/win32/lib/ -lSDL2main -lSDL2 -lgmp -static-libgcc -static-libstdc++
+LIB_win32 = -mwindows -lmingw32 -L../contrib/win32/lib/ -lSDL2main -lSDL2 -lgmp -static-libgcc -lopengl32 -static-libstdc++
 
 MAINRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../contrib/lib'
 MAINRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../contrib/lib32'
@@ -28,6 +28,7 @@ MAINRPATH_win32 = -Wl,-rpath,'$$ORIGIN/../contrib/win32/lib'
 TESTRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib'
 TESTRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../../contrib/lib32'
 TESTRPATH_i686 = $(TESTRPATH_i386)
+TESTRPATH_win32 = -Wl,-rpath,'$$ORIGIN/../../contrib/win32/lib'
 OBJPATHS = $(OBJ:%=../obj/%)
 DEPS := $(OBJPATHS:%.o=%.d)
 CFLAGS_x86_64 := -I../contrib/include/SDL2 -I`pwd`

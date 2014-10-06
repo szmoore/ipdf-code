@@ -242,12 +242,12 @@ void DebugScript::PrintPerformance(View * view, Screen * scr)
 	// object_count  clock  delta_clock  x  Log10(x)  y  Log10(y)  w  Log10(w)  Size(w)
 	#ifdef QUADTREE_DISABLED
 	printf("%d\t%llu\t%llu\t%s\t%f\t%s\t%f\t%s\t%f\t%u\n",
-		now.object_count, (uint64_t)now.clock,
-		(uint64_t)(now.clock - m_perf_last.clock),
+		now.object_count, (long long unsigned)now.clock,
+		(long long unsigned)(now.clock - m_perf_last.clock),
 		Str(now.view_bounds.x).c_str(), Log10(Abs(now.view_bounds.x)),
 		Str(now.view_bounds.y).c_str(), Log10(Abs(now.view_bounds.y)),
 		Str(now.view_bounds.w).c_str(), Log10(now.view_bounds.w),
-		Size(now.view_bounds.w));
+		(unsigned)Size(now.view_bounds.w));
 	#endif
 	m_perf_last = now;
 }

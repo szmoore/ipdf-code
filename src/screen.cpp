@@ -8,6 +8,8 @@
 #include "bufferbuilder.h"
 #include "shaderprogram.h"
 
+
+
 #define BASICTEX_VERT "shaders/basictex_vert.glsl"
 #define BASICTEX_FRAG "shaders/basictex_frag.glsl"
 
@@ -70,9 +72,9 @@ Screen::Screen(bool visible)
 	m_frame_begin_time = SDL_GetPerformanceCounter();
 	m_last_frame_time = 0;
 	m_last_frame_gpu_timer = 0;
+
 	glGenQueries(1, &m_frame_gpu_timer);
 	glBeginQuery(GL_TIME_ELAPSED, m_frame_gpu_timer);
-
 	#ifndef __MINGW32__
 	glDebugMessageCallback(opengl_debug_callback, 0);
 	#endif

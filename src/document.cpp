@@ -445,8 +445,11 @@ done: // matches is not amused, but sulix is nice and moved it inside the #ifdef
 		m_count++;
 		PropagateQuadChanges(qti);
 	}
+	return m_count;
+#else // words fail me (still not amused)
+	return (m_count++);
 #endif
-	return m_count; // Why can't we just use the size of types or something?
+	
 }
 
 unsigned Document::AddBezierData(const Bezier & bezier)

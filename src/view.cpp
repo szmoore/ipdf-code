@@ -543,10 +543,10 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 			obj_bounds = TransformToViewCoords(m_document.m_objects.bounds[id]);
 		}
 		GPUObjBounds gpu_bounds = {
-			(float)Float(obj_bounds.x),
-			(float)Float(obj_bounds.y),
-			(float)Float(obj_bounds.x + obj_bounds.w),
-			(float)Float(obj_bounds.y + obj_bounds.h)
+			Float(obj_bounds.x),
+			Float(obj_bounds.y),
+			Float(obj_bounds.x + obj_bounds.w),
+			Float(obj_bounds.y + obj_bounds.h)
 		};
 
 		obj_bounds_builder.Add(gpu_bounds);
@@ -573,19 +573,19 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 			if (!m_use_gpu_transform)
 				obj_bounds = TransformToViewCoords(obj_bounds);
 			GPUObjBounds gpu_bounds = {
-				Float(obj_bounds.x),
-				Float(obj_bounds.y),
-				Float(obj_bounds.x + obj_bounds.w),
-				Float(obj_bounds.y + obj_bounds.h)
+				ClampFloat(obj_bounds.x),
+				ClampFloat(obj_bounds.y),
+				ClampFloat(obj_bounds.x + obj_bounds.w),
+				ClampFloat(obj_bounds.y + obj_bounds.h)
 			};
 			obj_bounds_builder.Add(gpu_bounds);
 			//Debug("Path %d %s -> %s via %s", id, m_document.m_objects.bounds[id].Str().c_str(), obj_bounds.Str().c_str(), pbounds.Str().c_str()); 
 		}
 		GPUObjBounds p_gpu_bounds = {
-				Float(pbounds.x),
-				Float(pbounds.y),
-				Float(pbounds.x + pbounds.w),
-				Float(pbounds.y + pbounds.h)
+				ClampFloat(pbounds.x),
+				ClampFloat(pbounds.y),
+				ClampFloat(pbounds.x + pbounds.w),
+				ClampFloat(pbounds.y + pbounds.h)
 		};		
 		obj_bounds_builder.Add(p_gpu_bounds);
 	}

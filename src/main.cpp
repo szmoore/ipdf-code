@@ -21,6 +21,7 @@ void sigfpe_handler(int sig)
 
 int main(int argc, char ** argv)
 {	
+	//Debug("Main!");
 	signal(SIGFPE, sigfpe_handler);
 	#if REALTYPE == REAL_IRRAM
 	  iRRAM_initialize(argc,argv);
