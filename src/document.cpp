@@ -225,16 +225,16 @@ void Document::OverlayQuadChildren(QuadTreeIndex orig_parent, QuadTreeIndex pare
 	switch (type)
 	{
 		case QTC_TOP_LEFT:
-			orig_node = m_quadtree.nodes[orig_parent].top_left = new_index;
+			orig_node = m_quadtree.nodes[orig_parent].top_left;
 			break;
 		case QTC_TOP_RIGHT:
-			orig_node = m_quadtree.nodes[orig_parent].top_right = new_index;
+			orig_node = m_quadtree.nodes[orig_parent].top_right;
 			break;
 		case QTC_BOTTOM_LEFT:
-			orig_node = m_quadtree.nodes[orig_parent].bottom_left = new_index;
+			orig_node = m_quadtree.nodes[orig_parent].bottom_left;
 			break;
 		case QTC_BOTTOM_RIGHT:
-			orig_node = m_quadtree.nodes[orig_parent].bottom_right = new_index;
+			orig_node = m_quadtree.nodes[orig_parent].bottom_right;
 			break;
 		default:
 			Fatal("Tried to overlay a QuadTree child of invalid type!");
@@ -244,7 +244,8 @@ void Document::OverlayQuadChildren(QuadTreeIndex orig_parent, QuadTreeIndex pare
 
 	// Add us to the node's overlay linked list.
 	QuadTreeIndex prev_overlay = orig_node;
-	while (m_quadtree.nodes[prev_overlay].next_overlay != -1);
+	while (m_quadtree.nodes[prev_overlay].next_overlay != -1) prev_overlay = m_quadtree.nodes[prev_overlay].next_overlay;
+	Debug("- Original node %d, Previous overlay %d, new overlay %d", orig_node, prev_overlay, new_index);
 	m_quadtree.nodes[prev_overlay].next_overlay = new_index;
 
 	// Recurse into any extant children.
@@ -258,6 +259,7 @@ void Document::OverlayQuadChildren(QuadTreeIndex orig_parent, QuadTreeIndex pare
 		OverlayQuadChildren(orig_node, new_index, QTC_BOTTOM_RIGHT);
 
 	m_quadtree.nodes[new_index].object_dirty = m_quadtree.nodes[new_index].object_end;
+	m_quadtree.nodes[new_index].next_overlay = -1;
 }
 
 void Document::PropagateQuadChanges(QuadTreeIndex node)

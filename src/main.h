@@ -79,7 +79,7 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
 	DebugScript script;
 
-	scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 32);
+	scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 12);
 	scr.SetMouseHandler(RatCatcher);
 
 	if (script_filename)

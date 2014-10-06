@@ -377,7 +377,8 @@ void View::Render(int width, int height)
 	glPopDebugGroup();
 	
 #ifndef CONTROLPANEL_DISABLED
-	ControlPanel::Update();
+	// The powers that be suggest that this may be causing of the segfaults.
+	//ControlPanel::Update();
 #endif //CONTROLPANEL_DISABLED
 	//Debug("Completed Render");
 	
