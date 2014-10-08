@@ -25,11 +25,12 @@ using namespace std;
  * @param colour - Colour to use for rendering this view. TODO: Make sure this actually works, or just remove it
  */
 View::View(Document & document, Screen & screen, const VRect & bounds, const Colour & colour)
-	: m_use_gpu_transform(USE_GPU_TRANSFORM), m_use_gpu_rendering(USE_GPU_RENDERING), m_bounds_dirty(true), m_buffer_dirty(true), 
+	: m_use_gpu_transform(false), m_use_gpu_rendering(USE_GPU_RENDERING), m_bounds_dirty(true), m_buffer_dirty(true), 
 		m_render_dirty(true), m_document(document), m_screen(screen), m_cached_display(), m_bounds(bounds), m_colour(colour), m_bounds_ubo(), 
 		m_objbounds_vbo(), m_object_renderers(NUMBER_OF_OBJECT_TYPES), m_cpu_rendering_pixels(NULL),
 		m_perform_shading(USE_SHADING), m_show_bezier_bounds(false), m_show_bezier_type(false),
-		m_show_fill_points(false), m_show_fill_bounds(false), m_lazy_rendering(true)
+		m_show_fill_points(false), m_show_fill_bounds(false), m_lazy_rendering(true),
+		m_query_gpu_bounds_on_next_frame(NULL)
 {
 	Debug("View Created - Bounds => {%s}", m_bounds.Str().c_str());
 
@@ -109,6 +110,14 @@ void View::Translate(Real x, Real y)
  */
 void View::SetBounds(const Rect & bounds)
 {
+	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+	ObjectType type = NUMBER_OF_OBJECT_TYPES;
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		type = PATH;
+	#endif
+	SVGMatrix transform = {Real(m_bounds.w)/bounds.w, 0, Real(m_bounds.x) - bounds.x, 0,Real(m_bounds.h)/bounds.h, Real(m_bounds.y) - bounds.y};
+	m_document.TransformObjectBounds(transform, type);
+	#endif
 	m_bounds.x = bounds.x;
 	m_bounds.y = bounds.y;
 	m_bounds.w = bounds.w;
@@ -512,6 +521,11 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 
 void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 {
+	if (m_query_gpu_bounds_on_next_frame != NULL)
+	{
+		fprintf(m_query_gpu_bounds_on_next_frame,"# View: %s\t%s\t%s\t%s", Str(m_bounds.x).c_str(), Str(m_bounds.y).c_str(), Str(m_bounds.w).c_str(), Str(m_bounds.h).c_str());
+	}	
+	
 	//m_objbounds_vbo.Invalidate();
 	m_objbounds_vbo.SetType(GraphicsBuffer::BufferTypeVertex);
 	m_objbounds_vbo.SetName("Object Bounds VBO");
@@ -549,6 +563,11 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 			Float(obj_bounds.y + obj_bounds.h)
 		};
 
+		if (m_query_gpu_bounds_on_next_frame != NULL)
+		{	
+			fprintf(m_query_gpu_bounds_on_next_frame,"%d\t%f\t%f\t%f\t%f\n", id, Float(obj_bounds.x), Float(obj_bounds.y), Float(obj_bounds.w), Float(obj_bounds.h));
+		}
+		
 		obj_bounds_builder.Add(gpu_bounds);
 	}
 	#else
@@ -556,6 +575,10 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 	{
 		Path & path = m_document.m_objects.paths[i];
 		Rect & pbounds = path.GetBounds(m_document.m_objects); // Not very efficient...
+		//TODO: Add clipping here
+		//if (!pbounds.Intersects(Rect(0,0,1,1)) || pbounds.w < Real(1)/Real(800))
+		//	continue;
+
 		for (unsigned id = path.m_start; id <= path.m_end; ++id)
 		{
 			if (id < first_obj || id >= last_obj)
@@ -580,6 +603,11 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 			};
 			obj_bounds_builder.Add(gpu_bounds);
 			//Debug("Path %d %s -> %s via %s", id, m_document.m_objects.bounds[id].Str().c_str(), obj_bounds.Str().c_str(), pbounds.Str().c_str()); 
+			
+			if (m_query_gpu_bounds_on_next_frame != NULL)
+			{
+				fprintf(m_query_gpu_bounds_on_next_frame,"%d\t%f\t%f\t%f\t%f\n", id, ClampFloat(obj_bounds.x), ClampFloat(obj_bounds.y), ClampFloat(obj_bounds.w), ClampFloat(obj_bounds.h));
+			}
 		}
 		GPUObjBounds p_gpu_bounds = {
 				ClampFloat(pbounds.x),
@@ -590,6 +618,12 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 		obj_bounds_builder.Add(p_gpu_bounds);
 	}
 	#endif
+	if (m_query_gpu_bounds_on_next_frame != NULL)
+	{
+		if (m_query_gpu_bounds_on_next_frame != stdout && m_query_gpu_bounds_on_next_frame != stderr)
+			fclose(m_query_gpu_bounds_on_next_frame);
+		m_query_gpu_bounds_on_next_frame = NULL;
+	}
 	m_objbounds_vbo.UnMap();
 }
 /**
@@ -659,4 +693,15 @@ void View::SaveGPUBMP(const char * filename)
 	Render(800,600);
 	m_screen.ScreenShot(filename);
 	SetGPURendering(prev);	
+}
+
+void View::QueryGPUBounds(const char * filename, const char * mode)
+{
+	m_query_gpu_bounds_on_next_frame = fopen(filename, mode); 
+	Debug("File: %s", filename);
+	if (m_query_gpu_bounds_on_next_frame == NULL)
+		Error("Couldn't open file \"%s\" : %s", filename, strerror(errno));
+	ForceBoundsDirty(); 
+	ForceBufferDirty(); 
+	ForceRenderDirty();
 }

@@ -8,14 +8,13 @@
 #include "path.h"
 #include "transformationtype.h"
 
-#define USE_GPU_TRANSFORM true 
+#define USE_GPU_TRANSFORM false 
 #define USE_GPU_RENDERING true
 #define USE_SHADING !(USE_GPU_RENDERING) && true
 
-#ifdef TRANSFORM_BEZIERS_TO_PATH
+
 #include "gmprat.h"
-#include "paranoidnumber.h"
-#endif
+
 
 namespace IPDF
 {
@@ -73,6 +72,8 @@ namespace IPDF
 			void ForceBufferDirty() {m_buffer_dirty = true;}		
 			void ForceRenderDirty() {m_render_dirty = true;}
 			
+			void QueryGPUBounds(const char * filename, const char * mode="r");
+			
 			void SetLazyRendering(bool state = true) {m_lazy_rendering = state;}
 			bool UsingLazyRendering() const {return m_lazy_rendering;}
 			
@@ -89,6 +90,8 @@ namespace IPDF
 				float x0, y0;
 				float x1, y1;
 			} __attribute__((packed));
+			
+			
 
 			void PrepareRender(); // call when m_render_dirty is true
 			void UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj); // call when m_buffer_dirty is true
@@ -127,6 +130,8 @@ namespace IPDF
 			bool m_show_fill_bounds;
 			
 			bool m_lazy_rendering;// don't redraw frames unless we need to
+			
+			FILE * m_query_gpu_bounds_on_next_frame;
 
 
 #ifndef QUADTREE_DISABLED

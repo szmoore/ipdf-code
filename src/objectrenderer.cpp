@@ -390,6 +390,12 @@ void BezierRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 	glUniform1i(m_shader_program.GetUniformLocation("bezier_buffer_texture"), 0);
 	glUniform1i(m_shader_program.GetUniformLocation("bezier_id_buffer_texture"), 1);
 	m_ibo.Bind();
+	
+	// To antialias the line... causes SIGFPE because why would anything make sense
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glEnable(GL_LINE_SMOOTH);
+	//glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 	glDrawElements(GL_LINES, (last_index-first_index)*2, GL_UNSIGNED_INT, (GLvoid*)(2*first_index*sizeof(uint32_t)));
 }
 
@@ -429,7 +435,7 @@ void PathRenderer::RenderUsingCPU(Objects & objects, const View & view, const CP
 			continue;
 		for (unsigned b = path.m_start; b <= path.m_end; ++b)
 		{
-			Rect & bbounds = objects.bounds[b];
+			Rect bbounds = view.TransformToViewCoords(objects.bounds[b]);
 			Bezier & bez = objects.beziers[objects.data_indices[b]];
 			BezierRenderer::RenderBezierOnCPU(bez,bbounds,view,target,path.m_stroke);
 		}

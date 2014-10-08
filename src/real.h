@@ -41,6 +41,7 @@
 
 #if REALTYPE == REAL_MPFRCPP
 	#include <mpreal.h>
+
 #endif //REALTYPE
 
 #if REALTYPE == REAL_IRRAM
@@ -98,6 +99,10 @@ namespace IPDF
 	inline Real Sqrt(const Real & r) {return mpfr::sqrt(r, mpfr::mpreal::get_default_rnd());}
 	inline Real Abs(const Real & r) {return mpfr::abs(r, mpfr::mpreal::get_default_rnd());}
 	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
+	inline std::string Str(const mpfr::mpreal & a) {std::stringstream s; s << a; return s.str();}
+	inline size_t Size(mpfr::mpreal & a) {return a.get_prec();}
+	inline mpfr::mpreal Log10(const mpfr::mpreal & a) {return mpfr::log10(a);}	
+	
 #elif REALTYPE == REAL_IRRAM
 	typedef iRRAM::REAL Real;
 	inline double Double(const Real & r) {return r.as_double(53);}
@@ -138,8 +143,9 @@ namespace IPDF
 	inline double Sqrt(double f) {return sqrt(f);}
 	inline double Abs(double a) {return fabs(a);}
 	inline double Log10(double a) {return log(a)/log(10.0);}
-	inline size_t Size(double a) {return sizeof(a);}
 	inline size_t Size(float a) {return sizeof(a);}
+	inline size_t Size(double a) {return sizeof(a);}
+	
 	
 	// Don't cause an exception
 	inline float ClampFloat(double d)

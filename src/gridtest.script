@@ -1,0 +1,6 @@
+setbounds 0 0 1 1
+loadsvg svg-tests/grid.svg
+loop 1000 wait
+setbounds 0.5 0.5 1e-5 1e-5
+loadsvg svg-tests/grid.svg
+loop 1000 wait

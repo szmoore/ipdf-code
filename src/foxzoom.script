@@ -1,0 +1,12 @@
+label start
+setbounds 0 0 1 1
+loadsvg svg-tests/fox-vector.svg
+querygpubounds original.dat
+screenshot original.bmp
+loop 1950 pxzoom 0 0 -1
+loop 200 wait
+debug hi
+loop 1950 pxzoom 0 0 1
+querygpubounds transformed.dat
+screenshot transformed.bmp
+wait

@@ -41,6 +41,11 @@ private:
 		AT_PrintPerformance,
 		AT_RecordPerformance,
 		AT_DebugFont,
+		AT_ApproachBoundsZeno,
+		AT_ApproachBoundsLinear,
+		AT_SetBounds,
+		AT_QueryGPUBounds, // query bounds of Beziers when transformed to GPU
+		AT_ScreenShot, // take screenshot
 		AT_Quit
 	};
 
@@ -52,6 +57,7 @@ private:
 		Real z;
 		int iz;
 		int loops;
+		Real w, h;
 		std::string textargs;
 		Action() : type(AT_WaitFrame), x(0), y(0), ix(0), iy(0), z(0), loops(0), textargs("") {}
 	};
@@ -76,7 +82,7 @@ private:
 	void PrintPerformance(View * view, Screen * scr);
 	void ClearPerformance(View * view, Screen * scr);
 	
-	void ParseAction();
+	void ParseAction(View * view, Screen * scr);
 };
 
 }

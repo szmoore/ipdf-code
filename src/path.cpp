@@ -126,7 +126,7 @@ bool Path::PointInside(const Objects & objects, const Vec2 & pt, bool debug) con
 
 vector<Vec2> & Path::FillPoints(const Objects & objects, const View & view)
 {
-	if (m_fill_points.size() != 0)
+	//if (m_fill_points.size() != 0)
 		return m_fill_points;
 		
 	

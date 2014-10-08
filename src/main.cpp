@@ -21,6 +21,8 @@ void sigfpe_handler(int sig)
 
 int main(int argc, char ** argv)
 {	
+	
+	
 	//Debug("Main!");
 	signal(SIGFPE, sigfpe_handler);
 	#if REALTYPE == REAL_IRRAM
@@ -36,8 +38,12 @@ int main(int argc, char ** argv)
 	#ifndef __MINGW32__
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	#endif
-
+	#if REALTYPE == REAL_MPFRCPP
+	mpfr_set_default_prec(6);
+	#endif
 	DebugRealInfo();
+
+
 
 	Document doc("","fonts/ComicSans.ttf");
 	srand(time(NULL));

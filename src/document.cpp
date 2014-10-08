@@ -1145,28 +1145,43 @@ void Document::AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real sca
 	stbtt_FreeShape(font, instructions);
 }
 
-void Document::TransformObjectBounds(const SVGMatrix & transform)
+void Document::TransformObjectBounds(const SVGMatrix & transform, ObjectType type)
 {
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		for (unsigned i = 0; i < m_objects.paths.size(); ++i)
+		{
+			Path & p = m_objects.paths[i];
+			p.m_bounds.x = transform.a * p.m_bounds.x + transform.e;
+			p.m_bounds.y = transform.d * p.m_bounds.y + transform.f;
+			p.m_bounds.w *= transform.a;
+			p.m_bounds.h *= transform.d;
+		}
+		return;
+	#endif		
+	
 	for (unsigned i = 0; i < m_count; ++i)
 	{
-		TransformXYPair(m_objects.bounds[i].x, m_objects.bounds[i].y, transform);
-		m_objects.bounds[i].w *= transform.a;
-		m_objects.bounds[i].h *= transform.d;
+		if (type == NUMBER_OF_OBJECT_TYPES || m_objects.types[i] == type)
+		{
+			TransformXYPair(m_objects.bounds[i].x, m_objects.bounds[i].y, transform);
+			m_objects.bounds[i].w *= transform.a;
+			m_objects.bounds[i].h *= transform.d;
+		}
 	}
 }
 
 void Document::TranslateObjects(const Real & dx, const Real & dy, ObjectType type)
 {
 	#ifdef TRANSFORM_BEZIERS_TO_PATH
-		for (unsigned i = 0; i < m_objects.paths.size(); ++i)
-		{
-			Path & p = m_objects.paths[i];
-			p.m_bounds.x += dx;
-			p.m_bounds.y += dy;
-		}
-		return;
-	#endif	
-	
+	for (unsigned i = 0; i < m_objects.paths.size(); ++i)
+	{
+		Path & p = m_objects.paths[i];
+		p.m_bounds.x += dx;
+		p.m_bounds.y += dy;
+	}
+	return;
+	#endif
+
 	for (unsigned i = 0; i < m_count; ++i)
 	{
 		if (type == NUMBER_OF_OBJECT_TYPES || m_objects.types[i] == type)

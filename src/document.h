@@ -82,7 +82,7 @@ namespace IPDF
 			
 			void AddFontGlyphAtPoint(stbtt_fontinfo *font, int character, Real scale, Real x, Real y);
 			
-			void TransformObjectBounds(const SVGMatrix & transform);
+			void TransformObjectBounds(const SVGMatrix & transform, ObjectType type = NUMBER_OF_OBJECT_TYPES);
 			void TranslateObjects(const Real & x, const Real & y, ObjectType type = NUMBER_OF_OBJECT_TYPES);
 			void ScaleObjectsAboutPoint(const Real & x, const Real & y, const Real & scale_amount, ObjectType type = NUMBER_OF_OBJECT_TYPES);
 			

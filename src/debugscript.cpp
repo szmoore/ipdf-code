@@ -4,7 +4,7 @@
 
 using namespace IPDF;
 
-void DebugScript::ParseAction()
+void DebugScript::ParseAction(View * view, Screen * scr)
 {
 	std::string actionType;
 	inp >> actionType;
@@ -118,6 +118,52 @@ void DebugScript::ParseAction()
 		currentAction.type = AT_DebugFont;
 		inp >> currentAction.textargs;
 	}
+	else if (actionType == "approachz") // approach zenoistically
+	{
+		currentAction.type = AT_ApproachBoundsZeno;
+		std::string _x, _y, _w, _h, _z;
+		inp >> _x >> _y >> _w >> _h >> _z;
+		currentAction.x = RealFromStr(_x.c_str());
+		currentAction.y = RealFromStr(_y.c_str());
+		currentAction.w = RealFromStr(_w.c_str());
+		currentAction.h = RealFromStr(_h.c_str());
+		currentAction.z = RealFromStr(_z.c_str());
+	}
+	else if (actionType == "approachl") // approach linearly
+	{
+		currentAction.type = AT_ApproachBoundsLinear;
+		std::string _x, _y, _w, _h, _z;
+		inp >> _x >> _y >> _w >> _h >> _z;
+		currentAction.x = RealFromStr(_x.c_str());
+		currentAction.y = RealFromStr(_y.c_str());
+		currentAction.w = RealFromStr(_w.c_str());
+		currentAction.h = RealFromStr(_h.c_str());
+		currentAction.z = RealFromStr(_z.c_str());
+		currentAction.x = (currentAction.x - view->GetBounds().x)/currentAction.z;
+		currentAction.y = (currentAction.y - view->GetBounds().y)/currentAction.z;
+		currentAction.w = (currentAction.w - view->GetBounds().w)/currentAction.z;
+		currentAction.h = (currentAction.h - view->GetBounds().h)/currentAction.z;
+	}
+	else if (actionType == "setbounds")
+	{
+		currentAction.type = AT_SetBounds;
+		std::string _x, _y, _w, _h;
+		inp >> _x >> _y >> _w >> _h;
+		currentAction.x = RealFromStr(_x.c_str());
+		currentAction.y = RealFromStr(_y.c_str());
+		currentAction.w = RealFromStr(_w.c_str());
+		currentAction.h = RealFromStr(_h.c_str());
+	}
+	else if (actionType == "querygpubounds")
+	{
+		currentAction.type = AT_QueryGPUBounds;
+		inp >> currentAction.textargs;
+	}
+	else if (actionType == "screenshot")
+	{
+		currentAction.type = AT_ScreenShot;
+		inp >> currentAction.textargs;	
+	}
 
 }
 
@@ -127,7 +173,7 @@ bool DebugScript::Execute(View *view, Screen *scr)
 	{
 		if (m_index >= m_actions.size())
 		{
-			ParseAction();
+			ParseAction(view, scr);
 			if (m_labels.size() > 0)
 			{
 				m_actions.push_back(currentAction);
@@ -217,6 +263,79 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		scr->ShowDebugFont(currentAction.textargs == "1" || currentAction.textargs == "on");
 		currentAction.loops = 1;
 		break;
+		
+	case AT_ApproachBoundsZeno:
+	{	
+		VRect target(currentAction.x, currentAction.y, currentAction.w, currentAction.h);
+		if (currentAction.z != VReal(1))
+		{
+			target.x = view->GetBounds().x + (target.x-view->GetBounds().x)/VReal(currentAction.z);
+			target.y = view->GetBounds().y + (target.y-view->GetBounds().y)/VReal(currentAction.z);
+			target.w = view->GetBounds().w + (target.w-view->GetBounds().w)/VReal(currentAction.z);
+			target.h = view->GetBounds().h + (target.h-view->GetBounds().h)/VReal(currentAction.z);
+		}
+		
+
+		VReal s = target.w/(view->GetBounds().w);
+		if (Real(s) != 1)
+		{
+			VReal x0;
+			VReal y0;
+			x0 = (view->GetBounds().x - target.x)/((s - VReal(1))*view->GetBounds().w);
+			y0 = (view->GetBounds().y - target.y)/((s - VReal(1))*view->GetBounds().h);
+			view->ScaleAroundPoint(x0, y0, s);
+			currentAction.loops++;
+		}
+		else
+		{
+			Debug("Already at target view; Waiting for remaining %d frames", currentAction.loops);
+			currentAction.type = AT_WaitFrame;
+		}
+		break;
+	}
+	case AT_ApproachBoundsLinear:
+	{
+		VRect target(currentAction.x, currentAction.y, currentAction.w, currentAction.h);
+		target.x += view->GetBounds().x;
+		target.y += view->GetBounds().y;
+		target.w += view->GetBounds().w;
+		target.h += view->GetBounds().h;
+		VReal s = target.w/(view->GetBounds().w);
+		if (Real(s) != 1)
+		{
+			VReal x0;
+			VReal y0;
+			x0 = (view->GetBounds().x - target.x)/((s - VReal(1))*view->GetBounds().w);
+			y0 = (view->GetBounds().y - target.y)/((s - VReal(1))*view->GetBounds().h);
+			view->ScaleAroundPoint(x0, y0, s);
+			currentAction.loops++;
+		}
+		else
+		{
+			Debug("Already at target view; Waiting for remaining %d frames", currentAction.loops);
+			currentAction.type = AT_WaitFrame;
+		}
+		break;
+	}
+	case AT_SetBounds:
+	{
+		VRect target(currentAction.x, currentAction.y, currentAction.w, currentAction.h);
+		view->SetBounds(target);
+		break;
+	}
+	
+	case AT_QueryGPUBounds:
+	{
+		view->QueryGPUBounds(currentAction.textargs.c_str(), "w");
+		currentAction.loops = 1;
+		break;
+	}
+	case AT_ScreenShot:
+	{
+		view->SaveBMP(currentAction.textargs.c_str());
+		currentAction.loops = 1;
+		break;
+	}
 	default:
 		Fatal("Unknown script command in queue.");
 	}
@@ -241,12 +360,12 @@ void DebugScript::PrintPerformance(View * view, Screen * scr)
 
 	// object_count  clock  delta_clock  x  Log10(x)  y  Log10(y)  w  Log10(w)  Size(w)
 	#ifdef QUADTREE_DISABLED
-	printf("%d\t%llu\t%llu\t%s\t%f\t%s\t%f\t%s\t%f\t%u\n",
+	printf("%d\t%llu\t%llu\t%s\t%s\t%s\t%s\t%s\t%s\t%u\n",
 		now.object_count, (long long unsigned)now.clock,
 		(long long unsigned)(now.clock - m_perf_last.clock),
-		Str(now.view_bounds.x).c_str(), Log10(Abs(now.view_bounds.x)),
-		Str(now.view_bounds.y).c_str(), Log10(Abs(now.view_bounds.y)),
-		Str(now.view_bounds.w).c_str(), Log10(now.view_bounds.w),
+		Str(now.view_bounds.x).c_str(), Str(Log10(Abs(now.view_bounds.x))).c_str(),
+		Str(now.view_bounds.y).c_str(), Str(Log10(Abs(now.view_bounds.y))).c_str(),
+		Str(now.view_bounds.w).c_str(), Str(Log10(now.view_bounds.w)).c_str(),
 		(unsigned)Size(now.view_bounds.w));
 	#endif
 	m_perf_last = now;
