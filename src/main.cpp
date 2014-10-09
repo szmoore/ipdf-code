@@ -61,8 +61,8 @@ int main(int argc, char ** argv)
 	bool hide_control_panel = false;
 	bool lazy_rendering = true;
 	bool window_visible = true;
-	bool gpu_transform = true;
-	bool gpu_rendering = true;
+	bool gpu_transform = USE_GPU_TRANSFORM;
+	bool gpu_rendering = USE_GPU_RENDERING;
 	
 
 	

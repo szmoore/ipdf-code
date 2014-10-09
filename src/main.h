@@ -79,8 +79,8 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
 	
 
-	scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 12);
-	//scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 18);
+	//scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 12);
+	scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 18);
 	scr.SetMouseHandler(RatCatcher);
 
 	ifstream tmp;
@@ -161,14 +161,14 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 		scr.DebugFontPrintF("Zoom: %s %%\n", Str(VReal(100)/VReal(view.GetBounds().w)).c_str());
 		//scr.DebugFontPrintF("Similar size: %s\n", HumanScale(view.GetBounds().w * VReal(22e-3)));
 		
-		#if 1
+		#if 0
 		scr.DebugFontPrintF("Rendered frame %lu\n", (uint64_t)frames);
 		scr.DebugFontPrintF("Lazy Rendering = %d\n", view.UsingLazyRendering());
-		/*if (cpu_frame > 0 && total_cpu_time > 0)
+		if (cpu_frame > 0 && total_cpu_time > 0)
 			scr.DebugFontPrintF("[CPU] Render took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", cpu_frame*1e3, 1.0/cpu_frame, total_cpu_time,frames/total_cpu_time);
 		if (gpu_frame > 0 && total_gpu_time > 0)
 			scr.DebugFontPrintF("[GPU] Render took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", gpu_frame*1e3, 1.0/gpu_frame, total_gpu_time, frames/total_gpu_time);
-			*/
+		
 		if (real_frame > 0 && total_real_time > 0)
 			scr.DebugFontPrintF("[REALTIME] Render took %lf ms (%lf FPS) (total %lf s, avg FPS %lf)\n", real_frame*1e3, 1.0/real_frame, total_real_time,frames/total_real_time);
 
