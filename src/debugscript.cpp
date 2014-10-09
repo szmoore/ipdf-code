@@ -7,6 +7,7 @@ using namespace std;
 
 void DebugScript::ParseAction(View * view, Screen * scr)
 {
+	*m_input >> std::ws;
 	if (m_input == NULL || !m_input->good())
 		return;
 	istream & inp = *m_input;

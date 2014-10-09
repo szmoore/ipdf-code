@@ -158,7 +158,7 @@ clean_bin :
 	$(RM) $(BIN)
 
 clean :
-	$(RM) $(BIN) $(DEPS) $(LINKOBJ) ../obj/$(MAIN)
+	$(RM) $(BIN) $(DEPS) $(LINKOBJ) ../obj/$(MAIN) ../obj/quadtree.?
 	$(RM) tests/*~
 	$(RM) tests/*.test
 	$(RM) tests/*.out

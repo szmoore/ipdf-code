@@ -258,47 +258,47 @@ namespace IPDF
 			// Find points of intersection with the rectangle.
 			Debug("Clipping Bezier to BRect %s", r.Str().c_str());
 
+			bool isVerticalLine = (x0 == x1 && x1 == x2 && x2 == x3);
+			bool isHorizontalLine = (y0 == y1 && y1 == y2 && y2 == y3);
 
 			// Find its roots.
-			std::vector<BReal> x_intersection = SolveXParam(r.x);
-			//Debug("Found %d intersections on left edge", x_intersection.size());
+			
+			std::vector<BReal> intersection;
 
-			// And for the other side.
+			if (!isVerticalLine)
+			{
+				std::vector<BReal> x_intersection = SolveXParam(r.x);
+				intersection.insert(intersection.end(), x_intersection.begin(), x_intersection.end());
 
-			std::vector<BReal> x_intersection_pt2 = SolveXParam(r.x + r.w);
-			x_intersection.insert(x_intersection.end(), x_intersection_pt2.begin(), x_intersection_pt2.end());
-			//Debug("Found %d intersections on right edge (total x: %d)", x_intersection_pt2.size(), x_intersection.size());
+				// And for the other side.
+
+				std::vector<BReal> x_intersection_pt2 = SolveXParam(r.x + r.w);
+				intersection.insert(intersection.end(), x_intersection_pt2.begin(), x_intersection_pt2.end());
+			}
 
 			// Find its roots.
-			std::vector<BReal> y_intersection = SolveYParam(r.y);
-			//Debug("Found %d intersections on top edge", y_intersection.size());
+			if (!isHorizontalLine)
+			{
+				std::vector<BReal> y_intersection = SolveYParam(r.y);
+				intersection.insert(intersection.end(), y_intersection.begin(), y_intersection.end());
 
-			std::vector<BReal> y_intersection_pt2 = SolveYParam(r.y+r.h);
-			y_intersection.insert(y_intersection.end(), y_intersection_pt2.begin(), y_intersection_pt2.end());
-			//Debug("Found %d intersections on bottom edge (total y: %d)", y_intersection_pt2.size(), y_intersection.size());
+				std::vector<BReal> y_intersection_pt2 = SolveYParam(r.y+r.h);
+				intersection.insert(intersection.end(), y_intersection_pt2.begin(), y_intersection_pt2.end());
+			}
 
 			// Merge and sort.
-			x_intersection.insert(x_intersection.end(), y_intersection.begin(), y_intersection.end());
-			x_intersection.push_back(BReal(0));
-			x_intersection.push_back(BReal(1));
-			std::sort(x_intersection.begin(), x_intersection.end());
-
-			//Debug("Found %d intersections.\n", x_intersection.size());
-			/*for(auto t : x_intersection)
-			{
-				BReal ptx, pty;
-				Evaluate(ptx, pty, t);
-				Debug("Root: t = %f, (%f,%f)", Double(t), Double(ptx), Double(pty));
-			}*/
+			intersection.push_back(BReal(0));
+			intersection.push_back(BReal(1));
+			std::sort(intersection.begin(), intersection.end());
 			
 			std::vector<Bezier> all_beziers;
-			if (x_intersection.size() <= 2)
+			if (intersection.size() <= 2)
 			{
 				all_beziers.push_back(*this);
 				return all_beziers;
 			}
-			BReal t0 = *(x_intersection.begin());
-			for (auto it = x_intersection.begin()+1; it != x_intersection.end(); ++it)
+			BReal t0 = *(intersection.begin());
+			for (auto it = intersection.begin()+1; it != intersection.end(); ++it)
 			{
 				BReal t1 = *it;
 				if (t1 == t0) continue;

@@ -445,7 +445,7 @@ done: // matches is not amused, but sulix is nice and moved it inside the #ifdef
 		m_count++;
 		PropagateQuadChanges(qti);
 	}
-	return m_count;
+	return m_count-1;
 #else // words fail me (still not amused)
 	return (m_count++);
 #endif
