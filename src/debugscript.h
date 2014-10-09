@@ -13,12 +13,9 @@ namespace IPDF
 class DebugScript
 {
 public:
-	DebugScript() : inp(), currentAction(), m_actions(), m_labels(), m_index(0) {}
+	DebugScript(std::istream * in) : m_input(in), currentAction(), m_actions(), m_labels(), m_index(0) {}
 	virtual ~DebugScript() {}
-	void Load(const char *filename)
-	{
-		inp.open(filename);
-	}
+
 	bool Execute(View *view, Screen *scr);
 private:
 	enum ActionType
@@ -62,7 +59,7 @@ private:
 		Action() : type(AT_WaitFrame), x(0), y(0), ix(0), iy(0), z(0), loops(0), textargs("") {}
 	};
 
-	std::ifstream inp;
+	std::istream * m_input;
 
 	Action currentAction;
 	std::vector<Action> m_actions;

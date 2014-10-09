@@ -3,11 +3,17 @@
 #include <string>
 
 using namespace IPDF;
+using namespace std;
 
 void DebugScript::ParseAction(View * view, Screen * scr)
 {
+	if (m_input == NULL || !m_input->good())
+		return;
+	istream & inp = *m_input;
+	Debug("Get action type...");
 	std::string actionType;
 	inp >> actionType;
+	Debug("Action type: %s", actionType.c_str());
 	// Skip comments
 	while (actionType[0] == '#')
 	{
@@ -158,12 +164,15 @@ void DebugScript::ParseAction(View * view, Screen * scr)
 	{
 		currentAction.type = AT_QueryGPUBounds;
 		inp >> currentAction.textargs;
+		currentAction.loops = 1;
 	}
 	else if (actionType == "screenshot")
 	{
 		currentAction.type = AT_ScreenShot;
 		inp >> currentAction.textargs;	
 	}
+	else
+		Fatal("Unknown action %s", actionType.c_str());
 
 }
 

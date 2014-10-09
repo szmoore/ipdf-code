@@ -77,16 +77,25 @@ void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 {
 	// order is important... segfaults occur when screen (which inits GL) is not constructed first -_-
-	DebugScript script;
+	
 
 	scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 12);
 	//scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 18);
 	scr.SetMouseHandler(RatCatcher);
 
-	if (script_filename)
+	ifstream tmp;
+	istream * script_input = NULL;
+	if (script_filename != NULL)
 	{
-		script.Load(script_filename);
+		if (strcmp(script_filename, "stdin") == 0)
+			script_input = &cin;
+		else
+		{
+			tmp.open(script_filename);
+			script_input = &tmp;
+		}
 	}
+	DebugScript script(script_input);
 
 	double total_cpu_time = 0;
 	double total_gpu_time = 0;
