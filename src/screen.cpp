@@ -54,19 +54,19 @@ Screen::Screen(bool visible)
 	ogl_LoadFunctions();
 
 	// Why is this so horribly broken?
-	if (ogl_IsVersionGEQ(3,0))
+	if (ogl_IsVersionGEQ(3,2))
 	{
-		Error("We require OpenGL 3.1, but you have version %d.%d!",ogl_GetMajorVersion(), ogl_GetMinorVersion());
+		Fatal("We require OpenGL 3.3, but you have version %d.%d!",ogl_GetMajorVersion(), ogl_GetMinorVersion());
 	}
 
 	if (!SDL_GL_ExtensionSupported("GL_ARB_shading_language_420pack"))
 	{
-		Error("Your system does not support the ARB_shading_language_420pack extension, which is required.");
+		Fatal("Your system does not support the ARB_shading_language_420pack extension, which is required.");
 	}
 
 	if (!SDL_GL_ExtensionSupported("GL_ARB_explicit_attrib_location"))
 	{
-		Error("Your system does not support the ARB_explicit_attrib_location extension, which is required.");
+		Fatal("Your system does not support the ARB_explicit_attrib_location extension, which is required.");
 	}
 
 	m_frame_begin_time = SDL_GetPerformanceCounter();
