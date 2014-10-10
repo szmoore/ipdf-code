@@ -8,7 +8,7 @@
 #include "path.h"
 #include "transformationtype.h"
 
-#define USE_GPU_TRANSFORM false 
+#define USE_GPU_TRANSFORM true 
 #define USE_GPU_RENDERING true
 #define USE_SHADING !(USE_GPU_RENDERING) && true
 
@@ -19,7 +19,7 @@
 namespace IPDF
 {
 	#ifdef TRANSFORM_BEZIERS_TO_PATH
-		typedef Gmprat VReal;
+		typedef Real VReal;
 	#else
 		typedef Real VReal;
 	#endif

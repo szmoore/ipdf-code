@@ -6,8 +6,11 @@ import math
 # Calculates the total error in coordinates of GPU bounds rectangles of objects
 
 def ComputeError(reference, other):
-	reference = open(reference, "r")
-	other = open(other, "r")
+	if type(reference) == str:
+		reference = open(reference, "r")
+	if type(other) == str:
+		other = open(other, "r")
+		
 	total = 0.0
 	while True:
 		a = reference.readline()

@@ -43,6 +43,8 @@ private:
 		AT_SetBounds,
 		AT_QueryGPUBounds, // query bounds of Beziers when transformed to GPU
 		AT_ScreenShot, // take screenshot
+		AT_PrintFPS, // Print FPS statistics about the frames
+		AT_PrintBounds, // Print bounds
 		AT_Quit
 	};
 
@@ -65,6 +67,11 @@ private:
 	std::vector<Action> m_actions;
 	std::map<std::string, int> m_labels;
 	unsigned m_index;
+	
+	double m_fps_cpu_mean;
+	double m_fps_gpu_mean;
+	double m_fps_cpu_stddev;
+	double m_fps_gpu_stddev;
 	
 	struct PerformanceData
 	{

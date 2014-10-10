@@ -172,6 +172,19 @@ void DebugScript::ParseAction(View * view, Screen * scr)
 		currentAction.type = AT_ScreenShot;
 		inp >> currentAction.textargs;	
 	}
+	else if (actionType == "printfps")
+	{
+		currentAction.type = AT_PrintFPS;
+		currentAction.iz = currentAction.loops;
+		m_fps_cpu_mean = 0;
+		m_fps_gpu_mean = 0;
+		m_fps_cpu_stddev = 0;
+		m_fps_gpu_stddev = 0;
+	}
+	else if (actionType == "printbounds")
+	{
+		currentAction.type = AT_PrintBounds;
+	}
 	else
 		Fatal("Unknown action %s", actionType.c_str());
 
@@ -344,6 +357,48 @@ bool DebugScript::Execute(View *view, Screen *scr)
 	{
 		view->SaveBMP(currentAction.textargs.c_str());
 		currentAction.loops = 1;
+		break;
+	}
+	case AT_PrintFPS:
+	{
+		// Using a (apparently) Soviet trick to calculate the stddev in one pass
+		// This was my favourite algorithm in my Physics honours project
+		// Ah the memories
+		// The horrible horrible memories
+		// At least things won't get that bad
+		// Right?
+		if (currentAction.loops <= 1)
+		{
+			double n = double(currentAction.iz);
+			m_fps_cpu_mean /= n;
+			m_fps_gpu_mean /= n;
+			
+			m_fps_cpu_stddev = sqrt(m_fps_cpu_stddev / n - m_fps_cpu_mean*m_fps_cpu_mean);
+			m_fps_gpu_stddev = sqrt(m_fps_gpu_stddev / n - m_fps_gpu_mean*m_fps_gpu_mean);
+			
+			
+			
+			printf("%d\t%f\t%f\t%f\t%f\n", currentAction.iz,
+				m_fps_gpu_mean, m_fps_gpu_stddev,
+				m_fps_cpu_mean, m_fps_cpu_stddev);
+		}
+		else
+		{
+			
+			double fps_cpu = 1.0/scr->GetLastFrameTimeCPU();
+			double fps_gpu = 1.0/scr->GetLastFrameTimeGPU();
+			
+			m_fps_cpu_mean += fps_cpu;
+			m_fps_gpu_mean += fps_gpu;
+			
+			m_fps_cpu_stddev += fps_cpu*fps_cpu;
+			m_fps_gpu_stddev += fps_gpu*fps_gpu;
+		}
+		break;
+	}
+	case AT_PrintBounds:
+	{
+		printf("%s\t%s\t%s\t%s\n", Str(view->GetBounds().x).c_str(), Str(view->GetBounds().y).c_str(), Str(view->GetBounds().w).c_str(), Str(view->GetBounds().h).c_str());
 		break;
 	}
 	default:

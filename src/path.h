@@ -16,7 +16,7 @@
 namespace IPDF
 {
 	#ifdef TRANSFORM_BEZIERS_TO_PATH
-		typedef Gmprat PReal;
+		typedef Real PReal;
 	#else
 		typedef Real PReal;
 	#endif

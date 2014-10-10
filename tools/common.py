@@ -15,7 +15,7 @@ options = {
     "local_bin" : "./",
     "tests" : "../src/tests/",
     "ignore" : ["virtual", "Rational_Arbint", "iRRAM", "ParanoidNumber"],
-    "tobuild" : ["single", "double", "GMPrat"],
+    "tobuild" : ["single", "double", "mpfrc++","GMPrat"],
     "numerical_tests" : ["identitytests"],
     "built" : []
 }
