@@ -1,5 +1,6 @@
 #include "document.h"
 #include "bezier.h"
+#include "profiler.h"
 #include <cstdio>
 #include <fstream>
 
@@ -101,6 +102,7 @@ void Document::GenBaseQuadtree()
 
 int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 {
+	PROFILE_SCOPE("Document::ClipObjectToQuadChild");
 	switch (m_objects.types[object_id])
 	{
 	case RECT_FILLED:
@@ -168,6 +170,7 @@ int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 }
 QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type)
 {
+	PROFILE_SCOPE("Document::GenQuadChild()");
 	QuadTreeIndex new_index = m_quadtree.nodes.size();
 	Debug("-------------- Generating Quadtree Node %d (parent %d, type %d) ----------------------", new_index, parent, type);
 	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, parent, type, 0, 0, -1});
@@ -208,6 +211,7 @@ QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren 
 
 void Document::OverlayQuadChildren(QuadTreeIndex orig_parent, QuadTreeIndex parent, QuadTreeNodeChildren type)
 {
+	PROFILE_SCOPE("Document::OverlayQuadChildren()");
 	QuadTreeIndex new_index = m_quadtree.nodes.size();
 	Debug("-------------- Generating Quadtree Node %d (orig %d parent %d, type %d) ----------------------", new_index, orig_parent, parent, type);
 	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, orig_parent, type, 0, 0, -1});
@@ -413,6 +417,7 @@ unsigned Document::AddBezier(const Bezier & bezier)
 
 unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index, QuadTreeIndex qti)
 {
+	PROFILE_SCOPE("Document::Add");
 	m_objects.types.push_back(type);
 	m_objects.bounds.push_back(bounds);
 	m_objects.data_indices.push_back(data_index);

@@ -4,6 +4,7 @@
 #include "view.h"
 #include "screen.h"
 #include "debugscript.h"
+#include "profiler.h"
 #include <unistd.h>
 
 
@@ -122,7 +123,9 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 		real_clock_prev = real_clock_now;
 		#endif
 		++frames;
+		g_profiler.BeginZone("scr.Clear()");
 		scr.Clear();
+		g_profiler.EndZone();
 		//view.ForceBoundsDirty();
 		//view.ForceBufferDirty();
 		//view.ForceRenderDirty();
@@ -133,7 +136,9 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 				return;
 		}
 
+		g_profiler.BeginZone("view.Render");
 		view.Render(scr.ViewportWidth(), scr.ViewportHeight());
+		g_profiler.EndZone();
 
 		double cpu_frame = scr.GetLastFrameTimeCPU();
 		double gpu_frame = scr.GetLastFrameTimeGPU();
@@ -206,6 +211,9 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 		}
 		#endif // 0
 		
+		g_profiler.BeginZone("scr.Present()");
 		scr.Present();
+		g_profiler.EndZone();
+		g_profiler.EndFrame();
 	}
 }

@@ -1,6 +1,7 @@
 #include "view.h"
 #include "bufferbuilder.h"
 #include "screen.h"
+#include "profiler.h"
 #include "gl_core44.h"
 
 #ifndef CONTROLPANEL_DISABLED
@@ -87,6 +88,7 @@ View::~View()
  */
 void View::Translate(Real x, Real y)
 {
+	PROFILE_SCOPE("View::Translate");	
 	if (!m_use_gpu_transform)
 		m_buffer_dirty = true;
 	m_bounds_dirty = true;
@@ -134,7 +136,7 @@ void View::SetBounds(const Rect & bounds)
  */
 void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 {
-	
+	PROFILE_SCOPE("View::ScaleAroundPoint");	
 	// (x0, y0, w, h) -> (x*w - (x*w - x0)*s, y*h - (y*h - y0)*s, w*s, h*s)
 	// x and y are coordinates in the window
 	// Convert to local coords.
@@ -193,6 +195,7 @@ Rect View::TransformToViewCoords(const Rect& inp) const
  */
 void View::Render(int width, int height)
 {
+	PROFILE_SCOPE("View::Render()");
 	if (!m_screen.Valid()) return;
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION,42,-1, "Beginning View::Render()");
 	// View dimensions have changed (ie: Window was resized)
@@ -228,6 +231,7 @@ void View::Render(int width, int height)
 	// quadtree node).
 	if (m_bounds_dirty || !m_lazy_rendering)
 	{
+		g_profiler.BeginZone("View::Render -- Quadtree view bounds management");
 		// If we're too far zoomed out, become the parent of the current node.
 		if ( m_bounds.w > 1.0 || m_bounds.h > 1.0)
 		{
@@ -327,6 +331,7 @@ void View::Render(int width, int height)
 			m_bounds = TransformToQuadChild(m_bounds, QTC_BOTTOM_RIGHT);
 			m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].bottom_right;
 		}
+		g_profiler.EndZone();
 	}
 
 	m_screen.DebugFontPrintF("Current View QuadTree");
@@ -453,6 +458,7 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 
 void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_obj)
 {
+	PROFILE_SCOPE("View::RenderRange");
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 43, -1, "View::RenderRange()");
 	if (m_render_dirty) // document has changed
 		PrepareRender();
@@ -521,6 +527,7 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 
 void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 {
+	PROFILE_SCOPE("View::UpdateObjBoundsVBO");
 	if (m_query_gpu_bounds_on_next_frame != NULL)
 	{
 		fprintf(m_query_gpu_bounds_on_next_frame,"# View: %s\t%s\t%s\t%s", Str(m_bounds.x).c_str(), Str(m_bounds.y).c_str(), Str(m_bounds.w).c_str(), Str(m_bounds.h).c_str());
@@ -633,6 +640,7 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
  */
 void View::PrepareRender()
 {
+	PROFILE_SCOPE("View::PrepareRender()");
 	Debug("Recreate buffers with %u objects", m_document.ObjectCount());
 	// Prepare bounds vbo
 	if (UsingGPURendering())

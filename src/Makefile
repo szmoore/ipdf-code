@@ -10,7 +10,7 @@ else
 endif
 
 MAIN = main.o
-OBJ = log.o real.o bezier.o objectrenderer.o view.o screen.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o  path.o document.o debugscript.o paranoidnumber.o
+OBJ = log.o profiler.o real.o bezier.o objectrenderer.o view.o screen.o graphicsbuffer.o framebuffer.o shaderprogram.o stb_truetype.o gl_core44.o  path.o document.o debugscript.o paranoidnumber.o
 
 QT_INCLUDE := -I/usr/share/qt4/mkspecs/linux-g++-64 -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -Itests -I.
 QT_DEF := -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB
