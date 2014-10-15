@@ -12,12 +12,14 @@ namespace IPDF
 	class Profiler
 	{
 	public:
-		Profiler() {}
+		Profiler() : m_enabled(false) {}
 		
 		void BeginZone(std::string name);
 		void EndZone();
 
 		void EndFrame();
+
+		void Enable(bool enabled) { m_enabled = enabled; }
 	private:
 		struct ProfileZone
 		{
@@ -31,6 +33,7 @@ namespace IPDF
 
 		std::map<std::string, ProfileZone> m_zones;
 		std::stack<std::string> m_zone_stack;
+		bool m_enabled;
 	};
 
 	extern Profiler g_profiler;

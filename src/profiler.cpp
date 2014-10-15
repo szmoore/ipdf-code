@@ -31,9 +31,10 @@ void Profiler::EndFrame()
 	// Zero all of the frame counts
 	for (auto& it : m_zones)
 	{
-#ifndef PROFILER_SILENT
-		Debug("Perf: Zone \"%s\" frame: %d ms (%d calls), total: %d ms (%d calls)", it.first.c_str(), it.second.tics_frame * 1000 / SDL_GetPerformanceFrequency(), it.second.calls_frame, it.second.tics_total * 1000 / SDL_GetPerformanceFrequency(), it.second.calls_total);
-#endif
+		if (m_enabled)
+		{
+			printf("perf_zone\t\"%s\"\t%lu %lu\t%lu %lu\n", it.first.c_str(), it.second.tics_frame * 1000 / SDL_GetPerformanceFrequency(), it.second.calls_frame, it.second.tics_total * 1000 / SDL_GetPerformanceFrequency(), it.second.calls_total);
+		}
 		it.second.tics_frame = 0;
 		it.second.calls_frame = 0;
 	}

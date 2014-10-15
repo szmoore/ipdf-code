@@ -1,4 +1,5 @@
 #include "debugscript.h"
+#include "profiler.h"
 
 #include <string>
 
@@ -184,6 +185,16 @@ void DebugScript::ParseAction(View * view, Screen * scr)
 	else if (actionType == "printbounds")
 	{
 		currentAction.type = AT_PrintBounds;
+	}
+	else if (actionType == "profileon")
+	{
+		currentAction.type = AT_ProfileDisplay;
+		currentAction.iz = 1;
+	}
+	else if (actionType == "profileoff")
+	{
+		currentAction.type = AT_ProfileDisplay;
+		currentAction.iz = 0;
 	}
 	else
 		Fatal("Unknown action %s", actionType.c_str());
@@ -399,6 +410,11 @@ bool DebugScript::Execute(View *view, Screen *scr)
 	case AT_PrintBounds:
 	{
 		printf("%s\t%s\t%s\t%s\n", Str(view->GetBounds().x).c_str(), Str(view->GetBounds().y).c_str(), Str(view->GetBounds().w).c_str(), Str(view->GetBounds().h).c_str());
+		break;
+	}
+	case AT_ProfileDisplay:
+	{
+		g_profiler.Enable(currentAction.iz);
 		break;
 	}
 	default:
