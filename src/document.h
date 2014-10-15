@@ -29,7 +29,7 @@ namespace IPDF
 	class Document
 	{
 		public:
-			Document(const std::string & filename = "", const std::string & font_filename = "fonts/DejaVuSansMono.ttf") : m_objects(), m_count(0), m_font_data(NULL), m_font()
+			Document(const std::string & filename = "", const std::string & font_filename = "fonts/DejaVuSansMono.ttf") : m_objects(), m_current_insert_node(-1), m_count(0), m_font_data(NULL), m_font()
 			{
 				Load(filename);
 				if (font_filename != "")
@@ -54,7 +54,7 @@ namespace IPDF
 
 			unsigned AddPath(unsigned start_index, unsigned end_index, const Colour & shading=Colour(0.6,0.6,0.6,1), const Colour & stroke=Colour(0,0,0,0));
 			unsigned AddBezier(const Bezier & bezier);
-			unsigned Add(ObjectType type, const Rect & bounds, unsigned data_index = 0, QuadTreeIndex qtnode = 0);
+			unsigned Add(ObjectType type, const Rect & bounds, unsigned data_index = 0, QuadTreeIndex qtnode = -1);
 			unsigned AddBezierData(const Bezier & bezier);
 			unsigned AddPathData(const Path & path);
 
@@ -94,6 +94,8 @@ namespace IPDF
 			void PropagateQuadChanges(QuadTreeIndex node);
 			// Returns the number of objects the current object formed when clipped, the objects in question are added to the end of the document.
 			int ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type);
+
+			void SetQuadtreeInsertNode(QuadTreeIndex node) { m_current_insert_node = node; }
 #endif
 
 			void ClearObjects()
@@ -109,6 +111,8 @@ namespace IPDF
 #ifndef QUADTREE_DISABLED
 			QuadTree m_quadtree;
 			void GenBaseQuadtree();
+
+			QuadTreeIndex m_current_insert_node;
 #endif
 			unsigned m_count;
 			unsigned char * m_font_data;

@@ -309,7 +309,13 @@ void ControlPanel::InsertTextIntoDocument()
 	string msg = m_text_edit->toPlainText().toStdString();
 	Real scale = bounds.h / Real(2);
 	Debug("Insert \"%s\" at %f, %f, scale %f", msg.c_str(), Float(xx), Float(yy), Float(scale));
+#ifndef QUADTREE_DISABLED
+	m_doc.SetQuadtreeInsertNode(m_view.GetCurrentQuadtreeNode());
+#endif
 	m_doc.AddText(msg, scale, xx, yy);
+#ifndef QUADTREE_DISABLED
+	m_doc.PropagateQuadChanges(m_view.GetCurrentQuadtreeNode());
+#endif
 	m_view.ForceRenderDirty();
 	m_view.ForceBufferDirty();
 	m_view.ForceBoundsDirty();
@@ -323,7 +329,13 @@ void ControlPanel::InsertSVGIntoDocument()
 	bounds.w /= Real(m_screen.ViewportWidth());
 	bounds.h /= Real(m_screen.ViewportHeight());
 	
+#ifndef QUADTREE_DISABLED
+	m_doc.SetQuadtreeInsertNode(m_view.GetCurrentQuadtreeNode());
+#endif
 	m_doc.ParseSVG(m_text_edit->toPlainText().toStdString(), bounds);
+#ifndef QUADTREE_DISABLED
+	m_doc.PropagateQuadChanges(m_view.GetCurrentQuadtreeNode());
+#endif
 	m_view.ForceRenderDirty();
 	m_view.ForceBufferDirty();
 	m_view.ForceBoundsDirty();
@@ -347,7 +359,13 @@ void ControlPanel::LoadSVGIntoDocument()
 	bounds.w /= Real(m_screen.ViewportWidth());
 	bounds.h /= Real(m_screen.ViewportHeight());
 	
+#ifndef QUADTREE_DISABLED
+	m_doc.SetQuadtreeInsertNode(m_view.GetCurrentQuadtreeNode());
+#endif
 	m_doc.LoadSVG(filename.toStdString(), bounds);
+#ifndef QUADTREE_DISABLED
+	m_doc.PropagateQuadChanges(m_view.GetCurrentQuadtreeNode());
+#endif
 	m_view.ForceRenderDirty();
 	m_view.ForceBufferDirty();
 	m_view.ForceBoundsDirty();

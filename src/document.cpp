@@ -422,6 +422,7 @@ unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index
 	m_objects.bounds.push_back(bounds);
 	m_objects.data_indices.push_back(data_index);
 #ifndef QUADTREE_DISABLED
+	if (qti == -1) qti = m_current_insert_node;
 	if (qti != -1)
 	{
 		QuadTreeIndex new_qti = qti;
@@ -448,7 +449,6 @@ unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index
 		}
 done: // matches is not amused, but sulix is nice and moved it inside the #ifdef for him.
 		m_count++;
-		PropagateQuadChanges(qti);
 	}
 	return m_count-1;
 #else // words fail me (still not amused)

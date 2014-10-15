@@ -251,12 +251,18 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		break;
 	case AT_LoadSVG:
 	{
+#ifndef QUADTREE_DISABLED
+		view->Doc().SetQuadtreeInsertNode(view->GetCurrentQuadtreeNode());
+#endif
 		#ifdef TRANSFORM_OBJECTS_NOT_VIEW
 			view->Doc().LoadSVG(currentAction.textargs, Rect(Real(1)/Real(2),Real(1)/Real(2),Real(1)/Real(800),Real(1)/Real(600)));	
 		#else
 			const Rect & bounds = view->GetBounds();
 			view->Doc().LoadSVG(currentAction.textargs, Rect(bounds.x+bounds.w/Real(2),bounds.y+bounds.h/Real(2),bounds.w/Real(800),bounds.h/Real(600)));
 		#endif
+#ifndef QUADTREE_DISABLED
+		view->Doc().PropagateQuadChanges(view->GetCurrentQuadtreeNode());
+#endif
 		currentAction.type = AT_WaitFrame;
 		view->ForceRenderDirty();
 		view->ForceBufferDirty();
