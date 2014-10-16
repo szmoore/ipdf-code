@@ -20,7 +20,7 @@ namespace IPDF
 	
 	extern std::vector<BReal> SolveQuadratic(const BReal & a, const BReal & b, const BReal & c, const BReal & min = 0, const BReal & max = 1);
 
-	extern std::vector<BReal> SolveCubic(const BReal & a, const BReal & b, const BReal & c, const BReal & d, const BReal & min = 0, const BReal & max = 1, const BReal & delta = 1e-9);
+	extern std::vector<BReal> SolveCubic(const BReal & a, const BReal & b, const BReal & c, const BReal & d, const BReal & min = 0, const BReal & max = 1, const BReal & delta = 1e-5);
 
 	/** A _cubic_ bezier. **/
 	struct Bezier

@@ -297,6 +297,15 @@ QuadTreeIndex QuadTree::GetNeighbour(QuadTreeIndex start, int xdir, int ydir, Do
 	return -1;
 }
 
+void QuadTree::GetCanonicalCoords(QuadTreeIndex& start, Real& x, Real& y, Document *doc)
+{
+	int _x = (int)x;
+	int _y = (int)y;
+	start = GetNeighbour(start, _x, _y, doc);
+	x -= _x;
+	y -= _y;
+}
+
 }
 
 #endif

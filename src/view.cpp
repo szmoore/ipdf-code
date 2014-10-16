@@ -406,7 +406,11 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 	if (!remaining_depth) return;
 	//Debug("Rendering QT node %d, (objs: %d -- %d)\n", node, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
 	m_bounds_dirty = true;
-	m_render_dirty = m_buffer_dirty = true;
+	if (m_document.m_document_dirty)
+	{
+		m_render_dirty = m_buffer_dirty = true;
+		m_document.m_document_dirty = false;
+	}
 	QuadTreeIndex overlay = node;
 	while(overlay != -1)
 	{

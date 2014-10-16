@@ -91,6 +91,7 @@ namespace IPDF
 			QuadTreeIndex GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type);
 			QuadTreeIndex GenQuadParent(QuadTreeIndex child, QuadTreeNodeChildren mytype);
 			void OverlayQuadChildren(QuadTreeIndex orig_parent, QuadTreeIndex parent, QuadTreeNodeChildren type);
+			void OverlayQuadParent(QuadTreeIndex orig_child, QuadTreeIndex child, QuadTreeNodeChildren type);
 			void PropagateQuadChanges(QuadTreeIndex node);
 			// Returns the number of objects the current object formed when clipped, the objects in question are added to the end of the document.
 			int ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type);
@@ -114,6 +115,7 @@ namespace IPDF
 
 			QuadTreeIndex m_current_insert_node;
 #endif
+			bool m_document_dirty;
 			unsigned m_count;
 			unsigned char * m_font_data;
 			stbtt_fontinfo m_font;

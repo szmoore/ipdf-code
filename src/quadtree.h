@@ -53,6 +53,7 @@ namespace IPDF
 		std::vector<QuadTreeNode> nodes;
 
 		QuadTreeIndex GetNeighbour(QuadTreeIndex start, int xdir, int ydir, Document *doc) const;
+		void GetCanonicalCoords(QuadTreeIndex& start, Real& x, Real& y, Document *doc);
 
 	};
 
