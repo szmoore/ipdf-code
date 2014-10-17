@@ -457,22 +457,83 @@ unsigned Document::AddBezier(const Bezier & bezier)
 	unsigned index = AddBezierData(data);
 	return Add(BEZIER, bounds, index);
 }
+// Adds an object to the Document, clipping it to m_clip_rect.
+// Helper function called by Document::Add()
+int Document::AddClip(ObjectType type, const Rect& bounds, unsigned data_index, const Rect& clip_rect)
+{
+	PROFILE_SCOPE("Document::AddAndClip");
+	switch (type)
+	{
+	case RECT_FILLED:
+	case RECT_OUTLINE:
+	case PATH:
+		{
+		Rect obj_bounds = clip_rect.Clip(bounds);
+		m_objects.bounds.push_back(obj_bounds);
+		m_objects.types.push_back(type);
+		m_objects.data_indices.push_back(data_index);
+		return 1;
+		}
+	case BEZIER:
+		{
+		// If we're entirely within the clipping rect, no clipping need occur.
+		if (clip_rect.Contains(bounds))
+		{
+			m_objects.bounds.push_back(bounds);
+			m_objects.types.push_back(type);
+			m_objects.data_indices.push_back(data_index);
+			return 1;
+		}
+		Rect clip_bezier_bounds = TransformRectCoordinates(bounds, clip_rect); 
+		std::vector<Bezier> new_curves = m_objects.beziers[data_index].ClipToRectangle(clip_bezier_bounds);
+		for (size_t i = 0; i < new_curves.size(); ++i)
+		{
+			Bezier new_curve_data = new_curves[i].ToAbsolute(bounds);
+			Rect new_bounds = new_curve_data.SolveBounds();
+			new_curve_data = new_curve_data.ToRelative(new_bounds);
+			unsigned index = AddBezierData(new_curve_data);
+			m_objects.bounds.push_back(new_bounds);
+			m_objects.types.push_back(BEZIER);
+			m_objects.data_indices.push_back(index);
+		}
+		return new_curves.size();
+		}
+	default:
+		m_objects.bounds.push_back(bounds);
+		m_objects.types.push_back(type);
+		m_objects.data_indices.push_back(data_index);
+		return 1;
+	}
+	return 0;
+}
 
 unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index, QuadTreeIndex qti)
 {
 	PROFILE_SCOPE("Document::Add");
 	Rect new_bounds = bounds;
+	int num_added = 1;
+	bool still_to_add = true;
 #ifndef QUADTREE_DISABLED
 	if (qti == -1) qti = m_current_insert_node;
 	if (qti != -1)
 	{
-		// I am ashamed, yes.
+		// Move the object to the quadtree node it should be in.
 		m_quadtree.GetCanonicalCoords(qti, new_bounds.x, new_bounds.y, this);
+		Rect cliprect = Rect(0,0,1,1);
+		// If an object spans multiple quadtree nodes...
+		if (!cliprect.Contains(new_bounds))
+		{
+			num_added = AddClip(type, new_bounds, data_index, cliprect);
+			still_to_add = false;
+		}
 	}
 #endif
-	m_objects.types.push_back(type);
-	m_objects.bounds.push_back(new_bounds);
-	m_objects.data_indices.push_back(data_index);
+	if (still_to_add)
+	{
+		m_objects.types.push_back(type);
+		m_objects.bounds.push_back(new_bounds);
+		m_objects.data_indices.push_back(data_index);
+	}
 #ifndef QUADTREE_DISABLED
 	if (qti != -1)
 	{
@@ -481,7 +542,7 @@ unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index
 		{
 			if (m_count == m_quadtree.nodes[new_qti].object_end+1)
 			{
-				m_quadtree.nodes[new_qti].object_end++;
+				m_quadtree.nodes[new_qti].object_end += num_added;
 				goto done;
 			}
 			new_qti = m_quadtree.nodes[new_qti].next_overlay;
@@ -493,15 +554,15 @@ unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index
 			m_quadtree.nodes[overlay].object_begin = m_count;
 			// All objects are dirty.
 			m_quadtree.nodes[overlay].object_dirty = m_count;
-			m_quadtree.nodes[overlay].object_end = m_count+1;
+			m_quadtree.nodes[overlay].object_end = m_count+num_added;
 			m_quadtree.nodes[overlay].next_overlay = -1;
 			m_quadtree.nodes[new_qti].next_overlay = overlay;
 			new_qti = overlay;
 		}
 done: // matches is not amused, but sulix is nice and moved it inside the #ifdef for him.
-		m_count++;
+		m_count += num_added;
 	}
-	return m_count-1;
+	return m_count-num_added;
 #else // words fail me (still not amused)
 	return (m_count++);
 #endif

@@ -29,11 +29,14 @@ namespace IPDF
 	class Document
 	{
 		public:
-			Document(const std::string & filename = "", const std::string & font_filename = "fonts/DejaVuSansMono.ttf") : m_objects(), m_current_insert_node(-1), m_count(0), m_font_data(NULL), m_font()
+			Document(const std::string & filename = "", const std::string & font_filename = "fonts/DejaVuSansMono.ttf") : m_objects(), m_count(0), m_font_data(NULL), m_font()
 			{
 				Load(filename);
 				if (font_filename != "")
 					SetFont(font_filename);
+#ifndef QUADTREE_DISABLED
+				m_current_insert_node = -1;
+#endif
 			}
 			virtual ~Document() 
 			{
@@ -54,6 +57,7 @@ namespace IPDF
 
 			unsigned AddPath(unsigned start_index, unsigned end_index, const Colour & shading=Colour(0.6,0.6,0.6,1), const Colour & stroke=Colour(0,0,0,0));
 			unsigned AddBezier(const Bezier & bezier);
+			int AddClip(ObjectType type, const Rect & bounds, unsigned data_index, const Rect & clip_rect);
 			unsigned Add(ObjectType type, const Rect & bounds, unsigned data_index = 0, QuadTreeIndex qtnode = -1);
 			unsigned AddBezierData(const Bezier & bezier);
 			unsigned AddPathData(const Path & path);
