@@ -44,6 +44,7 @@ namespace IPDF
 		QuadTreeIndex next_overlay;
 		// First object which has not yet been propagated to extant children/parent.
 		unsigned object_dirty;
+		bool render_dirty;
 	};
 
 	struct QuadTree

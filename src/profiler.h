@@ -1,6 +1,7 @@
 #ifndef _PROFILER_H
 #define _PROFILER_H
 
+#include <stdint.h>
 #include <map>
 #include <string>
 #include <stack>

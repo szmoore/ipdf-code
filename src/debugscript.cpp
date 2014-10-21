@@ -262,6 +262,9 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		#endif
 #ifndef QUADTREE_DISABLED
 		view->Doc().PropagateQuadChanges(view->GetCurrentQuadtreeNode());
+		view->Doc().PropagateQuadChanges(view->Doc().GetQuadTree().GetNeighbour(view->GetCurrentQuadtreeNode(), 0, 1, 0));
+		view->Doc().PropagateQuadChanges(view->Doc().GetQuadTree().GetNeighbour(view->GetCurrentQuadtreeNode(), 1, 0, 0));
+		view->Doc().PropagateQuadChanges(view->Doc().GetQuadTree().GetNeighbour(view->GetCurrentQuadtreeNode(), 1, 1, 0));
 #endif
 		currentAction.type = AT_WaitFrame;
 		view->ForceRenderDirty();

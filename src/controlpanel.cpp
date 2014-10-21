@@ -315,6 +315,10 @@ void ControlPanel::InsertTextIntoDocument()
 	m_doc.AddText(msg, scale, xx, yy);
 #ifndef QUADTREE_DISABLED
 	m_doc.PropagateQuadChanges(m_view.GetCurrentQuadtreeNode());
+	// We may have split the object across up-to four nodes, so try the neighbouring nodes.
+	m_doc.PropagateQuadChanges(m_doc.GetQuadTree().GetNeighbour(m_view.GetCurrentQuadtreeNode(), 0, 1, 0));
+	m_doc.PropagateQuadChanges(m_doc.GetQuadTree().GetNeighbour(m_view.GetCurrentQuadtreeNode(), 1, 0, 0));
+	m_doc.PropagateQuadChanges(m_doc.GetQuadTree().GetNeighbour(m_view.GetCurrentQuadtreeNode(), 1, 1, 0));
 #endif
 	m_view.ForceRenderDirty();
 	m_view.ForceBufferDirty();
@@ -335,6 +339,10 @@ void ControlPanel::InsertSVGIntoDocument()
 	m_doc.ParseSVG(m_text_edit->toPlainText().toStdString(), bounds);
 #ifndef QUADTREE_DISABLED
 	m_doc.PropagateQuadChanges(m_view.GetCurrentQuadtreeNode());
+	// We may have split the object across up-to four nodes, so try the neighbouring nodes.
+	m_doc.PropagateQuadChanges(m_doc.GetQuadTree().GetNeighbour(m_view.GetCurrentQuadtreeNode(), 0, 1, 0));
+	m_doc.PropagateQuadChanges(m_doc.GetQuadTree().GetNeighbour(m_view.GetCurrentQuadtreeNode(), 1, 0, 0));
+	m_doc.PropagateQuadChanges(m_doc.GetQuadTree().GetNeighbour(m_view.GetCurrentQuadtreeNode(), 1, 1, 0));
 #endif
 	m_view.ForceRenderDirty();
 	m_view.ForceBufferDirty();
@@ -365,6 +373,10 @@ void ControlPanel::LoadSVGIntoDocument()
 	m_doc.LoadSVG(filename.toStdString(), bounds);
 #ifndef QUADTREE_DISABLED
 	m_doc.PropagateQuadChanges(m_view.GetCurrentQuadtreeNode());
+	// We may have split the object across up-to four nodes, so try the neighbouring nodes.
+	m_doc.PropagateQuadChanges(m_doc.GetQuadTree().GetNeighbour(m_view.GetCurrentQuadtreeNode(), 0, 1, 0));
+	m_doc.PropagateQuadChanges(m_doc.GetQuadTree().GetNeighbour(m_view.GetCurrentQuadtreeNode(), 1, 0, 0));
+	m_doc.PropagateQuadChanges(m_doc.GetQuadTree().GetNeighbour(m_view.GetCurrentQuadtreeNode(), 1, 1, 0));
 #endif
 	m_view.ForceRenderDirty();
 	m_view.ForceBufferDirty();

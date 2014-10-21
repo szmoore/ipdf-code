@@ -190,6 +190,9 @@ void* GraphicsBuffer::MapRange(int offset, int length, bool read, bool write, bo
 	// This sometimes makes Intel corrupt memory?
 	if (!length) return (m_map_pointer = 0);
 
+	if ((size_t)(length + offset) > m_buffer_size)
+		Fatal("Tried to map outside of range!");
+
 
 	RecreateBuffer();
 
@@ -255,19 +258,18 @@ void GraphicsBuffer::Resize(size_t length)
 {
 	if (!m_buffer_size)
 	{
+		m_invalidated = true;
 		m_buffer_size = length;
 		return;
 	}
-	if (m_invalidated && m_buffer_size >= length)
+	if (m_invalidated)
 	{
 		m_buffer_size = length;
-	}
-	else if (length <= m_buffer_size)
-	{
-		// Don't need to do anything.
+		m_buffer_shape_dirty = true;
 	}
 	else
 	{
+		size_t oldsize = m_buffer_size;
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Resizing buffer.");
 		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH, 0, NULL, GL_TRUE);
 		// Create a new buffer and copy the old data into it.
@@ -277,7 +279,7 @@ void GraphicsBuffer::Resize(size_t length)
 		Upload(length, NULL);
 		glBindBuffer(GL_COPY_READ_BUFFER, old_buffer);
 		glBindBuffer(GL_COPY_WRITE_BUFFER, m_buffer_handle);
-		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, m_buffer_size);
+		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, oldsize);
 		glDeleteBuffers(1, &old_buffer);
 		m_buffer_size = length;
 		glPopDebugGroup();

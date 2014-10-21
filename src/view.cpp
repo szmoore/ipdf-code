@@ -233,7 +233,7 @@ void View::Render(int width, int height)
 	{
 		g_profiler.BeginZone("View::Render -- Quadtree view bounds management");
 		// If we're too far zoomed out, become the parent of the current node.
-		if ( m_bounds.w > 1.0 || m_bounds.h > 1.0)
+		while ( m_bounds.w > 1.0 || m_bounds.h > 1.0)
 		{
 			// If a parent node exists, we'll become it.
 			//TODO: Generate a new parent node if none exists, and work out when to change child_type
@@ -243,6 +243,7 @@ void View::Render(int width, int height)
 				m_bounds = TransformFromQuadChild(m_bounds, m_document.GetQuadTree().nodes[m_current_quadtree_node].child_type);
 				m_current_quadtree_node = m_document.GetQuadTree().nodes[m_current_quadtree_node].parent;
 			}
+			else break;
 		}
 
 		// If we have a parent... (This prevents some crashes, but should disappear.)
@@ -320,7 +321,7 @@ void View::Render(int width, int height)
 
 		// Otherwise, we'll arbitrarily select the bottom-right.
 		// TODO: Perhaps select based on greatest area?
-		if (m_bounds.w < 0.5 || m_bounds.h < 0.5)
+		while (m_bounds.w < 0.5 || m_bounds.h < 0.5)
 		{
 			if (m_document.GetQuadTree().nodes[m_current_quadtree_node].bottom_right == QUADTREE_EMPTY)
 			{
@@ -377,6 +378,12 @@ void View::Render(int width, int height)
 #ifdef QUADTREE_DISABLED
 	RenderRange(width, height, 0, m_document.ObjectCount());
 #else
+	// Make sure we update the gpu buffers properly.
+	if (m_document.m_document_dirty)
+	{
+		m_render_dirty = m_buffer_dirty = true;
+		m_document.m_document_dirty = false;
+	}
 	RenderQuadtreeNode(width, height, m_current_quadtree_node, m_quadtree_max_depth);
 #endif
 	if (!m_use_gpu_rendering)
@@ -404,17 +411,15 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 	Rect old_bounds = m_bounds;
 	if (node == QUADTREE_EMPTY) return;
 	if (!remaining_depth) return;
-	//Debug("Rendering QT node %d, (objs: %d -- %d)\n", node, m_document.GetQuadTree().nodes[node].object_begin, m_document.GetQuadTree().nodes[node].object_end);
 	m_bounds_dirty = true;
-	if (m_document.m_document_dirty)
-	{
-		m_render_dirty = m_buffer_dirty = true;
-		m_document.m_document_dirty = false;
-	}
 	QuadTreeIndex overlay = node;
 	while(overlay != -1)
 	{
+		//Debug("Rendering QT node %d, (overlay %d, objs: %d -- %d)\n", node, overlay, m_document.GetQuadTree().nodes[overlay].object_begin, m_document.GetQuadTree().nodes[overlay].object_end);
+		if (m_document.GetQuadTree().nodes[overlay].render_dirty)
+			m_buffer_dirty = m_render_dirty = true;
 		RenderRange(width, height, m_document.GetQuadTree().nodes[overlay].object_begin, m_document.GetQuadTree().nodes[overlay].object_end);
+		const_cast<bool&>(m_document.GetQuadTree().nodes[overlay].render_dirty) = false;
 		overlay = m_document.GetQuadTree().nodes[overlay].next_overlay;
 	}
 
@@ -462,10 +467,14 @@ void View::RenderQuadtreeNode(int width, int height, QuadTreeIndex node, int rem
 
 void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_obj)
 {
+	// We don't want to render an empty range,
+	// so don't waste time setting up everything.
+	if (first_obj == last_obj) return;
 	PROFILE_SCOPE("View::RenderRange");
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 43, -1, "View::RenderRange()");
 	if (m_render_dirty) // document has changed
 		PrepareRender();
+
 
 	if (m_buffer_dirty || m_bounds_dirty || !m_lazy_rendering) // object bounds have changed
 	{
@@ -473,30 +482,31 @@ void View::RenderRange(int width, int height, unsigned first_obj, unsigned last_
 			UpdateObjBoundsVBO(first_obj, last_obj);
 	}
 
-	if (m_use_gpu_transform)
-	{
-		#ifdef TRANSFORM_OBJECTS_NOT_VIEW
-			//Debug("Transform objects, not view");
-				GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f,
-					0.0f, 0.0f, float(width), float(height)};
-		#else
-		GLfloat glbounds[] = {static_cast<GLfloat>(Float(m_bounds.x)), static_cast<GLfloat>(Float(m_bounds.y)), static_cast<GLfloat>(Float(m_bounds.w)), static_cast<GLfloat>(Float(m_bounds.h)),
-					0.0, 0.0, static_cast<GLfloat>(width), static_cast<GLfloat>(height)};
-		#endif
-		m_bounds_ubo.Upload(sizeof(float)*8, glbounds);
-	}
-	else
-	{
-		GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f,
-					0.0f, 0.0f, float(width), float(height)};
-		m_bounds_ubo.Upload(sizeof(float)*8, glbounds);
-	}
-	m_bounds_dirty = false;
-
 
 	// Render using GPU
 	if (m_use_gpu_rendering) 
 	{
+
+		if (m_use_gpu_transform)
+		{
+			#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+				//Debug("Transform objects, not view");
+					GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f,
+						0.0f, 0.0f, float(width), float(height)};
+			#else
+			GLfloat glbounds[] = {static_cast<GLfloat>(Float(m_bounds.x)), static_cast<GLfloat>(Float(m_bounds.y)), static_cast<GLfloat>(Float(m_bounds.w)), static_cast<GLfloat>(Float(m_bounds.h)),
+						0.0, 0.0, static_cast<GLfloat>(width), static_cast<GLfloat>(height)};
+			#endif
+			m_bounds_ubo.Upload(sizeof(float)*8, glbounds);
+		}
+		else
+		{
+			GLfloat glbounds[] = {0.0f, 0.0f, 1.0f, 1.0f,
+						0.0f, 0.0f, float(width), float(height)};
+			m_bounds_ubo.Upload(sizeof(float)*8, glbounds);
+		}
+		m_bounds_dirty = false;
+
 		if (m_colour.a < 1.0f)
 		{
 			glEnable(GL_BLEND);
