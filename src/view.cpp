@@ -165,6 +165,10 @@ void View::ScaleAroundPoint(Real x, Real y, Real scale_amount)
 	m_bounds.y = vy - top;
 	m_bounds.w *= scale_amount;
 	m_bounds.h *= scale_amount;
+	if (m_bounds.w == VReal(0))
+	{
+		Debug("Scaled to zero!!!");
+	}
 	//Debug("Scale at {%s, %s} by %s View Bounds => %s", x.Str().c_str(), y.Str().c_str(), scale_amount.Str().c_str(), m_bounds.Str().c_str());
 	
 	
@@ -523,7 +527,7 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 {
 	if (m_query_gpu_bounds_on_next_frame != NULL)
 	{
-		fprintf(m_query_gpu_bounds_on_next_frame,"# View: %s\t%s\t%s\t%s", Str(m_bounds.x).c_str(), Str(m_bounds.y).c_str(), Str(m_bounds.w).c_str(), Str(m_bounds.h).c_str());
+		fprintf(m_query_gpu_bounds_on_next_frame,"# View: %s\t%s\t%s\t%s\n", Str(m_bounds.x).c_str(), Str(m_bounds.y).c_str(), Str(m_bounds.w).c_str(), Str(m_bounds.h).c_str());
 	}	
 	
 	//m_objbounds_vbo.Invalidate();
@@ -585,7 +589,6 @@ void View::UpdateObjBoundsVBO(unsigned first_obj, unsigned last_obj)
 				continue;
 				
 			Rect obj_bounds = m_document.m_objects.bounds[id];
-
 			obj_bounds.x *= pbounds.w;
 			obj_bounds.x += pbounds.x;
 			obj_bounds.y *= pbounds.h;

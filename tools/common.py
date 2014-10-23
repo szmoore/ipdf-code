@@ -9,13 +9,13 @@ from IPython.display import display, clear_output
 import threading
 
 options = {
-    "real_names" : ["single", "double", "long", "virtual", "Rational_GMPint", "Rational_Arbint", "mpfrc++", "iRRAM", "ParanoidNumber", "GMPrat"],
+    "real_names" : ["float", "double", "long", "virtual", "Rational_Gmpint", "Rational_Arbint", "mpfr", "iRRAM", "ParanoidNumber", "Gmprat"],
     "ipdf_src" : "../src/",
     "ipdf_bin" : "../bin/ipdf",
     "local_bin" : "./",
     "tests" : "../src/tests/",
     "ignore" : ["virtual", "Rational_Arbint", "iRRAM", "ParanoidNumber"],
-    "tobuild" : ["single", "double", "mpfrc++","GMPrat"],
+    "tobuild" : ["float", "double", "mpfr-1024","Gmprat", "path-Gmprat", "path-mpfr-1025"],
     "numerical_tests" : ["identitytests"],
     "built" : []
 }

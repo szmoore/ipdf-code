@@ -172,14 +172,14 @@ void DebugScript::ParseAction(View * view, Screen * scr)
 		currentAction.type = AT_ScreenShot;
 		inp >> currentAction.textargs;	
 	}
-	else if (actionType == "printfps")
+	else if (actionType == "printspf")
 	{
-		currentAction.type = AT_PrintFPS;
+		currentAction.type = AT_PrintSPF;
 		currentAction.iz = currentAction.loops;
-		m_fps_cpu_mean = 0;
-		m_fps_gpu_mean = 0;
-		m_fps_cpu_stddev = 0;
-		m_fps_gpu_stddev = 0;
+		m_spf_cpu_mean = 0;
+		m_spf_gpu_mean = 0;
+		m_spf_cpu_stddev = 0;
+		m_spf_gpu_stddev = 0;
 	}
 	else if (actionType == "printbounds")
 	{
@@ -215,16 +215,16 @@ bool DebugScript::Execute(View *view, Screen *scr)
 	case AT_WaitFrame:
 		break;
 	case AT_Translate:
-		view->Translate(currentAction.x, currentAction.y);
+		view->Translate(Double(currentAction.x), Double(currentAction.y));
 		break;
 	case AT_TranslatePx:
 		view->Translate(Real(currentAction.ix)/Real(scr->ViewportWidth()), Real(currentAction.iy)/Real(scr->ViewportHeight()));
 		break;
 	case AT_Zoom:
-		view->ScaleAroundPoint(currentAction.x, currentAction.y, currentAction.z);
+		view->ScaleAroundPoint(Double(currentAction.x), Double(currentAction.y), Double(currentAction.z));
 		break;
 	case AT_ZoomPx:
-		view->ScaleAroundPoint(Real(currentAction.ix)/Real(scr->ViewportWidth()),Real(currentAction.iy)/Real(scr->ViewportHeight()), Real(expf(-currentAction.iz/20.f)));
+		view->ScaleAroundPoint(Real(currentAction.ix)/Real(scr->ViewportWidth()),Real(currentAction.iy)/Real(scr->ViewportHeight()), exp(Real(-currentAction.iz)/Real(20)));
 		break;
 	case AT_SetGPURendering:
 		view->SetGPURendering(true);
@@ -300,13 +300,13 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		
 
 		VReal s = target.w/(view->GetBounds().w);
-		if (Real(s) != 1)
+		if (s != VReal(1))
 		{
 			VReal x0;
 			VReal y0;
 			x0 = (view->GetBounds().x - target.x)/((s - VReal(1))*view->GetBounds().w);
 			y0 = (view->GetBounds().y - target.y)/((s - VReal(1))*view->GetBounds().h);
-			view->ScaleAroundPoint(x0, y0, s);
+			view->ScaleAroundPoint(Double(x0), Double(y0), Double(s));
 			currentAction.loops++;
 		}
 		else
@@ -324,13 +324,13 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		target.w += view->GetBounds().w;
 		target.h += view->GetBounds().h;
 		VReal s = target.w/(view->GetBounds().w);
-		if (Real(s) != 1)
+		if (s != VReal(1))
 		{
 			VReal x0;
 			VReal y0;
 			x0 = (view->GetBounds().x - target.x)/((s - VReal(1))*view->GetBounds().w);
 			y0 = (view->GetBounds().y - target.y)/((s - VReal(1))*view->GetBounds().h);
-			view->ScaleAroundPoint(x0, y0, s);
+			view->ScaleAroundPoint(Double(x0), Double(y0), Double(s));
 			currentAction.loops++;
 		}
 		else
@@ -359,7 +359,7 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		currentAction.loops = 1;
 		break;
 	}
-	case AT_PrintFPS:
+	case AT_PrintSPF:
 	{
 		// Using a (apparently) Soviet trick to calculate the stddev in one pass
 		// This was my favourite algorithm in my Physics honours project
@@ -370,35 +370,35 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		if (currentAction.loops <= 1)
 		{
 			double n = double(currentAction.iz);
-			m_fps_cpu_mean /= n;
-			m_fps_gpu_mean /= n;
+			m_spf_cpu_mean /= n;
+			m_spf_gpu_mean /= n;
 			
-			m_fps_cpu_stddev = sqrt(m_fps_cpu_stddev / n - m_fps_cpu_mean*m_fps_cpu_mean);
-			m_fps_gpu_stddev = sqrt(m_fps_gpu_stddev / n - m_fps_gpu_mean*m_fps_gpu_mean);
+			m_spf_cpu_stddev = sqrt(m_spf_cpu_stddev / n - m_spf_cpu_mean*m_spf_cpu_mean);
+			m_spf_gpu_stddev = sqrt(m_spf_gpu_stddev / n - m_spf_gpu_mean*m_spf_gpu_mean);
 			
 			
 			
 			printf("%d\t%f\t%f\t%f\t%f\n", currentAction.iz,
-				m_fps_gpu_mean, m_fps_gpu_stddev,
-				m_fps_cpu_mean, m_fps_cpu_stddev);
+				m_spf_gpu_mean, m_spf_gpu_stddev,
+				m_spf_cpu_mean, m_spf_cpu_stddev);
 		}
 		else
 		{
 			
-			double fps_cpu = 1.0/scr->GetLastFrameTimeCPU();
-			double fps_gpu = 1.0/scr->GetLastFrameTimeGPU();
+			double spf_cpu = scr->GetLastFrameTimeCPU();
+			double spf_gpu = scr->GetLastFrameTimeGPU();
 			
-			m_fps_cpu_mean += fps_cpu;
-			m_fps_gpu_mean += fps_gpu;
+			m_spf_cpu_mean += spf_cpu;
+			m_spf_gpu_mean += spf_gpu;
 			
-			m_fps_cpu_stddev += fps_cpu*fps_cpu;
-			m_fps_gpu_stddev += fps_gpu*fps_gpu;
+			m_spf_cpu_stddev += spf_cpu*spf_cpu;
+			m_spf_gpu_stddev += spf_gpu*spf_gpu;
 		}
 		break;
 	}
 	case AT_PrintBounds:
 	{
-		printf("%s\t%s\t%s\t%s\n", Str(view->GetBounds().x).c_str(), Str(view->GetBounds().y).c_str(), Str(view->GetBounds().w).c_str(), Str(view->GetBounds().h).c_str());
+		printf("%s\t%s\t%s\t%s\t%s\t%s\n", Str(view->GetBounds().x).c_str(), Str(view->GetBounds().y).c_str(), Str(view->GetBounds().w).c_str(), Str(view->GetBounds().h).c_str(), Str(Log10(view->GetBounds().w)).c_str(), Str(Log10(view->GetBounds().h)).c_str());
 		break;
 	}
 	default:

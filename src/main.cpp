@@ -11,6 +11,8 @@
 
 bool ignore_sigfpe = false;
 const char *script_filename;
+bool make_movie = false;
+const char * program_name;
 
 void sigfpe_handler(int sig)
 {
@@ -21,7 +23,7 @@ void sigfpe_handler(int sig)
 
 int main(int argc, char ** argv)
 {	
-	
+	program_name = argv[0];
 	
 	//Debug("Main!");
 	signal(SIGFPE, sigfpe_handler);
@@ -36,10 +38,16 @@ int main(int argc, char ** argv)
 	// We want to crash if we ever get a NaN.
 	// AH, so *this* is where that got enabled, I was looking for compiler flags
 	#ifndef __MINGW32__
-	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+	feenableexcept(FE_DIVBYZERO | FE_INVALID); // | FE_OVERFLOW);
 	#endif
 	#if REALTYPE == REAL_MPFRCPP
-	mpfr_set_default_prec(6);
+	
+		#ifdef MPFR_PRECISION
+		mpfr_set_default_prec(MPFR_PRECISION);
+		#else
+		mpfr_set_default_prec(23);
+		#endif
+		
 	#endif
 	DebugRealInfo();
 
@@ -63,7 +71,12 @@ int main(int argc, char ** argv)
 	bool window_visible = true;
 	bool gpu_transform = USE_GPU_TRANSFORM;
 	bool gpu_rendering = USE_GPU_RENDERING;
-	
+	#ifdef TRANSFORM_OBJECTS_NOT_VIEW
+		gpu_transform = true;
+	#endif
+	#ifdef TRANSFORM_BEZIERS_TO_PATH
+		gpu_transform = true;
+	#endif
 
 	
 	int i = 0;
@@ -167,6 +180,9 @@ int main(int argc, char ** argv)
 				if (++i >= argc)
 					Fatal("Expected filename after -s switch");
 				script_filename = argv[i];
+				break;
+			case 'm':
+				make_movie = true;
 				break;
 		}	
 	}

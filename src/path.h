@@ -15,11 +15,6 @@
 
 namespace IPDF
 {
-	#ifdef TRANSFORM_BEZIERS_TO_PATH
-		typedef Real PReal;
-	#else
-		typedef Real PReal;
-	#endif
 	typedef TRect<PReal> PRect;
 	
 	struct Colour

@@ -16,10 +16,10 @@ QT_INCLUDE := -I/usr/share/qt4/mkspecs/linux-g++-64 -I. -I/usr/include/qt4/QtCor
 QT_DEF := -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB
 QT_LIB :=  -L/usr/lib/x86_64-linux-gnu -lQtGui -lQtCore -lpthread 
 
-LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL -lgmp
-LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL -lgmp
+LIB_x86_64 = ../contrib/lib/libSDL2-2.0.so.0 -lGL -lgmp -lmpfr
+LIB_i386 = ../contrib/lib32/libSDL2-2.0.so.0 -lGL -lgmp -lmpfr
 LIB_i686 = $(LIB_i386)
-LIB_win32 = -mwindows -lmingw32 -L../contrib/win32/lib/ -lSDL2main -lSDL2 -lgmp -static-libgcc -lopengl32 -static-libstdc++
+LIB_win32 = -mwindows -lmingw32 -L../contrib/win32/lib/ -lSDL2main -lSDL2 -lgmp -static-libgcc -lopengl32 -static-libstdc++ -lmpfr
 
 MAINRPATH_x86_64 = -Wl,-rpath,'$$ORIGIN/../contrib/lib'
 MAINRPATH_i386 = -Wl,-rpath,'$$ORIGIN/../contrib/lib32'
@@ -48,6 +48,9 @@ BIN = ../bin/ipdf
 REALTYPE=1
 CONTROLPANEL=enabled
 QUADTREE=disabled
+TRANSFORMATIONS=direct
+MPFR_PRECISION=23
+PATHREAL=0
 DEF = -DREALTYPE=$(REALTYPE)
 
 
@@ -80,6 +83,18 @@ endif
 
 ifeq ($(REALTYPE),6)
 	LIB := $(LIB) -lgmp -lmpfr
+	DEF := $(DEF) -DMPFR_PRECISION=$(MPFR_PRECISION)
+endif
+
+ifeq ($(TRANSFORMATIONS),cumulative)
+	DEF := $(DEF) -DTRANSFORM_OBJECTS_NOT_VIEW
+endif
+
+ifeq ($(TRANSFORMATIONS),path)
+	DEF := $(DEF) -DTRANSFORM_OBJECTS_NOT_VIEW -DTRANSFORM_BEZIERS_TO_PATH -DPATHREAL=$(PATHREAL)
+	ifeq ($(PATHREAL), mpfr)
+		LIB:= $(LIB) -lmpfr
+	endif
 endif
 
 ifeq ($(REALTYPE),7)

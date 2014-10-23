@@ -12,6 +12,8 @@ using namespace IPDF;
 
 
 extern const char *script_filename;
+extern bool make_movie; // whyyy
+extern const char * program_name;
 
 inline void OverlayBMP(Document & doc, const char * input, const char * output, const Rect & bounds = Rect(0,0,1,1), const Colour & c = Colour(0.f,0.f,0.f,1.f))
 {
@@ -69,7 +71,7 @@ void RatCatcher(int x, int y, int buttons, int wheel, Screen * scr, View * view)
 		
 	if (wheel)
 	{
-		view->ScaleAroundPoint(Real(x)/Real(scr->ViewportWidth()),Real(y)/Real(scr->ViewportHeight()), Real(expf(-wheel/20.f)));
+		view->ScaleAroundPoint(Real(x)/Real(scr->ViewportWidth()),Real(y)/Real(scr->ViewportHeight()), exp(Real(-wheel)/Real(20)));
 	}
 }
 
@@ -80,7 +82,7 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 	
 
 	//scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 12);
-	scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 18);
+	scr.DebugFontInit("fonts/DejaVuSansMono.ttf", 36);
 	scr.SetMouseHandler(RatCatcher);
 
 	ifstream tmp;
@@ -155,11 +157,13 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 		
 
 		
-
+		scr.DebugFontPrintF("%s\n", program_name);
 		scr.DebugFontPrintF("Top Left: (%s,%s)\n", Str(view.GetBounds().x).c_str(),Str(view.GetBounds().y).c_str());
 		scr.DebugFontPrintF("Width: %s\n", Str(view.GetBounds().w).c_str());
-		scr.DebugFontPrintF("Zoom: %s %%\n", Str(VReal(100)/VReal(view.GetBounds().w)).c_str());
-		//scr.DebugFontPrintF("Similar size: %s\n", HumanScale(view.GetBounds().w * VReal(22e-3)));
+		Real zoom(100);
+		zoom = zoom/Real(view.GetBounds().w);
+		scr.DebugFontPrintF("Zoom: %s %%\n", Str(zoom).c_str());
+		scr.DebugFontPrintF("Similar size: %s\n", HumanScale(ClampFloat(Double(view.GetBounds().w))));
 		
 		#if 0
 		scr.DebugFontPrintF("Rendered frame %lu\n", (uint64_t)frames);
@@ -205,7 +209,15 @@ void MainLoop(Document & doc, Screen & scr, View & view, int max_frames = -1)
 			scr.DebugFontPrint("Doing rendering using CPU.\n");
 		}
 		#endif // 0
-		
+
 		scr.Present();
+
+		if (make_movie)
+		{
+			std::stringstream s;
+			s << "frame" << frames << ".bmp";
+			scr.ScreenShot(s.str().c_str());
+		}		
+
 	}
 }

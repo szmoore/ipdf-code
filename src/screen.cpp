@@ -45,7 +45,7 @@ Screen::Screen(bool visible)
 	}
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
@@ -56,17 +56,17 @@ Screen::Screen(bool visible)
 	// Why is this so horribly broken?
 	if (ogl_IsVersionGEQ(3,2))
 	{
-		Fatal("We require OpenGL 3.3, but you have version %d.%d!",ogl_GetMajorVersion(), ogl_GetMinorVersion());
+		Error("We require OpenGL 3.3, but you have version %d.%d!",ogl_GetMajorVersion(), ogl_GetMinorVersion());
 	}
 
 	if (!SDL_GL_ExtensionSupported("GL_ARB_shading_language_420pack"))
 	{
-		Fatal("Your system does not support the ARB_shading_language_420pack extension, which is required.");
+		Error("Your system does not support the ARB_shading_language_420pack extension, which is required.");
 	}
 
 	if (!SDL_GL_ExtensionSupported("GL_ARB_explicit_attrib_location"))
 	{
-		Fatal("Your system does not support the ARB_explicit_attrib_location extension, which is required.");
+		Error("Your system does not support the ARB_explicit_attrib_location extension, which is required.");
 	}
 
 	m_frame_begin_time = SDL_GetPerformanceCounter();
@@ -227,8 +227,10 @@ void Screen::Present()
 {
 	if (!Valid())
 		return;
+
 	if (m_debug_font_atlas)
 		DebugFontFlush();
+
 	m_last_frame_time = SDL_GetPerformanceCounter() - m_frame_begin_time;
 	glEndQuery(GL_TIME_ELAPSED);
 	SDL_GL_SwapWindow(m_window);
@@ -238,6 +240,8 @@ void Screen::Present()
 	m_last_frame_gpu_timer = m_frame_gpu_timer;
 	glGenQueries(1, &m_frame_gpu_timer);
 	glBeginQuery(GL_TIME_ELAPSED, m_frame_gpu_timer);
+
+
 }
 
 double Screen::GetLastFrameTimeGPU() const

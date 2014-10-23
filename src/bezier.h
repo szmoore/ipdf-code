@@ -151,7 +151,7 @@ namespace IPDF
 			// (So can't just use the Copy constructor on the inverse of bounds)
 			// BRect inverse = {-bounds.x/bounds.w, -bounds.y/bounds.h, BReal(1)/bounds.w, BReal(1)/bounds.h};
 			Bezier result;
-			if (bounds.w == 0)
+			if (bounds.w == BReal(0))
 			{
 				result.x0 = 0;
 				result.x1 = 0;
@@ -166,7 +166,7 @@ namespace IPDF
 				result.x3 = (x3 - bounds.x)/bounds.w;
 			}
 
-			if (bounds.h == 0)
+			if (bounds.h == BReal(0))
 			{
 				result.y0 = 0;
 				result.y1 = 0;

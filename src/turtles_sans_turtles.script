@@ -1,0 +1,5 @@
+loop 1000 pxzoom 430 170 1
+label start
+loop 2000 pxzoom 430 170 -1
+loop 2000 pxzoom 430 170 1
+goto start

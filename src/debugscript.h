@@ -43,7 +43,7 @@ private:
 		AT_SetBounds,
 		AT_QueryGPUBounds, // query bounds of Beziers when transformed to GPU
 		AT_ScreenShot, // take screenshot
-		AT_PrintFPS, // Print FPS statistics about the frames
+		AT_PrintSPF, // Print FPS statistics about the frames
 		AT_PrintBounds, // Print bounds
 		AT_Quit
 	};
@@ -51,12 +51,12 @@ private:
 	struct Action
 	{
 		ActionType type;
-		Real x, y;
+		VReal x, y;
 		int ix, iy;
-		Real z;
+		VReal z;
 		int iz;
 		int loops;
-		Real w, h;
+		VReal w, h;
 		std::string textargs;
 		Action() : type(AT_WaitFrame), x(0), y(0), ix(0), iy(0), z(0), loops(0), textargs("") {}
 	};
@@ -68,10 +68,10 @@ private:
 	std::map<std::string, int> m_labels;
 	unsigned m_index;
 	
-	double m_fps_cpu_mean;
-	double m_fps_gpu_mean;
-	double m_fps_cpu_stddev;
-	double m_fps_gpu_stddev;
+	double m_spf_cpu_mean;
+	double m_spf_gpu_mean;
+	double m_spf_cpu_stddev;
+	double m_spf_gpu_stddev;
 	
 	struct PerformanceData
 	{

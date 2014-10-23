@@ -103,6 +103,7 @@ class Gmprat
 		
 		Gmprat Abs() const {Gmprat a(*this); mpq_abs(a.m_op, a.m_op); return a;}
 		
+		
 		size_t Size() const
 		{
 			return sizeof(uint64_t) * (mpq_numref(m_op)->_mp_alloc + mpq_denref(m_op)->_mp_alloc);
@@ -119,11 +120,14 @@ inline std::ostream & operator<<(std::ostream & os, const Gmprat & fith)
 	return os;
 }
 
+
+#if REALTYPE != 9
 inline std::string Str(const Gmprat & g) {return g.Str();}
 inline double Log10(const Gmprat & g) {return g.Log10();}
 inline size_t Size(const Gmprat & g) {return g.Size();}
 inline Gmprat Abs(const Gmprat & g) {return g.Abs();}
 
+#endif
 
 #endif //_GMPRAT_H
 

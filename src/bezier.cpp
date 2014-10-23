@@ -14,17 +14,17 @@ namespace IPDF
 vector<BReal> SolveQuadratic(const BReal & a, const BReal & b, const BReal & c, const BReal & min, const BReal & max)
 {
 	vector<BReal> roots; roots.reserve(2);
-	if (a == 0 && b != 0)
+	if (a == BReal(0) && b != BReal(0))
 	{
 		roots.push_back(-c/b);
 		return roots;
 	}
 	BReal disc(b*b - BReal(4)*a*c);
-	if (disc < 0)
+	if (disc < BReal(0))
 	{
 		return roots;
 	}
-	else if (disc == 0)
+	else if (disc == BReal(0))
 	{
 		BReal x(-b/BReal(2)*a);
 		if (x >= min && x <= max)
@@ -55,7 +55,7 @@ static void CubicSolveSegment(vector<BReal> & roots, const BReal & a, const BRea
 {
 	BReal l = a*tl*tl*tl + b*tl*tl + c*tl + d;
 	BReal u = a*tu*tu*tu + b*tu*tu + c*tu + d;
-	if ((l < 0 && u < 0) || (l > 0 && u > 0))
+	if ((l < BReal(0) && u < BReal(0)) || (l > BReal(0) && u > BReal(0)))
 	{
 		//Debug("Discarding segment (no roots) l = %f (%f), u = %f (%f)", Double(tl), Double(l), Double(tu), Double(u));
 		//return;
@@ -68,7 +68,7 @@ static void CubicSolveSegment(vector<BReal> & roots, const BReal & a, const BRea
 		BReal t(tu+tl);
 		t /= 2;
 		BReal m = a*t*t*t + b*t*t + c*t + d;
-		if (m > 0)
+		if (m > BReal(0))
 		{
 			if (negative)
 				tl = t;
@@ -92,7 +92,7 @@ vector<BReal> SolveCubic(const BReal & a, const BReal & b, const BReal & c, cons
 	vector<BReal> roots; roots.reserve(3);
 	BReal tu(max);
 	BReal tl(min);
-	vector<BReal> turns(SolveQuadratic(a*3, b*2, c));
+	vector<BReal> turns(SolveQuadratic(a*BReal(3), b*BReal(2), c));
 	//Debug("%u turning points", turns.size());
 	for (unsigned i = 1; i < turns.size(); ++i)
 	{
@@ -155,20 +155,20 @@ pair<BReal, BReal> BezierTurningPoints(const BReal & p0, const BReal & p1, const
 	{
 		return pair<BReal,BReal>(0, 1);
 	}
-	BReal a = ((p1-p2)*3 + p3 - p0);
-	BReal b = (p2 - p1*2 + p0)*2;
+	BReal a = ((p1-p2)*BReal(3) + p3 - p0);
+	BReal b = (p2 - p1*BReal(2) + p0)*BReal(2);
 	BReal c = (p1-p0);
-	if (a == 0)
+	if (a == BReal(0))
 	{
-		if (b == 0)
+		if (b == BReal(0))
 			return pair<BReal, BReal>(0,1);
 		BReal t = -c/b;
-		if (t > 1) t = 1;
-		if (t < 0) t = 0;
+		if (t > BReal(1)) t = 1;
+		if (t < BReal(0)) t = 0;
 		return pair<BReal, BReal>(t, t);
 	}
 	//Debug("a, b, c are %f, %f, %f", Float(a), Float(b), Float(c));
-	if (b*b - a*c*4 < 0)
+	if (b*b - a*c*BReal(4) < BReal(0))
 	{
 		//Debug("No real roots");
 		return pair<BReal, BReal>(0,1);

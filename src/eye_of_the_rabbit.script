@@ -1,5 +1,5 @@
 # Test how well document scales back to original...
-cpu
+gpu
 lazy
 debugfont on
 clearperf

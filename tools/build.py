@@ -4,26 +4,42 @@ from common import *
 
 import subprocess
 
-def Build(real_type, quadtree=False, controlpanel=False):
-    global options
-    real_name = ""
-    if (type(real_type) == str):
-        quadtree = "enabled" if (real_type.split("-")[-1] == "qtree") else quadtree
-        real_type = real_type.split("-")[0]
-        real_name = real_type
-        real_type = options["real_names"].index(real_type)
-    else:
-        real_name = options["real_names"][real_type]
-        
-    quadtree = "enabled" if quadtree else "disabled"
-    controlpanel = "enabled" if controlpanel else "disabled"
-    if (os.system("make -C %s clean" % options["ipdf_src"]) != 0):
-        raise Exception("Make clean failed.")
-    if (os.system("make -C %s REALTYPE=%d QUADTREE=%s CONTROLPANEL=%s" % (options["ipdf_src"], real_type, quadtree, controlpanel)) != 0):
-        raise Exception("Make failed.")
-        
-    q = "-qtree" if quadtree == "enabled" else ""
-    os.rename(options["ipdf_bin"], options["local_bin"]+real_name+q)
+def Build(binname):
+	global options
+	
+	tokens = binname.split("-")
+	transformations = "direct"
+	mpfr_prec = 23
+	if tokens[0] == "path":
+		transformations = "path"
+		tokens = tokens[1:]
+	elif tokens[0] == "cumul":
+		transformations = "cumulative"
+		tokens = tokens[1:]
+
+	realname = tokens[0]
+	realtype = options["real_names"].index(realname)
+	
+	mainreal = 0
+	pathreal = 0
+	if transformations == "direct":
+		mainreal = realtype
+	else:
+		pathreal = realtype # hackky.
+		realtype = 1
+	
+	if realname == "mpfr":
+		mpfr_prec = int(tokens[1])
+	
+	quadtree = "disabled"
+	if "qtree" in tokens:
+		quadtree = "enabled"
+	
+	
+	if (os.system("make -C %s clean; make -C %s REALTYPE=%d MPFR_PRECISION=%d QUADTREE=%s CONTROLPANEL=disabled TRANSFORMATIONS=%s PATHREAL=%d" % (options["ipdf_src"], options["ipdf_src"], mainreal, mpfr_prec, quadtree, transformations, pathreal)) != 0):
+		raise Exception("Make failed.")
+
+	os.rename(options["ipdf_bin"], options["local_bin"]+binname)
 
 
 def BuildAll():
@@ -33,11 +49,11 @@ def BuildAll():
 	for (i,b) in enumerate(options["tobuild"]): #options["real_names"]:
 		if b in options["ignore"]:
 			continue
-		try:
-			Build(b, False, False)
-			options["built"] += [b]
-		except:
-			display("Failed to build %s" % b)
+		#try:
+		Build(b)
+		options["built"] += [b]
+		#except:
+		#	display("Failed to build %s" % b)
 		p.animate(i+1)
 
 if __name__ == "__main__":

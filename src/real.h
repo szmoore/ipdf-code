@@ -102,6 +102,7 @@ namespace IPDF
 	inline std::string Str(const mpfr::mpreal & a) {std::stringstream s; s << a; return s.str();}
 	inline size_t Size(mpfr::mpreal & a) {return a.get_prec();}
 	inline mpfr::mpreal Log10(const mpfr::mpreal & a) {return mpfr::log10(a);}	
+	inline mpfr::mpreal Exp(const mpfr::mpreal & a) {return mpfr::pow(2.817, a);}
 	
 #elif REALTYPE == REAL_IRRAM
 	typedef iRRAM::REAL Real;
@@ -126,7 +127,7 @@ namespace IPDF
 	inline Real Sqrt(const Real & r) {return Real(sqrt(r.ToDouble()));}
 	inline Real RealFromStr(const char * str) {return Real(strtod(str, NULL));}
 	inline Real Abs(const Real & a) {return (a > Real(0)) ? a : Real(0)-a;}
-	
+	inline std::string Str(const Real & r) {return r.Str();}
 	
 #else
 	#error "Type of Real unspecified."
@@ -148,8 +149,9 @@ namespace IPDF
 	
 	
 	// Don't cause an exception
-	inline float ClampFloat(double d)
+	inline float ClampFloat(const Real & a)
 	{
+		double d = Double(a);
 		float f = (fabs(d) < FLT_MAX) ? ((fabs(d) > FLT_MIN) ? (float)d : FLT_MIN) : FLT_MAX;
 		return copysign(f, d);
 	}
@@ -212,8 +214,9 @@ namespace IPDF
 
 
 	// things stolen from wikipedia and googling
-	inline const char * HumanScale(double f)
+	inline const char * HumanScale(const Real & r)
 	{
+		double f = Double(r);
 		if (f < 1e-36)
 			return "RATHER SMALL";
 		if (f < 1e-35)
@@ -258,15 +261,15 @@ namespace IPDF
 			return "Ant";
 		if (f < 1e-2)
 			return "Coin";
-		if (f < 1e-1)
+		if (f < 0.5)
 			return "iPhone";
-		if (f < 1e0)
+		if (f < 5)
 			return "Person";
-		if (f < 1e1)
-			return "Building";
 		if (f < 1e2)
-			return "Football Field";
+			return "Building";
 		if (f < 1e3)
+			return "Football Field";
+		if (f < 2e3)
 			return "Mountain";
 		if (f < 1e4)
 			return "Clouds";
@@ -303,6 +306,13 @@ namespace IPDF
 			#ifdef PARANOID_SIZE_LIMIT
 				Debug("Size limit of %d is being enforced", PARANOID_SIZE_LIMIT);
 			#endif
+		#endif
+		#if REALTYPE == REAL_MPFRCPP
+			Debug("Precision of MPFR is %d", mpfr_get_default_prec());
+		#endif
+		
+		#ifdef TRANSFORM_BEZIERS_TO_PATH
+		Debug("PathReal = %d => \"%s\"", PATHREAL, g_real_name[PATHREAL]);
 		#endif
 	}
 }
