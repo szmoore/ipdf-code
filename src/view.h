@@ -78,6 +78,9 @@ namespace IPDF
 			void SaveGPUBMP(const char * filename);
 
 			Document & Doc() {return m_document;}
+#ifndef QUADTREE_DISABLED
+			QuadTreeIndex GetCurrentQuadtreeNode() { return m_current_quadtree_node; }
+#endif
 
 		private:
 			struct GPUObjBounds

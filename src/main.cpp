@@ -36,9 +36,9 @@ int main(int argc, char ** argv)
 	#endif
 
 	// We want to crash if we ever get a NaN.
-	// AH, so *this* is where that got enabled, I was looking for compiler flags
+	// Not any more
 	#ifndef __MINGW32__
-	feenableexcept(FE_DIVBYZERO | FE_INVALID); // | FE_OVERFLOW);
+	//feenableexcept(FE_DIVBYZERO | FE_INVALID); // | FE_OVERFLOW);
 	#endif
 	#if REALTYPE == REAL_MPFRCPP
 	

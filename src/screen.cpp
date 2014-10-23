@@ -48,8 +48,9 @@ Screen::Screen(bool visible)
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
+	//SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	m_gl_context = SDL_GL_CreateContext(m_window);
+	//SDL_GL_SetSwapInterval(1);
 
 	ogl_LoadFunctions();
 

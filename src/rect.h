@@ -38,6 +38,11 @@ namespace IPDF
 			if (y > other.y + other.h) return false;
 			return true;
 		}
+
+		inline bool Contains(const TRect& other) const
+		{
+			return PointIn(other.x, other.y) && PointIn(other.x + other.w, other.y + other.h);
+		}
 		
 		template <class B> TRect<B> Convert() const {return TRect<B>(B(x), B(y), B(w), B(h));}
 		
@@ -48,6 +53,31 @@ namespace IPDF
 			w = T(equ.w);
 			h = T(equ.h);
 			return *this;
+		}
+
+		// Clips "other" to "this"
+		inline TRect Clip(const TRect& other) const
+		{
+			TRect clipped = other;
+			if (clipped.x < x)
+			{
+				clipped.w += clipped.x - x;
+				clipped.x = x;
+			}
+			if (clipped.y < y)
+			{
+				clipped.h += clipped.y - y;
+				clipped.y = 0;
+			}
+			if (clipped.x + clipped.w > x + w)
+			{
+				clipped.w += ((x + w) - (clipped.x + clipped.w));
+			}
+			if (clipped.y + clipped.h > y + h)
+			{
+				clipped.h += ((y + h) - (clipped.y + clipped.h));
+			}
+			return clipped;
 		}
 	};
 

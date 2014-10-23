@@ -45,6 +45,7 @@ private:
 		AT_ScreenShot, // take screenshot
 		AT_PrintSPF, // Print FPS statistics about the frames
 		AT_PrintBounds, // Print bounds
+		AT_ProfileDisplay,
 		AT_Quit
 	};
 

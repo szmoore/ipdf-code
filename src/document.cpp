@@ -1,5 +1,6 @@
 #include "document.h"
 #include "bezier.h"
+#include "profiler.h"
 #include <cstdio>
 #include <fstream>
 
@@ -101,6 +102,7 @@ void Document::GenBaseQuadtree()
 
 int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 {
+	PROFILE_SCOPE("Document::ClipObjectToQuadChild");
 	switch (m_objects.types[object_id])
 	{
 	case RECT_FILLED:
@@ -168,9 +170,10 @@ int Document::ClipObjectToQuadChild(int object_id, QuadTreeNodeChildren type)
 }
 QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren type)
 {
+	PROFILE_SCOPE("Document::GenQuadChild()");
 	QuadTreeIndex new_index = m_quadtree.nodes.size();
 	Debug("-------------- Generating Quadtree Node %d (parent %d, type %d) ----------------------", new_index, parent, type);
-	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, parent, type, 0, 0, -1});
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, parent, type, 0, 0, -1, true});
 
 	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();
 	for (QuadTreeIndex overlay = parent; overlay != -1; overlay = m_quadtree.nodes[overlay].next_overlay)
@@ -203,14 +206,16 @@ QuadTreeIndex Document::GenQuadChild(QuadTreeIndex parent, QuadTreeNodeChildren 
 		default:
 			Fatal("Tried to add a QuadTree child of invalid type!");
 	}
+	m_document_dirty = true;
 	return new_index;
 }
 
 void Document::OverlayQuadChildren(QuadTreeIndex orig_parent, QuadTreeIndex parent, QuadTreeNodeChildren type)
 {
+	PROFILE_SCOPE("Document::OverlayQuadChildren()");
 	QuadTreeIndex new_index = m_quadtree.nodes.size();
 	Debug("-------------- Generating Quadtree Node %d (orig %d parent %d, type %d) ----------------------", new_index, orig_parent, parent, type);
-	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, orig_parent, type, 0, 0, -1});
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, orig_parent, type, 0, 0, -1, true});
 
 	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();
 	for (unsigned i = m_quadtree.nodes[parent].object_dirty; i < m_quadtree.nodes[parent].object_end; ++i)
@@ -260,6 +265,48 @@ void Document::OverlayQuadChildren(QuadTreeIndex orig_parent, QuadTreeIndex pare
 
 	m_quadtree.nodes[new_index].object_dirty = m_quadtree.nodes[new_index].object_end;
 	m_quadtree.nodes[new_index].next_overlay = -1;
+	m_document_dirty = true;
+}
+
+void Document::OverlayQuadParent(QuadTreeIndex orig_child, QuadTreeIndex child, QuadTreeNodeChildren type)
+{
+	PROFILE_SCOPE("Document::OverlayQuadParent()");
+	QuadTreeIndex new_index = m_quadtree.nodes.size();
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, -1, QTC_UNKNOWN, 0, 0, -1, true});
+
+	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();
+	m_quadtree.nodes[new_index].object_dirty = m_objects.bounds.size();
+	for (QuadTreeIndex overlay = child; overlay != -1; overlay = m_quadtree.nodes[overlay].next_overlay)
+	{
+		for (unsigned i = m_quadtree.nodes[overlay].object_begin; i < m_quadtree.nodes[overlay].object_end; ++i)
+		{
+			Rect new_bounds = TransformFromQuadChild(m_objects.bounds[i], type);
+			// If the object is too small to be seen, discard it.
+			if (!new_bounds.w || !new_bounds.h) continue;
+			m_objects.bounds.push_back(new_bounds);
+			m_objects.types.push_back(m_objects.types[i]);
+			m_objects.data_indices.push_back(m_objects.data_indices[i]);
+			m_count++;
+		}
+	}
+	m_quadtree.nodes[new_index].object_end = m_objects.bounds.size();
+	QuadTreeIndex orig_node = m_quadtree.nodes[orig_child].parent;
+	if (orig_node == -1)
+		Fatal("Tried to overlay a QuadTree child that didn't exist!");
+
+	// Add us to the node's overlay linked list.
+	QuadTreeIndex prev_overlay = orig_node;
+	while (m_quadtree.nodes[prev_overlay].next_overlay != -1) prev_overlay = m_quadtree.nodes[prev_overlay].next_overlay;
+	m_quadtree.nodes[prev_overlay].next_overlay = new_index;
+	Debug("OverlayQuadParent(%d, %d, %d) = %d", orig_child, child, type, new_index);
+
+	// Recurse into any extant parent.
+	if (m_quadtree.nodes[orig_node].parent != -1)
+		OverlayQuadParent(orig_node, new_index, m_quadtree.nodes[orig_node].child_type);
+
+	m_quadtree.nodes[new_index].object_dirty = m_quadtree.nodes[new_index].object_end;
+	m_quadtree.nodes[new_index].next_overlay = -1;
+	m_document_dirty = true;
 }
 
 void Document::PropagateQuadChanges(QuadTreeIndex node)
@@ -268,6 +315,9 @@ void Document::PropagateQuadChanges(QuadTreeIndex node)
 	{
 		// We don't care about clean overlays.
 		if (m_quadtree.nodes[overlay].object_dirty == m_quadtree.nodes[overlay].object_end) continue;
+		// Recurse into our parent, should we have any.
+		if (m_quadtree.nodes[node].parent != -1)
+			OverlayQuadParent(node, overlay, m_quadtree.nodes[node].child_type);
 		// Recurse into any extant children.
 		if (m_quadtree.nodes[node].top_left != -1)
 			OverlayQuadChildren(node, overlay, QTC_TOP_LEFT);
@@ -286,14 +336,17 @@ void Document::PropagateQuadChanges(QuadTreeIndex node)
 QuadTreeIndex Document::GenQuadParent(QuadTreeIndex child, QuadTreeNodeChildren type)
 {
 	QuadTreeIndex new_index = m_quadtree.nodes.size();
-	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, -1, QTC_UNKNOWN, 0, 0, -1});
+	m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, -1, QTC_UNKNOWN, 0, 0, -1, true});
 
 	m_quadtree.nodes[new_index].object_begin = m_objects.bounds.size();
 	for (QuadTreeIndex overlay = child; overlay != -1; overlay = m_quadtree.nodes[overlay].next_overlay)
 	{
 		for (unsigned i = m_quadtree.nodes[overlay].object_begin; i < m_quadtree.nodes[overlay].object_end; ++i)
 		{
-			m_objects.bounds.push_back(TransformFromQuadChild(m_objects.bounds[i], type));
+			Rect new_bounds = TransformFromQuadChild(m_objects.bounds[i], type);
+			// If the object is too small to be seen, discard it.
+			if (!new_bounds.w || !new_bounds.h) continue;
+			m_objects.bounds.push_back(new_bounds);
 			m_objects.types.push_back(m_objects.types[i]);
 			m_objects.data_indices.push_back(m_objects.data_indices[i]);
 			m_count++;
@@ -319,6 +372,7 @@ QuadTreeIndex Document::GenQuadParent(QuadTreeIndex child, QuadTreeNodeChildren 
 			Fatal("Tried to add a QuadTree child of invalid type!");
 	}
 	return new_index;
+	m_document_dirty = true;
 }
 
 #endif
@@ -410,12 +464,78 @@ unsigned Document::AddBezier(const Bezier & bezier)
 	unsigned index = AddBezierData(data);
 	return Add(BEZIER, bounds, index);
 }
+// Adds an object to the Document, clipping it to m_clip_rect.
+// Helper function called by Document::Add()
+int Document::AddClip(ObjectType type, const Rect& bounds, unsigned data_index, const Rect& clip_rect)
+{
+	PROFILE_SCOPE("Document::AddAndClip");
+	switch (type)
+	{
+	case RECT_FILLED:
+	case RECT_OUTLINE:
+	case PATH:
+		{
+		Rect obj_bounds = clip_rect.Clip(bounds);
+		m_objects.bounds.push_back(obj_bounds);
+		m_objects.types.push_back(type);
+		m_objects.data_indices.push_back(data_index);
+		return 1;
+		}
+	case BEZIER:
+		{
+		// If we're entirely within the clipping rect, no clipping need occur.
+		if (clip_rect.Contains(bounds))
+		{
+			m_objects.bounds.push_back(bounds);
+			m_objects.types.push_back(type);
+			m_objects.data_indices.push_back(data_index);
+			return 1;
+		}
+		Rect clip_bezier_bounds = TransformRectCoordinates(bounds, clip_rect); 
+		std::vector<Bezier> new_curves = m_objects.beziers[data_index].ClipToRectangle(clip_bezier_bounds);
+		for (size_t i = 0; i < new_curves.size(); ++i)
+		{
+			Bezier new_curve_data = new_curves[i].ToAbsolute(bounds);
+			Rect new_bounds = new_curve_data.SolveBounds();
+			new_curve_data = new_curve_data.ToRelative(new_bounds);
+			unsigned index = AddBezierData(new_curve_data);
+			m_objects.bounds.push_back(new_bounds);
+			m_objects.types.push_back(BEZIER);
+			m_objects.data_indices.push_back(index);
+		}
+		return new_curves.size();
+		}
+	default:
+		m_objects.bounds.push_back(bounds);
+		m_objects.types.push_back(type);
+		m_objects.data_indices.push_back(data_index);
+		return 1;
+	}
+	return 0;
+}
 
 unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index, QuadTreeIndex qti)
 {
-	m_objects.types.push_back(type);
-	m_objects.bounds.push_back(bounds);
-	m_objects.data_indices.push_back(data_index);
+	PROFILE_SCOPE("Document::Add");
+	Rect new_bounds = bounds;
+#ifndef QUADTREE_DISABLED
+	int num_added = 1;
+	if (qti == -1) qti = m_current_insert_node;
+	if (qti != -1)
+	{
+		// Move the object to the quadtree node it should be in.
+		m_quadtree.GetCanonicalCoords(qti, new_bounds.x, new_bounds.y, this);
+		Rect cliprect = Rect(0,0,1,1);
+		num_added = AddClip(type, new_bounds, data_index, cliprect);
+	}
+	else
+#endif
+	{
+		m_objects.types.push_back(type);
+		m_objects.bounds.push_back(new_bounds);
+		m_objects.data_indices.push_back(data_index);
+	}
+	m_document_dirty = true;
 #ifndef QUADTREE_DISABLED
 	if (qti != -1)
 	{
@@ -424,28 +544,30 @@ unsigned Document::Add(ObjectType type, const Rect & bounds, unsigned data_index
 		{
 			if (m_count == m_quadtree.nodes[new_qti].object_end+1)
 			{
-				m_quadtree.nodes[new_qti].object_end++;
-				goto done;
+				m_quadtree.nodes[new_qti].object_end += num_added;
+				m_quadtree.nodes[new_qti].render_dirty = true;
+				new_qti = -1;
+				break;
 			}
 			new_qti = m_quadtree.nodes[new_qti].next_overlay;
 		}
+		if (new_qti != -1)
 		{
 			QuadTreeIndex overlay = m_quadtree.nodes.size();
 			Debug("Adding new overlay, nqti = %d, overlay = %d", new_qti, overlay);
-			m_quadtree.nodes.push_back(m_quadtree.nodes[qti]);
+			m_quadtree.nodes.push_back(QuadTreeNode{QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, QUADTREE_EMPTY, -1, QTC_UNKNOWN, 0, 0, -1});
 			m_quadtree.nodes[overlay].object_begin = m_count;
 			// All objects are dirty.
 			m_quadtree.nodes[overlay].object_dirty = m_count;
-			m_quadtree.nodes[overlay].object_end = m_count+1;
+			m_quadtree.nodes[overlay].object_end = m_count+num_added;
 			m_quadtree.nodes[overlay].next_overlay = -1;
+			m_quadtree.nodes[overlay].render_dirty = true;
 			m_quadtree.nodes[new_qti].next_overlay = overlay;
 			new_qti = overlay;
 		}
-done: // matches is not amused, but sulix is nice and moved it inside the #ifdef for him.
-		m_count++;
-		PropagateQuadChanges(qti);
 	}
-	return m_count-1;
+	m_count += num_added;
+	return m_count-num_added;
 #else // words fail me (still not amused)
 	return (m_count++);
 #endif

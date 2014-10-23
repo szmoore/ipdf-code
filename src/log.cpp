@@ -120,7 +120,6 @@ void FatalEx(const char * funct, const char * file, int line, ...)
 		// Fatal error in the Fatal function.
 		// (This really shouldn't happen unless someone does something insanely stupid)
 		Fatal("Format string is NULL");
-		return; // Should never get here
 	}
 
 	vsnprintf(buffer, BUFSIZ, fmt,va);

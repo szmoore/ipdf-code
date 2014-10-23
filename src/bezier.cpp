@@ -96,12 +96,16 @@ vector<BReal> SolveCubic(const BReal & a, const BReal & b, const BReal & c, cons
 	//Debug("%u turning points", turns.size());
 	for (unsigned i = 1; i < turns.size(); ++i)
 	{
-		tu = turns[i];
+		if (tl > max) break;
+		tu = std::min(turns[i],tu);
 		CubicSolveSegment(roots, a, b, c, d, tl, tu,delta);
 		tl = turns[i];
 	}
-	tu = max;
-	CubicSolveSegment(roots, a, b, c, d, tl, tu,delta);
+	if (tu < max)
+	{
+		tu = max;
+		CubicSolveSegment(roots, a, b, c, d, tl, tu,delta);
+	}
 	return roots;
 }
 

@@ -382,7 +382,14 @@ void BezierRenderer::RenderUsingGPU(unsigned first_obj_id, unsigned last_obj_id)
 	if (m_indexes.empty()) return;
 
 	unsigned first_index = 0;
-	while (m_indexes.size() > first_index && m_indexes[first_index] < first_obj_id) first_index ++;
+	while (m_indexes.size() > first_index && m_indexes[first_index] < first_obj_id)
+	{
+		unsigned new_index = (first_index + first_obj_id) / 2;
+		if (new_index < m_indexes.size() && m_indexes[new_index] < first_obj_id)
+			first_index = new_index;
+		else
+			first_index ++;
+	}
 	unsigned last_index = first_index;
 	while (m_indexes.size() > last_index && m_indexes[last_index] < last_obj_id) last_index ++;
 

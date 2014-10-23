@@ -41,7 +41,7 @@ extern void Backtrace(int size=10);
 
 
 extern void LogEx(int level, const char * funct, const char * file, int line,  ...); // General function for printing log messages to stderr
-extern void FatalEx(const char * funct, const char * file, int line, ...); // Function that deals with a fatal error (prints a message, then exits the program).
+extern void FatalEx(const char * funct, const char * file, int line, ...) __attribute__((__noreturn__)); // Function that deals with a fatal error (prints a message, then exits the program).
 
 #endif //_LOG_H
 

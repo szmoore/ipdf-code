@@ -1,10 +1,10 @@
 # Script for the turtles video
 gpu
 lazy
-#debugfont off
+
 
 # Wait to start video
-loop 1000 wait
+# loop 1000 wait
 
 #Load first turtle...
 loadsvg svg-tests/turtle.svg

@@ -1,4 +1,5 @@
 #include "debugscript.h"
+#include "profiler.h"
 
 #include <string>
 
@@ -185,6 +186,16 @@ void DebugScript::ParseAction(View * view, Screen * scr)
 	{
 		currentAction.type = AT_PrintBounds;
 	}
+	else if (actionType == "profileon")
+	{
+		currentAction.type = AT_ProfileDisplay;
+		currentAction.iz = 1;
+	}
+	else if (actionType == "profileoff")
+	{
+		currentAction.type = AT_ProfileDisplay;
+		currentAction.iz = 0;
+	}
 	else
 		Fatal("Unknown action %s", actionType.c_str());
 
@@ -240,12 +251,21 @@ bool DebugScript::Execute(View *view, Screen *scr)
 		break;
 	case AT_LoadSVG:
 	{
+#ifndef QUADTREE_DISABLED
+		view->Doc().SetQuadtreeInsertNode(view->GetCurrentQuadtreeNode());
+#endif
 		#ifdef TRANSFORM_OBJECTS_NOT_VIEW
 			view->Doc().LoadSVG(currentAction.textargs, Rect(Real(1)/Real(2),Real(1)/Real(2),Real(1)/Real(800),Real(1)/Real(600)));	
 		#else
 			const Rect & bounds = view->GetBounds();
 			view->Doc().LoadSVG(currentAction.textargs, Rect(bounds.x+bounds.w/Real(2),bounds.y+bounds.h/Real(2),bounds.w/Real(800),bounds.h/Real(600)));
 		#endif
+#ifndef QUADTREE_DISABLED
+		view->Doc().PropagateQuadChanges(view->GetCurrentQuadtreeNode());
+		view->Doc().PropagateQuadChanges(view->Doc().GetQuadTree().GetNeighbour(view->GetCurrentQuadtreeNode(), 0, 1, 0));
+		view->Doc().PropagateQuadChanges(view->Doc().GetQuadTree().GetNeighbour(view->GetCurrentQuadtreeNode(), 1, 0, 0));
+		view->Doc().PropagateQuadChanges(view->Doc().GetQuadTree().GetNeighbour(view->GetCurrentQuadtreeNode(), 1, 1, 0));
+#endif
 		currentAction.type = AT_WaitFrame;
 		view->ForceRenderDirty();
 		view->ForceBufferDirty();
@@ -399,6 +419,11 @@ bool DebugScript::Execute(View *view, Screen *scr)
 	case AT_PrintBounds:
 	{
 		printf("%s\t%s\t%s\t%s\t%s\t%s\n", Str(view->GetBounds().x).c_str(), Str(view->GetBounds().y).c_str(), Str(view->GetBounds().w).c_str(), Str(view->GetBounds().h).c_str(), Str(Log10(view->GetBounds().w)).c_str(), Str(Log10(view->GetBounds().h)).c_str());
+		break;
+	}
+	case AT_ProfileDisplay:
+	{
+		g_profiler.Enable(currentAction.iz);
 		break;
 	}
 	default:

@@ -44,6 +44,7 @@ namespace IPDF
 		QuadTreeIndex next_overlay;
 		// First object which has not yet been propagated to extant children/parent.
 		unsigned object_dirty;
+		bool render_dirty;
 	};
 
 	struct QuadTree
@@ -53,6 +54,7 @@ namespace IPDF
 		std::vector<QuadTreeNode> nodes;
 
 		QuadTreeIndex GetNeighbour(QuadTreeIndex start, int xdir, int ydir, Document *doc) const;
+		void GetCanonicalCoords(QuadTreeIndex& start, Real& x, Real& y, Document *doc);
 
 	};
 
